@@ -1,7 +1,8 @@
 const {
   PRODUCT_SECTIONS_CORRECT_REGEX,
   PRODUCT_SECTIONS_CORRECT_MAP,
-  SPECIAL_NAME_CASES
+  SPECIAL_NAME_CASES,
+  DEFAULT_PROFIT
 } = require('../utils/constants');
 const { sectionsData } = require("../utils/sectionsData");
 
@@ -49,7 +50,7 @@ function processSheetItems(sheetItems) {
     const newItem = {
       code: CODIGO,
       description: DESCRIPCIÓN,
-      price: PRECIO,
+      price: PRECIO * (1 + (DEFAULT_PROFIT / 100) ),
       barcode: generateEAN13(codeStr)
     };
 

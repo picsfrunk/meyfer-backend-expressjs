@@ -13,6 +13,7 @@ const getParsedProducts = async (req, res) => {
 
     const parsedSections = processSheetItems(sheetItems);
     res.json(parsedSections);
+    
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Error al procesar el archivo', details: error.message });

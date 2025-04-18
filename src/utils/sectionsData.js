@@ -1,4 +1,4 @@
-export const sectionsData = [
+const sectionsData = [
   {
     id: 0,
     title: 'Abrazaderas',
@@ -36,3 +36,5 @@ export const sectionsData = [
     products: []
   },
 ];
+
+module.exports = { sectionsData };
