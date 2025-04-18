@@ -6,7 +6,7 @@ const {
 } = require('../utils/constants');
 const { sectionsData } = require("../utils/sectionsData");
 
-const { getProductPrefix, getProductPrefix1word } = require('../utils/helpers').default;
+const { getProductPrefix, getProductPrefix1word } = require('../utils/helpers');
 const { generateEAN13 } = require('./barcode.service');
 
 function processSheetItems(sheetItems) {

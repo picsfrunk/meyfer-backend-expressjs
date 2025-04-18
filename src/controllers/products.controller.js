@@ -12,6 +12,7 @@ const getParsedProducts = async (req, res) => {
     const sheetItems = XLSX.utils.sheet_to_json(worksheet, { raw: true, range: 15 });
 
     const parsedSections = processSheetItems(sheetItems);
+
     res.json(parsedSections);
     
   } catch (error) {

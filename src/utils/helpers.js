@@ -6,7 +6,7 @@ function getProductPrefix1word(description) {
   return description.split(/\s+/)[0];
 }
 
-export default {
+module.exports = {
   getProductPrefix,
   getProductPrefix1word
 };
