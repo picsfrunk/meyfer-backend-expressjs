@@ -1,8 +1,20 @@
 const axios = require('axios');
 const XLSX = require('xlsx');
 const { processSheetItems } = require('../services/parser.service');
+const Section = require('../models/Sections');
 
-const getParsedProducts = async (req, res) => {
+// GET: obtener las secciones desde MongoDB
+const getSectionsFromDb = async (req, res) => {
+  try {
+    const sections = await Section.find();
+    res.json(sections);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al consultar MongoDB', details: error.message });
+  }
+};
+
+// POST: actualizar MongoDB con nuevos datos desde el XLS
+const updateSectionsFromXls = async (req, res) => {
   try {
     const url = 'https://rhcomercial.com.ar/lista/listadepreciosrh.xls';
     const response = await axios.get(url, { responseType: 'arraybuffer' });
@@ -12,12 +24,18 @@ const getParsedProducts = async (req, res) => {
     const sheetItems = XLSX.utils.sheet_to_json(worksheet, { raw: true, range: 15 });
 
     const parsedSections = processSheetItems(sheetItems);
-    res.json(parsedSections);
-    
+
+    await Section.deleteMany(); // Limpia los datos anteriores
+    await Section.insertMany(parsedSections); // Guarda los nuevos
+
+    res.status(200).json({ message: 'Catálogo actualizado correctamente' });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Error al procesar el archivo', details: error.message });
+    res.status(500).json({ error: 'Error al actualizar catálogo', details: error.message });
   }
 };
 
-module.exports = { getParsedProducts };
+module.exports = {
+  getParsedProducts: getSectionsFromDb,
+  updateParsedProducts: updateSectionsFromXls,
+};
