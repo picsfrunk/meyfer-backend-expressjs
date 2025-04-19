@@ -29,6 +29,7 @@ const updateSectionsFromXls = async (req, res) => {
     await Section.insertMany(parsedSections); // Guarda los nuevos
 
     res.status(200).json({ message: 'Catálogo actualizado correctamente' });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Error al actualizar catálogo', details: error.message });
