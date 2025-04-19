@@ -38,7 +38,6 @@ function processSheetItems(sheetItems) {
     if (!productMap.has(productName)) {
       productMap.set(productName, {
         name: productName,
-        image: '',
         items: []
       });
       section.products.push(productMap.get(productName));
@@ -58,8 +57,10 @@ function processSheetItems(sheetItems) {
     product.items.sort((a, b) => a.code - b.code);
   }
   console.log('Productos procesados:', productMap.size);
-
-  return Array.from(sectionMap.values());
+  
+  const result = Array.from(sectionMap.values());
+  console.log(result.map(s => ({ title: s.title, image: s.image })));
+  return result;
 }
 
 module.exports = { processSheetItems };
