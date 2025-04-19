@@ -14,6 +14,7 @@ const ProductSchema = new mongoose.Schema({
 
 const SectionSchema = new mongoose.Schema({
   title: String,
+  image: String,
   products: [ProductSchema],
 });
 
