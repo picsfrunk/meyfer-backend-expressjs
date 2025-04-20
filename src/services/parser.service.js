@@ -1,15 +1,4 @@
-const {
-  PRODUCT_SECTIONS_CORRECT_REGEX,
-  PRODUCT_SECTIONS_CORRECT_MAP,
-  SPECIAL_NAME_CASES,
-  DEFAULT_PROFIT
-} = require('../utils/constants');
-const { sectionsData } = require("../utils/sectionsData");
-
-const { getProductPrefix, getProductPrefix1word } = require('../utils/helpers');
-const { generateEAN13 } = require('./barcode.service');
-
-function processSheetItems(sheetItems) {
+function processSheetItems(sheetItems, profitMargin) {
   const sectionMap = new Map(sectionsData.map(section => [section.title[0], { ...section, products: [] }]));
   const productMap = new Map();
 
@@ -28,12 +17,12 @@ function processSheetItems(sheetItems) {
     if (!section) continue;
 
     const specialCase = SPECIAL_NAME_CASES.some(word =>
-      DESCRIPCIÓN.toUpperCase().includes(word.toUpperCase())
+        DESCRIPCIÓN.toUpperCase().includes(word.toUpperCase())
     );
 
     const productName = specialCase
-      ? getProductPrefix1word(DESCRIPCIÓN)
-      : getProductPrefix(DESCRIPCIÓN);
+        ? getProductPrefix1word(DESCRIPCIÓN)
+        : getProductPrefix(DESCRIPCIÓN);
 
     if (!productMap.has(productName)) {
       productMap.set(productName, {
@@ -49,18 +38,15 @@ function processSheetItems(sheetItems) {
     const newItem = {
       code: CODIGO,
       description: DESCRIPCIÓN,
-      price: PRECIO * (1 + (DEFAULT_PROFIT / 100) ),
+      price: PRECIO * (1 + (profitMargin / 100)),
       barcode: generateEAN13(codeStr)
     };
 
     product.items.push(newItem);
     product.items.sort((a, b) => a.code - b.code);
   }
-  console.log('Productos procesados:', productMap.size);
-  
-  const result = Array.from(sectionMap.values());
-  console.log(result.map(s => ({ title: s.title, image: s.image })));
-  return result;
+
+  return Array.from(sectionMap.values());
 }
 
 module.exports = { processSheetItems };

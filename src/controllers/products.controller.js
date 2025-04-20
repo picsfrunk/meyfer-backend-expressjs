@@ -1,7 +1,7 @@
 const axios = require('axios');
 const XLSX = require('xlsx');
 const { processSheetItems } = require('../services/parser.service');
-const Section = require('../models/Sections');
+const Section = require('../models/sections.model');
 
 // GET: obtener las secciones desde MongoDB
 const getSectionsFromDb = async (req, res) => {
