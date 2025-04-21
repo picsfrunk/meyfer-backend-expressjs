@@ -1,3 +1,8 @@
+const {sectionsData} = require("../utils/sectionsData");
+const {PRODUCT_SECTIONS_CORRECT_REGEX, PRODUCT_SECTIONS_CORRECT_MAP, SPECIAL_NAME_CASES} = require("../utils/constants");
+const {getProductPrefixSpecialCase, getProductPrefix} = require("../utils/helpers");
+const {generateEAN13} = require("./barcode.service");
+
 function processSheetItems(sheetItems, profitMargin) {
   const sectionMap = new Map(sectionsData.map(section => [section.title[0], { ...section, products: [] }]));
   const productMap = new Map();
@@ -21,7 +26,7 @@ function processSheetItems(sheetItems, profitMargin) {
     );
 
     const productName = specialCase
-        ? getProductPrefix1word(DESCRIPCIÓN)
+        ? getProductPrefixSpecialCase(DESCRIPCIÓN)
         : getProductPrefix(DESCRIPCIÓN);
 
     if (!productMap.has(productName)) {
@@ -45,6 +50,8 @@ function processSheetItems(sheetItems, profitMargin) {
     product.items.push(newItem);
     product.items.sort((a, b) => a.code - b.code);
   }
+  console.log('Productos procesados:', productMap.size);
+
 
   return Array.from(sectionMap.values());
 }
