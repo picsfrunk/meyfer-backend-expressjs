@@ -9,7 +9,7 @@ async function connectToDb() {
   console.log("conectando a: ",uri);
   try {
     await mongoose.connect(uri, {
-      dbName: process.env.DB_NAME || 'catalog',
+      dbName: process.env.DB_NAME || 'meyfer-catalog',
       authSource: "admin"
     });
     console.log(`MongoDB conectado a la base de datos: ${process.env.DB_NAME || 'catalog'}`);

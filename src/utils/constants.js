@@ -1,5 +1,5 @@
-const EXCEL_URL = "https://rhcomercial.com.ar/lista/listadepreciosrh.xls"
-const DEFAULT_PROFIT = 10
+const EXCEL_URL = "https://rhcomercial.com.ar/lista/listadepreciosrh.xls";
+const DEFAULT_PROFIT = 10;
 
 // Map para asginar manualmente ciertos productos que contengan la palabra
 // de la clave 1 y lo asigne al rubro de la clave 2
