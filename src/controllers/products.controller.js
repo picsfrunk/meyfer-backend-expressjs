@@ -1,42 +1,26 @@
-const axios = require('axios');
-const XLSX = require('xlsx');
-const { processSheetItems } = require('../services/parser.service');
-const Section = require('../models/sections.model');
+const ProductsService = require('../services/products.service');
 
-// GET: obtener las secciones desde MongoDB
-const getSectionsFromDb = async (req, res) => {
+
+const getParsedProducts = async (req, res) => {
   try {
-    const sections = await Section.find();
+    const sections = await ProductsService.getSections();
     res.json(sections);
   } catch (error) {
-    res.status(500).json({ error: 'Error al consultar MongoDB', details: error.message });
+    res.status(error.statusCode || 500).json({ error: error.message || 'Error del servidor', details: error.details });
   }
 };
 
-// POST: actualizar MongoDB con nuevos datos desde el XLS
-const updateSectionsFromXls = async (req, res) => {
+const updateParsedProducts = async (req, res) => {
   try {
-    const url = 'https://rhcomercial.com.ar/lista/listadepreciosrh.xls';
-    const response = await axios.get(url, { responseType: 'arraybuffer' });
-
-    const workbook = XLSX.read(response.data, { type: 'buffer' });
-    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-    const sheetItems = XLSX.utils.sheet_to_json(worksheet, { raw: true, range: 15 });
-
-    const parsedSections = processSheetItems(sheetItems);
-
-    await Section.deleteMany(); // Limpia los datos anteriores
-    await Section.insertMany(parsedSections); // Guarda los nuevos
-
-    res.status(200).json({ message: 'Catálogo actualizado correctamente' });
-
+    const result = await ProductsService.updateCatalogFromXls();
+    res.status(200).json(result);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Error al actualizar catálogo', details: error.message });
+    res.status(error.statusCode || 500).json({ error: error.message || 'Error al actualizar catálogo', details: error.details });
   }
 };
 
 module.exports = {
-  getParsedProducts: getSectionsFromDb,
-  updateParsedProducts: updateSectionsFromXls,
+  getParsedProducts,
+  updateParsedProducts,
 };

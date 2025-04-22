@@ -1,3 +1,4 @@
+const EXCEL_URL = "https://rhcomercial.com.ar/lista/listadepreciosrh.xls"
 const DEFAULT_PROFIT = 10
 
 // Map para asginar manualmente ciertos productos que contengan la palabra
@@ -48,6 +49,7 @@ const SPECIAL_NAME_CASES
 
 
 module.exports = {
+  EXCEL_URL,
   PRODUCT_SECTIONS_CORRECT_REGEX,
   PRODUCT_SECTIONS_CORRECT_MAP,
   SPECIAL_NAME_CASES,
