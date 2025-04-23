@@ -77,6 +77,7 @@ Accede a mongo-express en: `http://localhost:8081`
 - `POST /api/products` – Descarga el XLS remoto, lo parsea y actualiza MongoDB.
 - `GET /api/config/profit` – Devuelve el margen de ganancia.
 - `PUT /api/config/profit` – Actualiza el margen de ganancia.
+- `GET /api/config/last-update` – Devuelve la fecha en que se actualizó el catálogo.
 
 ## ☁️ Despliegue en Railway
 
