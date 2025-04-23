@@ -34,3 +34,13 @@ exports.setProfitMargin = async (margin) => {
         throw error;
     }
 };
+
+exports.getLastUpdateDate = async () => {
+    const configEntry = await Config.findOne({ key: 'last_update' });
+
+    if (!configEntry) {
+        return null;
+    }
+
+    return configEntry.value;
+};

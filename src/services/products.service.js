@@ -27,8 +27,14 @@ exports.updateCatalogFromXls = async () => {
 
         const parsedSections = processSheetItems(sheetItems, profit);
 
-        await Section.deleteMany(); // Limpia los datos anteriores
-        await Section.insertMany(parsedSections); // Guarda los nuevos
+        await Section.deleteMany();
+        await Section.insertMany(parsedSections);
+
+        await Config.findOneAndUpdate(
+            { key: 'last_update' },
+            { value: new Date() },
+            { upsert: true, new: true }
+        );
 
         return { message: 'Catálogo actualizado correctamente' };
 

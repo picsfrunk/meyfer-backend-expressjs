@@ -20,3 +20,18 @@ exports.setProfitMargin = async (req, res) => {
         res.status(error.statusCode || 400).json({ message: error.message || 'Error del servidor' });
     }
 };
+
+exports.getLastUpdateDate = async (req, res) => {
+    try {
+        const lastUpdate = await ConfigService.getLastUpdateDate();
+
+        if (!lastUpdate) {
+            return res.status(404).json({ message: 'No hay registro de actualización aún' });
+        }
+
+        res.json({ lastUpdate });
+    } catch (error) {
+        console.error('[getLastUpdateDate] Error:', error);
+        res.status(500).json({ message: 'Error al obtener la fecha de actualización' });
+    }
+};
