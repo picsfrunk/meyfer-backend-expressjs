@@ -1,4 +1,5 @@
-const DEFAULT_PROFIT = 10
+const EXCEL_URL = "https://rhcomercial.com.ar/lista/listadepreciosrh.xls";
+const DEFAULT_PROFIT = 10;
 
 // Map para asginar manualmente ciertos productos que contengan la palabra
 // de la clave 1 y lo asigne al rubro de la clave 2
@@ -48,6 +49,7 @@ const SPECIAL_NAME_CASES
 
 
 module.exports = {
+  EXCEL_URL,
   PRODUCT_SECTIONS_CORRECT_REGEX,
   PRODUCT_SECTIONS_CORRECT_MAP,
   SPECIAL_NAME_CASES,
