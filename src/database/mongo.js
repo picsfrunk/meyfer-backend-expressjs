@@ -6,7 +6,6 @@ const uri = process.env.NODE_ENV === 'production'
     : process.env.MONGODB_URI_DEV;
 
 async function connectToDb() {
-  console.log("conectando a: ",uri);
   try {
     await mongoose.connect(uri, {
       dbName: process.env.DB_NAME || 'meyfer-catalog',
