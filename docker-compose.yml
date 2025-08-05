@@ -3,7 +3,7 @@ services:
     container_name: mongodb-dev
     image: mongo:latest
     ports:
-      - "27017:27017"
+      - "27018:27017"
     volumes:
       - mongodb_data_dev:/data/db
     environment:
@@ -12,6 +12,7 @@ services:
       - MONGO_INITDB_DATABASE=meyfer-catalog
     networks:
       - meyfer-network
+
 
   mongo-express:
     container_name: mongo-express
