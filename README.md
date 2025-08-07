@@ -90,5 +90,14 @@ Accede a mongo-express en: `http://localhost:8081`
 
 ---
 
+
+### Commit [`d17c32f`](https://github.com/picsfrunk/meyfer-backend-expressjs/commit/d17c32fa556a603270a686399bfbe7a853e2298c)
+**feat: endpoint para disparar scraper de productos**
+
+- Se agregó un endpoint POST `/api/products/scrape` que permite iniciar, desde el backend, el proceso de scraping en el microservicio scraper.
+- El endpoint recibe los parámetros necesarios para el tipo de scrapeo (`categoryScraper` o `sitemapScraper`) y los reenvía al microservicio, agregando automáticamente la URL de webhook.
+- El backend ahora se encarga de orquestar la comunicación entre el frontend y el scraper, centralizando la lógica y facilitando el manejo de notificaciones a través del webhook.
+- Mejoras en la estructura del service y controller para robustecer la comunicación y manejo de errores al disparar el proceso de scraping.
+
 Desarrollado por Alejandro Daniel Nava
 [alejannava@gmail.com](mailto:alejannava@gmail.com)
