@@ -20,7 +20,21 @@ const updateParsedProducts = async (req, res) => {
   }
 };
 
+const triggerScraper = async (req, res) => {
+  const { scraperType, ...params } = req.body;
+  try {
+    const result = await ProductsService.runScraper(scraperType, params);
+    res.status(202).json({ message: 'Scraper iniciado', scraperType, result });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      error: error.message || 'Error al ejecutar scraper',
+      details: error.details
+    });
+  }
+};
+
 module.exports = {
   getParsedProducts,
   updateParsedProducts,
+  triggerScraper,
 };
