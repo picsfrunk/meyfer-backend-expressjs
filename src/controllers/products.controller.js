@@ -1,11 +1,4 @@
 const ProductsService = require('../services/products.service');
-const mongoose = require('mongoose');
-
-// Modelo dinámico para la colección scraped-products
-const ScrapedProduct = mongoose.model(
-  'ScrapedProduct',
-  new mongoose.Schema({}, { strict: false, collection: 'scraped-products' })
-);
 
 const getParsedProducts = async (req, res) => {
   try {
@@ -39,25 +32,14 @@ const triggerScraper = async (req, res) => {
   }
 };
 
-// Nuevo endpoint paginado para productos scrapeados
 const getScrapedProducts = async (req, res) => {
   try {
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 20;
-    const skip = (page - 1) * limit;
 
-    const [products, total] = await Promise.all([
-      ScrapedProduct.find().skip(skip).limit(limit),
-      ScrapedProduct.countDocuments()
-    ]);
+    const result = await ProductsService.getPaginatedScrapedProducts(page, limit);
 
-    res.json({
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-      products
-    });
+    res.json(result);
   } catch (err) {
     res.status(500).json({ error: 'Error fetching scraped products', details: err.message });
   }
