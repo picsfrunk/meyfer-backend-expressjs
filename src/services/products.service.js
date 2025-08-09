@@ -43,3 +43,31 @@ exports.updateCatalogFromXls = async () => {
         throw { statusCode: 500, message: 'Error al actualizar el catálogo', details: error.message };
     }
 };
+exports.runScraper = async (scraperType, params = {}) => {
+    try {
+        let scraperUrl;
+        let payload = { ...params };
+
+        payload.webhookUrl = process.env.WEBHOOK_URL;
+
+        switch (scraperType) {
+            case 'categoryScraper':
+                scraperUrl = process.env.CATEGORY_SCRAPER_URL;
+                break;
+            case 'sitemapScraper':
+                scraperUrl = process.env.SITEMAP_SCRAPER_URL;
+                break;
+            default:
+                throw { statusCode: 400, message: 'Tipo de scraper inválido' };
+        }
+
+        const response = await axios.post(scraperUrl, payload);
+        return response.data;
+    } catch (error) {
+        throw {
+            statusCode: error.response?.status || 500,
+            message: error.message,
+            details: error.response?.data || null
+        };
+    }
+};

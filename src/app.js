@@ -4,9 +4,15 @@ const morgan = require('morgan');
 const { connectToDb } = require('./database/mongo');
 const productRoutes = require('./routes/products.route');
 const configRoutes = require('./routes/config.route');
+const webhookRoutes = require("./routes/webhook.route");
 
 const app = express();
 
+const allowedOrigin = process.env.CORS_ORIGIN || 'http://localhost:3000';
+
+// app.use(cors({
+//     origin: allowedOrigin
+// }));
 app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
@@ -14,6 +20,7 @@ app.use(morgan('dev'));
 
 app.use('/api/products', productRoutes);
 app.use('/api/config', configRoutes);
+app.use('/api/webhook', webhookRoutes);
 
 
 connectToDb()
