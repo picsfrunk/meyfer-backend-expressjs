@@ -1,6 +1,5 @@
 const ProductsService = require('../services/products.service');
 
-
 const getParsedProducts = async (req, res) => {
   try {
     const sections = await ProductsService.getSections();
@@ -34,8 +33,22 @@ const triggerScraper = async (req, res) => {
   }
 };
 
+const getScrapedProducts = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 20;
+
+    const result = await ProductsService.getPaginatedScrapedProducts(page, limit);
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Error fetching scraped products', details: err.message });
+  }
+};
+
 module.exports = {
   getParsedProducts,
   updateParsedProducts,
   triggerScraper,
+  getScrapedProducts,
 };
