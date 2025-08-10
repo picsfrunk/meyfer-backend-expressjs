@@ -22,7 +22,6 @@ const updateParsedProducts = async (req, res) => {
 
 const triggerScraper = async (req, res) => {
   const { scraperType, ...params } = req.body;
-  console.log(params);
   try {
     const result = await ProductsService.runScraper(scraperType, params);
     res.status(202).json({ message: 'Scraper iniciado', scraperType, result });
