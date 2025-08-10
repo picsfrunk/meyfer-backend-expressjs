@@ -4,6 +4,7 @@ const { EXCEL_URL, DEFAULT_PROFIT} = require("../utils/constants");
 const { processSheetItems } = require('./parser.service');
 const Section = require('../models/sections.model');
 const Config = require('../models/config.model');
+const ScrapedProduct = require('../models/products.model');
 
 exports.getSections = async () => {
     try {
@@ -70,4 +71,21 @@ exports.runScraper = async (scraperType, params = {}) => {
             details: error.response?.data || null
         };
     }
+};
+
+exports.getPaginatedScrapedProducts = async (page = 1, limit = 20) => {
+    const skip = (page - 1) * limit;
+
+    const [products, total] = await Promise.all([
+        ScrapedProduct.find().skip(skip).limit(limit),
+        ScrapedProduct.countDocuments()
+    ]);
+
+    return {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        products
+    };
 };
