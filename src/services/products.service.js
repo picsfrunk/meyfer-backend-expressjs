@@ -73,12 +73,17 @@ exports.runScraper = async (scraperType, params = {}) => {
     }
 };
 
-exports.getPaginatedScrapedProducts = async (page = 1, limit = 20) => {
+exports.getPaginatedScrapedProducts = async (page = 1, limit = 20, categoryId = null) => {
     const skip = (page - 1) * limit;
 
+    const filter = {};
+    if (categoryId) {
+        filter.category_id = categoryId;
+    }
+
     const [products, total] = await Promise.all([
-        ScrapedProduct.find().skip(skip).limit(limit),
-        ScrapedProduct.countDocuments()
+        ScrapedProduct.find(filter).skip(skip).limit(limit),
+        ScrapedProduct.countDocuments(filter)
     ]);
 
     return {
