@@ -73,12 +73,30 @@ exports.runScraper = async (scraperType, params = {}) => {
     }
 };
 
-exports.getPaginatedScrapedProducts = async (page = 1, limit = 20) => {
+exports.getPaginatedScrapedProducts = async (page = 1,
+                                             limit = 20,
+                                             categoryId = null,
+                                             searchKeyword = null) => {
     const skip = (page - 1) * limit;
 
+    const filter = {};
+    if (categoryId) {
+        filter.category_id = categoryId;
+    }
+
+    if (searchKeyword) {
+        // Usa el operador $text con la palabra clave
+        filter.$text = { $search: searchKeyword };
+    }
+
+    const projection = searchKeyword ? { score: { $meta: "textScore" } } : {};
+    const sort = searchKeyword ? { score: { $meta: "textScore" } } : { _id: 1 }; // O el orden que prefieras
+
+
+
     const [products, total] = await Promise.all([
-        ScrapedProduct.find().skip(skip).limit(limit),
-        ScrapedProduct.countDocuments()
+        ScrapedProduct.find(filter, projection).skip(skip).limit(limit).sort(sort),
+        ScrapedProduct.countDocuments(filter)
     ]);
 
     return {

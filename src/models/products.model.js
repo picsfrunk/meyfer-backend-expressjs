@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
-const ScrapedProductSchema =
-    new mongoose.Schema({}, { strict: false, collection: 'scraped-products' });
+const scrapedProductSchema =
+    new mongoose.Schema({
+        display_name: { type: String, required: true },
+    }, { strict: false, collection: 'scraped-products' });
 
-module.exports = mongoose.model('ScrapedProduct', ScrapedProductSchema);
+scrapedProductSchema.index({ display_name: 'text' });
+
+module.exports = mongoose.model('ScrapedProduct', scrapedProductSchema);
