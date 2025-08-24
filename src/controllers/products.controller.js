@@ -1,4 +1,5 @@
 const ProductsService = require('../services/products.service');
+const sleep = require('../utils/sleep');
 
 const getParsedProducts = async (req, res) => {
   try {
@@ -34,6 +35,7 @@ const triggerScraper = async (req, res) => {
 
 const getScrapedProducts = async (req, res) => {
   try {
+    await sleep(3000)
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 20;
 
