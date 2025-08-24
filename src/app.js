@@ -5,6 +5,7 @@ const { connectToMongo } = require('./database/mongo');
 const productRoutes = require('./routes/products.route');
 const configRoutes = require('./routes/config.route');
 const webhookRoutes = require("./routes/webhook.route");
+const categoryRoutes = require("./routes/category.route")
 
 const app = express();
 
@@ -26,7 +27,7 @@ app.use(morgan('dev'));
 app.use('/api/products', productRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/webhook', webhookRoutes);
-
+app.use('/api/categories', categoryRoutes);
 
 connectToMongo()
   .then(() => {
