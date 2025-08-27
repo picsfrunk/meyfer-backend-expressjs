@@ -33,18 +33,25 @@ const triggerScraper = async (req, res) => {
   }
 };
 
-const getScrapedProducts = async (req, res) => {
-  try {
-    await sleep(3000)
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 20;
+const getScrapedProducts = async (req, res, next) => {
+    try {
+        await sleep(3000)
 
-    const result = await ProductsService.getPaginatedScrapedProducts(page, limit);
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = parseInt(req.query.limit, 10) || 20;
+        const categoryId = parseInt(req.query.category_id);
+        const searchKeyword = req.query.search;
 
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ error: 'Error fetching scraped products', details: err.message });
-  }
+        const result = await ProductsService.getPaginatedScrapedProducts(
+            page,
+            limit,
+            categoryId,
+            searchKeyword);
+
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: 'Error fetching scraped products', details: err.message });
+    }
 };
 
 module.exports = {
