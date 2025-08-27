@@ -4,12 +4,12 @@ const OrderModel = require('../models/order.model');
 class OrdersService {
     static async handleNewOrder(orderData) {
         // Generar order_id personalizado
-        const orderId = await generateOrderId(orderData.customerInfo?.cliente);
+        const order_id = await generateOrderId(orderData.customerInfo?.cliente);
 
         // Crear documento en DB
         const orderDoc = await OrderModel.create({
             ...orderData,
-            order_id: orderId
+            order_id: order_id
         });
 
         // Aquí podrían agregarse futuras acciones (mail, WhatsApp, workflow)
