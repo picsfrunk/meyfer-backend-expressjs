@@ -1,28 +1,25 @@
-const OrderModel = require('../models/order.model'); // MongoDB model
-// Aquí luego inyectar otros servicios: emailService, whatsappService, etc.
+const {generateOrderId} = require("../utils/generateOrderId");
+const OrderModel = require('../models/order.model');
 
 class OrdersService {
-    /**
-     * Maneja un pedido nuevo y orquesta todas las acciones necesarias
-     */
     static async handleNewOrder(orderData) {
-        // 1️⃣ Guardar en la base de datos
-        const orderDoc = await OrderModel.create(orderData);
+        // Generar order_id personalizado
+        const orderId = await generateOrderId(orderData.customerInfo?.cliente);
 
-        // 2️⃣ Acciones adicionales (simuladas)
+        // Crear documento en DB
+        const orderDoc = await OrderModel.create({
+            ...orderData,
+            order_id: orderId
+        });
+
+        // Aquí podrían agregarse futuras acciones (mail, WhatsApp, workflow)
         // await EmailService.sendOrderNotification(orderDoc);
-        // await WhatsAppService.sendOrderNotification(orderDoc);
-        // await OtherService.triggerWorkflow(orderDoc);
 
         return {
-            orderId: orderDoc._id.toString(),
+            order_id: orderDoc.order_id,
             order: orderDoc
         };
     }
-
-    // Luego podés agregar métodos para:
-    // static async getAllOrders() {}
-    // static async getOrderById(id) {}
 }
 
 module.exports = OrdersService;
