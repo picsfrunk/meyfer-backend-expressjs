@@ -11,7 +11,7 @@ class OrdersController {
             const result = await OrdersService.handleNewOrder(orderData);
 
             res.status(201).json({
-                orderId: result.order_id,
+                orderId: result.orderId,
                 status: 'success',
                 message: 'Pedido recibido correctamente'
             });

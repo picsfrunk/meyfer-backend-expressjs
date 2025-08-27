@@ -12,7 +12,7 @@ async function getNextOrderNumber() {
 }
 
 /**
- * Genera el order_id completo:
+ * Genera el orderId completo:
  * <numero autoincremental>-<3 primeras letras cliente>-<YYYYMMDD>
  */
 async function generateOrderId(customerName) {
