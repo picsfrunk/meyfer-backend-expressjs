@@ -6,7 +6,7 @@ const Section = require('../models/sections.model');
 const Config = require('../models/config.model');
 const ScrapedProduct = require('../models/products.model');
 
-exports.getSections = async () => {
+const getSections = async () => {
     try {
         return await Section.find();
     } catch (error) {
@@ -15,7 +15,7 @@ exports.getSections = async () => {
     }
 };
 
-exports.updateCatalogFromXls = async () => {
+const updateCatalogFromXls = async () => {
     try {
         const response = await axios.get(EXCEL_URL, { responseType: 'arraybuffer' });
 
@@ -44,7 +44,7 @@ exports.updateCatalogFromXls = async () => {
         throw { statusCode: 500, message: 'Error al actualizar el catálogo', details: error.message };
     }
 };
-exports.runScraper = async (scraperType, params = {}) => {
+const runScraper = async (scraperType, params = {}) => {
     try {
         let scraperUrl;
         let payload = { ...params };
@@ -73,7 +73,7 @@ exports.runScraper = async (scraperType, params = {}) => {
     }
 };
 
-exports.getPaginatedScrapedProducts = async (page = 1,
+const getPaginatedScrapedProducts = async (page = 1,
                                              limit = 20,
                                              categoryId = null,
                                              searchKeyword = null) => {
@@ -107,3 +107,19 @@ exports.getPaginatedScrapedProducts = async (page = 1,
         products
     };
 };
+
+const getScrapedProductById = async (id) => {
+    try {
+        return await ScrapedProduct.findOne({product_id: id}).exec();
+    } catch (error) {
+        throw new Error(`Error al obtener el producto con product_id ${id}: ${error.message}`);
+    }
+};
+
+module.exports = {
+    updateCatalogFromXls,
+    runScraper,
+    getPaginatedScrapedProducts,
+    getScrapedProductById,
+    getSections
+}
