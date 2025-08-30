@@ -51,9 +51,26 @@ const getScrapedProducts = async (req, res, next) => {
     }
 };
 
+const getScrapedProductById  = async (req, res, next) => {
+    try {
+        const id = req.params.id;
+
+        const product = await ProductsService.getScrapedProductById(parseInt(id));
+
+        if (!product) {
+            return res.status(404).json({ message: "Producto no encontrado" });
+        }
+
+        res.status(200).json(product);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al buscar el producto', details: error.message });
+    }
+}
+
 module.exports = {
-  getParsedProducts,
-  updateParsedProducts,
-  triggerScraper,
-  getScrapedProducts,
+    getParsedProducts,
+    updateParsedProducts,
+    triggerScraper,
+    getScrapedProducts,
+    getScrapedProductById
 };
