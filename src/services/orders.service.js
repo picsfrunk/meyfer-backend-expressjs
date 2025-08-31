@@ -1,6 +1,8 @@
 const { generateOrderId } = require("../utils/generateOrderId");
 const OrderModel = require('../models/order.model');
-const {sendOrderNotificationToAdmin} = require("./email.service");
+const {sendOrderNotificationToAdmin,
+    sendOrderConfirmationToCustomer
+} = require("./email.service");
 
 class OrdersService {
     static async handleNewOrder(orderData) {
@@ -13,8 +15,8 @@ class OrdersService {
 
         Promise.allSettled([
             sendOrderNotificationToAdmin(orderDoc),
-            // si querés activar confirmación al cliente:
-            // sendOrderConfirmationToCustomer(orderDoc)
+            sendOrderConfirmationToCustomer(orderDoc)
+
         ]).then(results => {
             results.forEach((r, i) => {
                 if (r.status === 'rejected') {

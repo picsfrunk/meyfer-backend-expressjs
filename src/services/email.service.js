@@ -1,4 +1,3 @@
-// src/services/email.service.js
 const nodemailer = require('nodemailer');
 
 const {
@@ -22,7 +21,7 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// útil para diagnóstico al boot
+// para diagnóstico al boot
 async function verifyTransporter() {
     try {
         await transporter.verify();
@@ -45,9 +44,10 @@ function fmt(amount) {
     }
 }
 
-// Template simple (podés moverlo a un .html si querés)
 function buildOrderHtml(order) {
-    const { order_id, customerInfo = {}, cartItems = [], total, totalItems } = order;
+    const { orderId, customerInfo = {}, cartItems = [], total, totalItems } = order;
+    const direccion = customerInfo?.direccion || {};
+
     const itemsHtml = cartItems.map(ci => {
         const p = ci.productCartItem || {};
         return `
@@ -62,15 +62,34 @@ function buildOrderHtml(order) {
 
     return `
     <div style="font-family:Arial,Helvetica,sans-serif">
-      <h2>Nuevo pedido #${order_id}</h2>
-      <p><strong>Cliente:</strong> ${customerInfo?.cliente || '-'}</p>
-      <p><strong>Email:</strong> ${customerInfo?.email || '-'}</p>
-      <p><strong>Tel:</strong> ${customerInfo?.telefono1 || '-'}</p>
+      <h2>Nuevo pedido #${orderId}</h2>
 
-      <h3>Resumen</h3>
+      <h3>Datos del cliente</h3>
+      <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; width:100%; margin-bottom:16px;">
+        <tbody>
+          <tr><td><strong>Cliente</strong></td><td>${customerInfo?.cliente || '-'}</td></tr>
+          <tr><td><strong>Razón social</strong></td><td>${customerInfo?.razonSocial || '-'}</td></tr>
+          <tr><td><strong>CUIT</strong></td><td>${customerInfo?.cuit || '-'}</td></tr>
+          <tr><td><strong>Contacto</strong></td><td>${customerInfo?.contacto || '-'}</td></tr>
+          <tr><td><strong>Email</strong></td><td>${customerInfo?.email || '-'}</td></tr>
+          <tr><td><strong>Teléfono</strong></td><td>${customerInfo?.telefono1 || '-'}</td></tr>
+          <tr><td><strong>Dirección</strong></td>
+            <td>
+              ${direccion.calle || '-'} ${direccion.numero || ''}<br/>
+              Piso: ${direccion.piso || '-'} &nbsp; Timbre: ${direccion.timbre || '-'}<br/>
+              Entre calles: ${direccion.entreCalles || '-'}<br/>
+              Localidad: ${direccion.localidad || '-'} &nbsp; Partido: ${direccion.partido || '-'}
+            </td>
+          </tr>
+          <tr><td><strong>Horarios</strong></td><td>${customerInfo?.horarios || '-'}</td></tr>
+          <tr><td><strong>Notas</strong></td><td>${customerInfo?.notas || '-'}</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Resumen del pedido</h3>
       <p><strong>Ítems:</strong> ${totalItems} &nbsp; | &nbsp; <strong>Total:</strong> ${fmt(total)}</p>
 
-      <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; width:100%;">
+      <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; width:100%; margin-top:8px;">
         <thead>
           <tr>
             <th style="text-align:left">ID</th>
@@ -89,10 +108,9 @@ function buildOrderHtml(order) {
   `;
 }
 
-// Enviar notificación interna (a administración)
 async function sendOrderNotificationToAdmin(order) {
     const html = buildOrderHtml(order);
-    const subject = `Nuevo pedido #${order.order_id} - ${order?.customerInfo?.cliente || ''}`;
+    const subject = `Nuevo pedido #${order.orderId} - ${order?.customerInfo?.cliente || ''}`;
 
     const info = await transporter.sendMail({
         from: MAIL_FROM,
@@ -104,7 +122,6 @@ async function sendOrderNotificationToAdmin(order) {
     return info;
 }
 
-// (Opcional) Enviar confirmación al cliente
 async function sendOrderConfirmationToCustomer(order) {
     const to = order?.customerInfo?.email;
     if (!to) return null;
@@ -112,7 +129,7 @@ async function sendOrderConfirmationToCustomer(order) {
     const html = `
     <div style="font-family:Arial,Helvetica,sans-serif">
       <h2>¡Gracias por tu pedido!</h2>
-      <p>Tu número de pedido es <strong>${order.order_id}</strong>.</p>
+      <p>Tu número de pedido es <strong>${order.orderId}</strong>.</p>
       <p>Pronto nos estaremos contactando para coordinar la entrega.</p>
     </div>
   `;
@@ -120,7 +137,7 @@ async function sendOrderConfirmationToCustomer(order) {
     const info = await transporter.sendMail({
         from: MAIL_FROM,
         to,
-        subject: `Confirmación de pedido #${order.order_id}`,
+        subject: `Confirmación de pedido #${order.orderId}`,
         html
     });
 

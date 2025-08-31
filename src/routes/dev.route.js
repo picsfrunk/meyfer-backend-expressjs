@@ -5,7 +5,6 @@ const { sendOrderNotificationToAdmin } = require('../services/email.service');
 
 router.post('/test-email', async (req, res) => {
     try {
-        // payload mínimo simulado
         const order = {
             order_id: 'TEST-EMAIL-000',
             total: 1234.56,
