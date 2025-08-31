@@ -1,48 +1,46 @@
-const nodemailer = require('nodemailer');
+const Mailjet = require('node-mailjet');
 const buildOrderHtml = require("../utils/buildOrderHtml");
 
 const {
-    SMTP_HOST,
-    SMTP_PORT,
-    SMTP_SECURE,
-    SMTP_USER,
-    SMTP_PASS,
+    MJ_APIKEY_PUBLIC,
+    MJ_APIKEY_PRIVATE,
     MAIL_FROM,
+    MAIL_FROM_NAME,
     MAIL_TO_ADMIN,
-    LOCAL_CURRENCY = 'ARS'
 } = process.env;
 
-const transporter = nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: Number(SMTP_PORT || 587),
-    secure: String(SMTP_SECURE) === 'true', // true para 465
-    auth: {
-        user: SMTP_USER,
-        pass: SMTP_PASS
-    }
-});
-
-async function verifyTransporter() {
-    try {
-        await transporter.verify();
-        console.log('[mail] Transporter verificado OK');
-    } catch (err) {
-        console.error('[mail] Error verificando transporter:', err.message);
-    }
-}
+const mailjet = Mailjet.apiConnect(MJ_APIKEY_PUBLIC, MJ_APIKEY_PRIVATE);
 
 async function sendOrderNotificationToAdmin(order) {
     const html = buildOrderHtml(order);
     const subject = `Nuevo pedido #${order.orderId} - ${order?.customerInfo?.cliente || ''}`;
 
-    const info = await transporter.sendMail({
-        from: MAIL_FROM,
-        to: MAIL_TO_ADMIN,
-        subject,
-        html
-    });
+    try {
+        const result = await mailjet
+            .post("send", { version: "v3.1" })
+            .request({
+                Messages: [
+                    {
+                        From: {
+                            Email: MAIL_FROM,
+                            Name: MAIL_FROM_NAME || "Tienda",
+                        },
+                        To: [
+                            {
+                                Email: MAIL_TO_ADMIN,
+                            },
+                        ],
+                        Subject: subject,
+                        HTMLPart: html,
+                    },
+                ],
+            });
 
-    return info;
+        return result.body;
+    } catch (err) {
+        console.error("[mail] Error enviando notificación admin:", err.message);
+        throw err;
+    }
 }
 
 async function sendOrderConfirmationToCustomer(order) {
@@ -57,18 +55,35 @@ async function sendOrderConfirmationToCustomer(order) {
     </div>
   `;
 
-    const info = await transporter.sendMail({
-        from: MAIL_FROM,
-        to,
-        subject: `Confirmación de pedido #${order.orderId}`,
-        html
-    });
+    try {
+        const result = await mailjet
+            .post("send", { version: "v3.1" })
+            .request({
+                Messages: [
+                    {
+                        From: {
+                            Email: MAIL_FROM,
+                            Name: MAIL_FROM_NAME || "Tienda",
+                        },
+                        To: [
+                            {
+                                Email: to,
+                            },
+                        ],
+                        Subject: `Confirmación de pedido #${order.orderId}`,
+                        HTMLPart: html,
+                    },
+                ],
+            });
 
-    return info;
+        return result.body;
+    } catch (err) {
+        console.error("[mail] Error enviando confirmación al cliente:", err.message);
+        throw err;
+    }
 }
 
 module.exports = {
-    verifyTransporter,
     sendOrderNotificationToAdmin,
-    sendOrderConfirmationToCustomer
+    sendOrderConfirmationToCustomer,
 };
