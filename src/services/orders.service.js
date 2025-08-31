@@ -19,7 +19,7 @@ class OrdersService {
 
         ]).then(results => {
             results.forEach((r, i) => {
-                if (r.status === 'rejected') {
+                if (!r.success) {
                     console.error('[mail] Falló notificación', i, r.reason?.message || r.reason);
                 }
             });

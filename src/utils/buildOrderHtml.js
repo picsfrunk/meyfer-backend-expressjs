@@ -1,8 +1,5 @@
 const { LOCAL_CURRENCY = 'ARS' } = process.env;
 
-// Helper de formato de moneda
-const {sendOrderNotificationToAdmin} = require("../services/email.service");
-
 function fmt(amount) {
     try {
         return new Intl.NumberFormat('es-AR', {

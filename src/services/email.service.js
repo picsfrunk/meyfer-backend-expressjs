@@ -1,17 +1,19 @@
-const Mailjet = require('node-mailjet');
 const buildOrderHtml = require("../utils/buildOrderHtml");
+const { mailjet} = require("./MailJet.service");
 
 const {
-    MJ_APIKEY_PUBLIC,
-    MJ_APIKEY_PRIVATE,
     MAIL_FROM,
     MAIL_FROM_NAME,
     MAIL_TO_ADMIN,
 } = process.env;
 
-const mailjet = Mailjet.apiConnect(MJ_APIKEY_PUBLIC, MJ_APIKEY_PRIVATE);
 
 async function sendOrderNotificationToAdmin(order) {
+    if (!mailjet) {
+        console.warn("⚠️ Mailjet no disponible. No se envió el correo.");
+        return { success: false, error: "Mailjet no inicializado" };
+    }
+
     const html = buildOrderHtml(order);
     const subject = `Nuevo pedido #${order.orderId} - ${order?.customerInfo?.cliente || ''}`;
 
@@ -44,6 +46,11 @@ async function sendOrderNotificationToAdmin(order) {
 }
 
 async function sendOrderConfirmationToCustomer(order) {
+    if (!mailjet) {
+        console.warn("⚠️ Mailjet no disponible. No se envió el correo.");
+        return { success: false, error: "Mailjet no inicializado" };
+    }
+
     const to = order?.customerInfo?.email;
     if (!to) return null;
 
