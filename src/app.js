@@ -7,6 +7,10 @@ const configRoutes = require('./routes/config.route');
 const webhookRoutes = require("./routes/webhook.route");
 const categoryRoutes = require("./routes/category.route")
 const ordersRoutes = require("./routes/orders.route")
+const devRoutes = require('./routes/dev.route');
+
+
+const { verifyTransporter } = require('./services/email.service');
 
 const app = express();
 
@@ -30,6 +34,8 @@ app.use('/api/config', configRoutes);
 app.use('/api/webhook', webhookRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/orders', ordersRoutes);
+app.use('/api/dev', devRoutes);
+
 
 connectToMongo()
   .then(() => {
@@ -39,5 +45,7 @@ connectToMongo()
     console.error('🔴 Error al conectar a MongoDB', err);
     process.exit(1); 
   });
+
+verifyTransporter();
 
 module.exports = app;
