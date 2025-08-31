@@ -1,5 +1,6 @@
 const { generateOrderId } = require("../utils/generateOrderId");
 const OrderModel = require('../models/order.model');
+const {sendOrderNotificationToAdmin} = require("./email.service");
 
 class OrdersService {
     static async handleNewOrder(orderData) {
@@ -10,8 +11,19 @@ class OrdersService {
             orderId: await generateOrderId(orderData.customerInfo?.cliente)
         });
 
-        // Aquí podrían agregarse futuras acciones (mail, WhatsApp, workflow)
-        // await EmailService.sendOrderNotification(orderDoc);
+        Promise.allSettled([
+            sendOrderNotificationToAdmin(orderDoc),
+            // si querés activar confirmación al cliente:
+            // sendOrderConfirmationToCustomer(orderDoc)
+        ]).then(results => {
+            results.forEach((r, i) => {
+                if (r.status === 'rejected') {
+                    console.error('[mail] Falló notificación', i, r.reason?.message || r.reason);
+                }
+            });
+        }).catch(err => {
+            console.error('[mail] Error inesperado en notificaciones:', err.message);
+        });
 
         return {
             orderId: orderDoc.orderId,
