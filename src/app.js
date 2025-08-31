@@ -9,9 +9,6 @@ const categoryRoutes = require("./routes/category.route")
 const ordersRoutes = require("./routes/orders.route")
 const devRoutes = require('./routes/dev.route');
 
-
-const { verifyTransporter } = require('./services/email.service');
-
 const app = express();
 
 const allowedOrigin =
@@ -45,7 +42,5 @@ connectToMongo()
     console.error('🔴 Error al conectar a MongoDB', err);
     process.exit(1); 
   });
-
-verifyTransporter();
 
 module.exports = app;
