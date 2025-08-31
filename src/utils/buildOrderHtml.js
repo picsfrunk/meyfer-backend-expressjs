@@ -1,3 +1,5 @@
+const { LOCAL_CURRENCY = 'ARS' } = process.env;
+
 // Helper de formato de moneda
 const {sendOrderNotificationToAdmin} = require("../services/email.service");
 
