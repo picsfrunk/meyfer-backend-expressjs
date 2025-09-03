@@ -5,7 +5,7 @@ const uri = process.env.NODE_ENV === 'production'
     ? process.env.MONGODB_URI_PROD
     : process.env.MONGODB_URI_DEV;
 
-async function connectToDb() {
+async function connectToMongo() {
   try {
     await mongoose.connect(uri, {
       dbName: process.env.DB_NAME || 'meyfer-catalog',
@@ -17,4 +17,4 @@ async function connectToDb() {
   }
 }
 
-module.exports = { connectToDb };
+module.exports = { connectToMongo: connectToMongo };

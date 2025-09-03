@@ -1,19 +1,27 @@
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
-const { connectToDb } = require('./database/mongo');
+const { connectToMongo } = require('./database/mongo');
 const productRoutes = require('./routes/products.route');
 const configRoutes = require('./routes/config.route');
 const webhookRoutes = require("./routes/webhook.route");
+const categoryRoutes = require("./routes/category.route")
+const ordersRoutes = require("./routes/orders.route")
+const devRoutes = require('./routes/dev.route');
 
 const app = express();
 
-const allowedOrigin = process.env.CORS_ORIGIN || 'http://localhost:3000';
+const allowedOrigin =
+    process.env.NODE_ENV === 'production'
+        ? process.env.CORS_ORIGIN
+        : '*';
 
-// app.use(cors({
-//     origin: allowedOrigin
-// }));
-app.use(cors());
+app.use(cors({
+    origin: allowedOrigin,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
+}));
+
 app.use(express.json());
 app.use(morgan('dev'));
 
@@ -21,9 +29,12 @@ app.use(morgan('dev'));
 app.use('/api/products', productRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/webhook', webhookRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/orders', ordersRoutes);
+app.use('/api/dev', devRoutes);
 
 
-connectToDb()
+connectToMongo()
   .then(() => {
     console.log('🟢 Conectado a MongoDB');
   })

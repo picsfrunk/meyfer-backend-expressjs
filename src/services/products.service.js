@@ -4,8 +4,9 @@ const { EXCEL_URL, DEFAULT_PROFIT} = require("../utils/constants");
 const { processSheetItems } = require('./parser.service');
 const Section = require('../models/sections.model');
 const Config = require('../models/config.model');
+const ScrapedProduct = require('../models/products.model');
 
-exports.getSections = async () => {
+const getSections = async () => {
     try {
         return await Section.find();
     } catch (error) {
@@ -14,7 +15,7 @@ exports.getSections = async () => {
     }
 };
 
-exports.updateCatalogFromXls = async () => {
+const updateCatalogFromXls = async () => {
     try {
         const response = await axios.get(EXCEL_URL, { responseType: 'arraybuffer' });
 
@@ -43,7 +44,7 @@ exports.updateCatalogFromXls = async () => {
         throw { statusCode: 500, message: 'Error al actualizar el catálogo', details: error.message };
     }
 };
-exports.runScraper = async (scraperType, params = {}) => {
+const runScraper = async (scraperType, params = {}) => {
     try {
         let scraperUrl;
         let payload = { ...params };
@@ -71,3 +72,54 @@ exports.runScraper = async (scraperType, params = {}) => {
         };
     }
 };
+
+const getPaginatedScrapedProducts = async (page = 1,
+                                             limit = 20,
+                                             categoryId = null,
+                                             searchKeyword = null) => {
+    const skip = (page - 1) * limit;
+
+    const filter = {};
+    if (categoryId) {
+        filter.category_id = categoryId;
+    }
+
+    if (searchKeyword) {
+        // Usa el operador $text con la palabra clave
+        filter.$text = { $search: searchKeyword };
+    }
+
+    const projection = searchKeyword ? { score: { $meta: "textScore" } } : {};
+    const sort = searchKeyword ? { score: { $meta: "textScore" } } : { _id: 1 }; // O el orden que prefieras
+
+
+
+    const [products, total] = await Promise.all([
+        ScrapedProduct.find(filter, projection).skip(skip).limit(limit).sort(sort),
+        ScrapedProduct.countDocuments(filter)
+    ]);
+
+    return {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        products
+    };
+};
+
+const getScrapedProductById = async (id) => {
+    try {
+        return await ScrapedProduct.findOne({product_id: id}).exec();
+    } catch (error) {
+        throw new Error(`Error al obtener el producto con product_id ${id}: ${error.message}`);
+    }
+};
+
+module.exports = {
+    updateCatalogFromXls,
+    runScraper,
+    getPaginatedScrapedProducts,
+    getScrapedProductById,
+    getSections
+}
