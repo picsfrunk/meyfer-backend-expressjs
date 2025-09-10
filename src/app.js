@@ -8,6 +8,8 @@ const webhookRoutes = require("./routes/webhook.route");
 const categoryRoutes = require("./routes/category.route")
 const ordersRoutes = require("./routes/orders.route")
 const devRoutes = require('./routes/dev.route');
+const authRoutes = require('./routes/auth.route');
+const { authenticateAdmin } = require('./middlewares/auth.middleware');
 
 const app = express();
 
@@ -25,13 +27,13 @@ app.use(cors({
 app.use(express.json());
 app.use(morgan('dev'));
 
-
+app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
-app.use('/api/config', configRoutes);
+app.use('/api/config', authenticateAdmin, configRoutes);
 app.use('/api/webhook', webhookRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/orders', ordersRoutes);
-app.use('/api/dev', devRoutes);
+app.use('/api/dev', authenticateAdmin, devRoutes);
 
 
 connectToMongo()
