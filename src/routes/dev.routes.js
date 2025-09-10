@@ -1,4 +1,4 @@
-// src/routes/dev.route.js
+// src/routes/dev.routes.js
 const express = require('express');
 const router = express.Router();
 const { sendOrderNotificationToAdmin } = require('../services/email.service');
