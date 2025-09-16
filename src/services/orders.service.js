@@ -1,13 +1,13 @@
 const { generateOrderId } = require("../utils/generateOrderId");
 const OrderModel = require('../models/order.model');
-const {sendOrderNotificationToAdmin,
+const {
+    sendOrderNotificationToAdmin,
     sendOrderConfirmationToCustomer
 } = require("./email.service");
 
 class OrdersService {
-    static async handleNewOrder(orderData) {
 
-        // Crear documento en DB
+    static async handleNewOrder(orderData) {
         const orderDoc = await OrderModel.create({
             ...orderData,
             orderId: await generateOrderId(orderData.customerInfo?.cliente)
@@ -16,7 +16,6 @@ class OrdersService {
         Promise.allSettled([
             sendOrderNotificationToAdmin(orderDoc),
             sendOrderConfirmationToCustomer(orderDoc)
-
         ]).then(results => {
             results.forEach((r, i) => {
                 if (!r.success) {
@@ -31,6 +30,41 @@ class OrdersService {
             orderId: orderDoc.orderId,
             order: orderDoc
         };
+    }
+
+    /**
+     * Obtiene todos los pedidos (READ all)
+     */
+    static async getAllOrders() {
+        return OrderModel.find({});
+    }
+
+    /**
+     * Obtiene un pedido por su orderId (READ one)
+     */
+    static async getOrderById(orderId) {
+        return OrderModel.findOne({ orderId });
+    }
+
+    /**
+     * Actualiza un pedido completo (UPDATE)
+     */
+    static async updateOrder(orderId, updatedData) {
+        return OrderModel.findOneAndUpdate({ orderId }, updatedData, { new: true });
+    }
+
+    /**
+     * Elimina lógicamente un pedido (Soft Delete)
+     */
+    static async deleteOrder(orderId) {
+        return OrderModel.findOneAndUpdate({ orderId }, { status: 'deleted' }, { new: true });
+    }
+
+    /**
+     * Actualiza solo el estado de un pedido (UPDATE parcial)
+     */
+    static async updateOrderStatus(orderId, newStatus) {
+        return OrderModel.findOneAndUpdate({ orderId }, { status: newStatus }, { new: true });
     }
 }
 
