@@ -7,9 +7,7 @@ const {
 
 class OrdersService {
 
-    // Método para crear un nuevo pedido (CREATE)
     static async handleNewOrder(orderData) {
-        // ... tu código actual para crear pedidos ...
         const orderDoc = await OrderModel.create({
             ...orderData,
             orderId: await generateOrderId(orderData.customerInfo?.cliente)
@@ -34,8 +32,6 @@ class OrdersService {
         };
     }
 
-    // --- Nuevas funciones CRUD ---
-
     /**
      * Obtiene todos los pedidos (READ all)
      */
@@ -44,32 +40,31 @@ class OrdersService {
     }
 
     /**
-     * Obtiene un pedido por su ID (READ one)
+     * Obtiene un pedido por su orderId (READ one)
      */
-    static async getOrderById(id) {
-        return OrderModel.findById(id);
+    static async getOrderById(orderId) {
+        return OrderModel.findOne({ orderId });
     }
 
     /**
      * Actualiza un pedido completo (UPDATE)
      */
-    static async updateOrder(id, updatedData) {
-        return OrderModel.findByIdAndUpdate(id, updatedData, { new: true });
+    static async updateOrder(orderId, updatedData) {
+        return OrderModel.findOneAndUpdate({ orderId }, updatedData, { new: true });
     }
 
     /**
      * Elimina lógicamente un pedido (Soft Delete)
      */
-    static async deleteOrder(id) {
-        // Busca el pedido por ID y actualiza el campo de estado a 'deleted'
-        return OrderModel.findByIdAndUpdate(id, { status: 'deleted' }, { new: true });
+    static async deleteOrder(orderId) {
+        return OrderModel.findOneAndUpdate({ orderId }, { status: 'deleted' }, { new: true });
     }
 
     /**
      * Actualiza solo el estado de un pedido (UPDATE parcial)
      */
-    static async updateOrderStatus(id, newStatus) {
-        return OrderModel.findByIdAndUpdate(id, { status: newStatus }, { new: true });
+    static async updateOrderStatus(orderId, newStatus) {
+        return OrderModel.findOneAndUpdate({ orderId }, { status: newStatus }, { new: true });
     }
 }
 
