@@ -58,10 +58,11 @@ class OrdersService {
     }
 
     /**
-     * Elimina un pedido (DELETE)
+     * Elimina lógicamente un pedido (Soft Delete)
      */
     static async deleteOrder(id) {
-        return OrderModel.findByIdAndDelete(id);
+        // Busca el pedido por ID y actualiza el campo de estado a 'deleted'
+        return OrderModel.findByIdAndUpdate(id, { status: 'deleted' }, { new: true });
     }
 
     /**
