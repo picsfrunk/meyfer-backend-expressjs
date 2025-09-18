@@ -86,9 +86,9 @@
 
 ---
 
-## 2. `/api/products/parsed`
+## 2. `/api/config/parsed`
 
-### POST `/api/products/parsed`
+### POST `/api/config/parsed`
 
 - **Descripción:** Actualiza el catálogo parseado desde el archivo XLS remoto (trigger manual).
 - **Body:***No requiere parámetros*
@@ -108,9 +108,9 @@
 
 ---
 
-## 3. `/api/products/scrape`
+## 3. `/api/config/scrape`
 
-### POST `/api/products/scrape`
+### POST `/api/config/scrape`
 
 - **Descripción:** Ejecuta el scraper de productos y categorías (trigger manual desde el dashboard admin).
 - **Body:**
