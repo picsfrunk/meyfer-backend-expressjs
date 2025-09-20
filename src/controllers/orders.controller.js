@@ -20,17 +20,19 @@ class OrdersController {
     }
 
     /**
-     * Obtiene todos los pedidos
+     * Obtiene todos los pedidos (opcionalmente filtrados por estado)
      */
     static async getAllOrders(req, res) {
         try {
-            const orders = await OrdersService.getAllOrders();
+            const { status } = req.query;
+            const orders = await OrdersService.getAllOrders(status);
             res.status(200).json(orders);
         } catch (err) {
             console.error('Error obteniendo pedidos:', err);
             res.status(500).json({ status: 'error', message: err.message });
         }
     }
+
 
     /**
      * Obtiene un pedido por su ID
