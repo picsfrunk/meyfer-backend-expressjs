@@ -33,10 +33,18 @@ class OrdersService {
     }
 
     /**
-     * Obtiene todos los pedidos (READ all)
+     * Obtiene todos los pedidos (READ all, con filtro opcional de estado)
      */
-    static async getAllOrders() {
-        return OrderModel.find({});
+    static async getAllOrders(status) {
+        const filter = {};
+        if (status) {
+            if (status.includes(',')) {
+                filter.status = { $in: status.split(',') };
+            } else {
+                filter.status = status;
+            }
+        }
+        return OrderModel.find(filter);
     }
 
     /**
