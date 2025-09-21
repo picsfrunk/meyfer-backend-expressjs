@@ -1,7 +1,7 @@
 const { generateOrderId } = require("../utils/generateOrderId");
 const OrderModel = require('../models/order.model');
 const {
-    sendOrderNotificationToAdmin,
+    sendOrderNotificationToAdmins,
     sendOrderConfirmationToCustomer
 } = require("./email.service");
 
@@ -14,17 +14,21 @@ class OrdersService {
         });
 
         Promise.allSettled([
-            sendOrderNotificationToAdmin(orderDoc),
+            sendOrderNotificationToAdmins(orderDoc),
             sendOrderConfirmationToCustomer(orderDoc)
         ]).then(results => {
             results.forEach((r, i) => {
-                if (!r.success) {
-                    console.error('[mail] Falló notificación', i, r.reason?.message || r.reason);
+                if (r.status === 'rejected') {
+                    console.error(
+                        `[mail] Falló notificación ${i}:`,
+                        r.reason?.message || r.reason
+                    );
                 }
             });
         }).catch(err => {
             console.error('[mail] Error inesperado en notificaciones:', err.message);
         });
+
 
         return {
             orderId: orderDoc.orderId,

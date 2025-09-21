@@ -1,21 +1,30 @@
 const buildOrderHtml = require("../utils/buildOrderHtml");
-const { mailjet} = require("./MailJet.service");
+const { mailjet } = require("./MailJet.service");
+const ConfigService = require("./config.service");
 
 const {
     MAIL_FROM,
     MAIL_FROM_NAME,
-    MAIL_TO_ADMIN,
 } = process.env;
 
-
-async function sendOrderNotificationToAdmin(order) {
+/**
+ * Envía una notificación de nuevo pedido a todos los administradores activos
+ */
+async function sendOrderNotificationToAdmins(order) {
     if (!mailjet) {
         console.warn("⚠️ Mailjet no disponible. No se envió el correo.");
         return { success: false, error: "Mailjet no inicializado" };
     }
 
+    // 🟢 Traer emails activos desde Mongo
+    const adminEmails = await ConfigService.listActiveAdminEmails();
+    if (!adminEmails.length) {
+        console.warn("⚠️ No hay correos de administradores activos.");
+        return { success: false, error: "No hay administradores activos" };
+    }
+
     const html = buildOrderHtml(order);
-    const subject = `Nuevo pedido #${order.orderId} - ${order?.customerInfo?.cliente || ''}`;
+    const subject = `Nuevo pedido #${order.orderId} - ${order?.customerInfo?.cliente || ""}`;
 
     try {
         const result = await mailjet
@@ -27,11 +36,7 @@ async function sendOrderNotificationToAdmin(order) {
                             Email: MAIL_FROM,
                             Name: MAIL_FROM_NAME || "Tienda",
                         },
-                        To: [
-                            {
-                                Email: MAIL_TO_ADMIN,
-                            },
-                        ],
+                        To: adminEmails.map(email => ({ Email: email })),
                         Subject: subject,
                         HTMLPart: html,
                     },
@@ -40,11 +45,14 @@ async function sendOrderNotificationToAdmin(order) {
 
         return result.body;
     } catch (err) {
-        console.error("[mail] Error enviando notificación admin:", err.message);
+        console.error("[mail] Error enviando notificación a administradores:", err.message);
         throw err;
     }
 }
 
+/**
+ * Envía confirmación de pedido al cliente
+ */
 async function sendOrderConfirmationToCustomer(order) {
     if (!mailjet) {
         console.warn("⚠️ Mailjet no disponible. No se envió el correo.");
@@ -72,11 +80,7 @@ async function sendOrderConfirmationToCustomer(order) {
                             Email: MAIL_FROM,
                             Name: MAIL_FROM_NAME || "Tienda",
                         },
-                        To: [
-                            {
-                                Email: to,
-                            },
-                        ],
+                        To: [{ Email: to }],
                         Subject: `Confirmación de pedido #${order.orderId}`,
                         HTMLPart: html,
                     },
@@ -91,6 +95,6 @@ async function sendOrderConfirmationToCustomer(order) {
 }
 
 module.exports = {
-    sendOrderNotificationToAdmin,
+    sendOrderNotificationToAdmins,
     sendOrderConfirmationToCustomer,
 };
