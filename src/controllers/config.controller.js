@@ -36,8 +36,6 @@ exports.getLastUpdateDate = async (req, res) => {
     }
 };
 
-/* ------------------ NUEVO: Emails de administradores ------------------ */
-
 /**
  * GET /config/admin-emails
  * Devuelve la lista de emails de administradores/vendedores activos.

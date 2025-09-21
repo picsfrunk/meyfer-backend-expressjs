@@ -106,6 +106,30 @@ class OrdersController {
             res.status(500).json({ status: 'error', message: err.message });
         }
     }
+
+    static async resendOrderEmails(req, res) {
+        const {orderId} = req.params;
+        const {
+            admin = true,
+            customer = false
+        } = req.body || {};
+
+        try {
+            const result = await OrdersService.resendOrderEmails(orderId, {
+                admin,
+                customer
+            });
+            res.json({
+                message: 'Reenvío de emails completado',
+                result
+            });
+        } catch (error) {
+            console.error('[orders.controller] Error reenvío de emails:', error);
+            res.status(error.statusCode || 500).json({
+                message: error.message || 'Error del servidor'
+            });
+        }
+    };
 }
 
 module.exports = OrdersController;

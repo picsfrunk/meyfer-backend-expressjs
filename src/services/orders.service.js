@@ -78,6 +78,26 @@ class OrdersService {
     static async updateOrderStatus(orderId, newStatus) {
         return OrderModel.findOneAndUpdate({ orderId }, { status: newStatus }, { new: true });
     }
+
+    static async resendOrderEmails(orderId, options = { admin: true, customer: false }) {
+        const order = await OrderModel.findOne({ orderId });
+        if (!order) {
+            const error = new Error('Pedido no encontrado');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        const tasks = [];
+        if (options.admin) tasks.push(sendOrderNotificationToAdmins(order));
+        if (options.customer) tasks.push(sendOrderConfirmationToCustomer(order));
+
+        const results = await Promise.allSettled(tasks);
+        return results.map((r, i) => ({
+            target: i === 0 ? 'admin' : 'customer',
+            status: r.status,
+            error: r.status === 'rejected' ? r.reason.message : null
+        }));
+    }
 }
 
 module.exports = OrdersService;
