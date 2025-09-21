@@ -70,6 +70,221 @@
 										}
 									},
 									"response": []
+								},
+								{
+									"name": "all orders with filter",
+									"request": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{JWT}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "http://localhost:3000/api/orders?status=deleted,pending",
+											"protocol": "http",
+											"host": [
+												"localhost"
+											],
+											"port": "3000",
+											"path": [
+												"api",
+												"orders"
+											],
+											"query": [
+												{
+													"key": "status",
+													"value": "deleted,pending"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "one order",
+									"request": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{JWT}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "http://localhost:3000/api/orders/00009-JOH-20250831-0945",
+											"protocol": "http",
+											"host": [
+												"localhost"
+											],
+											"port": "3000",
+											"path": [
+												"api",
+												"orders",
+												"00009-JOH-20250831-0945"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "update all order",
+									"request": {
+										"method": "PUT",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{JWT}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"customerInfo\": {\n    \"cliente\": \"Acme Modificado\"\n  }\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://localhost:3000/api/orders/00009-JOH-20250831-0945",
+											"protocol": "http",
+											"host": [
+												"localhost"
+											],
+											"port": "3000",
+											"path": [
+												"api",
+												"orders",
+												"00009-JOH-20250831-0945"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "update order status",
+									"request": {
+										"method": "PATCH",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{JWT}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n        \"status\": \"delivered\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://localhost:3000/api/orders/00009-JOH-20250831-0945/status",
+											"protocol": "http",
+											"host": [
+												"localhost"
+											],
+											"port": "3000",
+											"path": [
+												"api",
+												"orders",
+												"00009-JOH-20250831-0945",
+												"status"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "delete order",
+									"request": {
+										"method": "DELETE",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{JWT}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "http://localhost:3000/api/orders/00009-JOH-20250831-0945",
+											"protocol": "http",
+											"host": [
+												"localhost"
+											],
+											"port": "3000",
+											"path": [
+												"api",
+												"orders",
+												"00009-JOH-20250831-0945"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Admin",
+							"item": [
+								{
+									"name": "Admin Emails",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://localhost:3000/api/config/admin-emails",
+											"protocol": "http",
+											"host": [
+												"localhost"
+											],
+											"port": "3000",
+											"path": [
+												"api",
+												"config",
+												"admin-emails"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Admin Emails",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"email\": \"dev.test.adn@gmail.com\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://localhost:3000/api/config/admin-emails",
+											"protocol": "http",
+											"host": [
+												"localhost"
+											],
+											"port": "3000",
+											"path": [
+												"api",
+												"config",
+												"admin-emails"
+											]
+										}
+									},
+									"response": []
 								}
 							]
 						},
@@ -466,6 +681,38 @@
 							"response": []
 						}
 					]
+				}
+			],
+			"auth": {
+				"type": "bearer",
+				"bearer": [
+					{
+						"key": "token",
+						"value": "{{JWT}}",
+						"type": "string"
+					}
+				]
+			},
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"exec": [
+							""
+						]
+					}
 				}
 			]
 		},
