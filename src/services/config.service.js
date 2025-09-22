@@ -1,5 +1,6 @@
 const Config = require('../models/config.model');
 const AdminEmail = require('../models/admin.model');
+const {updateProductPrices} = require("./products.service");
 
 exports.getProfitMargin = async () => {
     try {
@@ -29,6 +30,9 @@ exports.setProfitMargin = async (margin) => {
             { value: margin },
             { new: true, upsert: true }
         );
+
+        await updateProductPrices();
+
         return updated.value;
     } catch (error) {
         console.error('Error en ConfigService al actualizar profit margin:', error);
