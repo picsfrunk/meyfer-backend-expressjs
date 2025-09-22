@@ -1,4 +1,5 @@
 const notifierService = require('../services/notifier.service');
+const Config = require('../models/config.model');
 
 exports.scraperFinished = async (req, res) => {
     try {
@@ -7,6 +8,13 @@ exports.scraperFinished = async (req, res) => {
         if (!source || !status || typeof processed !== 'number') {
             return res.status(400).json({ message: 'Faltan campos requeridos o son inválidos' });
         }
+
+        const now = new Date();
+        await Config.findOneAndUpdate(
+            { key: 'last_update' },
+            { value: now },
+            { upsert: true, new: true }
+        );
 
         notifierService.notifyClients('scraper:done', {
             source,
