@@ -44,6 +44,7 @@ const updateCatalogFromXls = async () => {
         throw { statusCode: 500, message: 'Error al actualizar el catálogo', details: error.message };
     }
 };
+
 const runScraper = async (scraperType, params = {}) => {
     try {
         let scraperUrl;
@@ -116,10 +117,47 @@ const getScrapedProductById = async (id) => {
     }
 };
 
+const updateProductPrices = async () => {
+    try {
+        const configProfit = await Config.findOne({ key: 'profitMargin' });
+        const profit = configProfit?.value ?? DEFAULT_PROFIT;
+
+        const profitMarginDecimal = profit / 100;
+
+        const productsToUpdate = await ScrapedProduct.find();
+
+        if (productsToUpdate.length === 0) {
+            return { message: 'No hay productos para actualizar.' };
+        }
+
+        const bulkOperations = productsToUpdate.map(product => {
+            const oldPrice = product.list_price;
+            const newPrice = oldPrice * (1 + profitMarginDecimal);
+
+            return {
+                updateOne: {
+                    filter: { _id: product._id },
+                    update: { $set: { list_price: newPrice } }
+                }
+            };
+        });
+
+        const result = await ScrapedProduct.bulkWrite(bulkOperations);
+
+        console.log(`✅ Precios actualizados. ${result.modifiedCount} productos modificados.`);
+        return { message: 'Precios de productos actualizados con éxito.', modifiedCount: result.modifiedCount };
+
+    } catch (error) {
+        console.error('Error al actualizar precios de productos:', error);
+        throw { statusCode: 500, message: 'Error al actualizar precios', details: error.message };
+    }
+};
+
 module.exports = {
     updateCatalogFromXls,
     runScraper,
     getPaginatedScrapedProducts,
     getScrapedProductById,
-    getSections
+    getSections,
+    updateProductPrices,
 }
