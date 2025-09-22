@@ -70,15 +70,55 @@ Incluye los servicios:
 - mongo-express para inspeccionar la base de datos vía navegador
 
 Accede a mongo-express en: `http://localhost:8081`
+# Documentación de Endpoints - MeyFer Backend
 
-## 🌐 Endpoints principales
+## Productos (`src/routes/products.route.js`)
+- `GET /api/products/parsed`  
+  Devuelve los productos parseados desde el Excel remoto.
+- `POST /api/products/parsed`  
+  Actualiza el catálogo parseando el Excel y guardando en MongoDB.
+- `POST /api/products/scrape`  
+  Dispara el microservicio de scraping (categoryScraper/sitemapScraper).
+- `GET /api/products/scraped`  
+  Obtiene productos scrapeados (paginados, filtrados).
+- `GET /api/products/scraped/:id`  
+  Consulta producto scrapeado por ID.
 
-- `GET /api/products` – Lista de secciones y productos desde MongoDB.
-- `POST /api/products` – Descarga el XLS remoto, lo parsea y actualiza MongoDB.
-- `GET /api/config/profit` – Devuelve el margen de ganancia.
-- `PUT /api/config/profit` – Actualiza el margen de ganancia.
-- `GET /api/config/last-update` – Devuelve la fecha en que se actualizó el catálogo.
+## Órdenes (`src/routes/orders.route.js`)
+- `POST /api/orders`  
+  Crea un nuevo pedido.
+- `GET /api/orders` *(comentado en el código, posible endpoint)*  
+  Lista todos los pedidos.
+- `GET /api/orders/:id` *(comentado en el código, posible endpoint)*  
+  Detalle de pedido por ID.
 
+## Categorías (`src/routes/category.route.js`)
+- `GET /api/categories`  
+  Lista todas las categorías con cantidad de productos por cada una.
+
+## Configuración (`controllers/config.controller.js`)
+- `GET /api/config/profit`  
+  Devuelve el margen de ganancia.
+- `PUT /api/config/profit`  
+  Actualiza el margen de ganancia.
+- `GET /api/config/last-update`  
+  Fecha de última actualización del catálogo.
+
+## Otros endpoints relevantes
+- `GET /api/products`  
+  Lista de secciones y productos desde MongoDB.
+- `POST /api/products`  
+  Descarga el XLS remoto, lo parsea y actualiza MongoDB.
+
+## Notas
+- Todos los endpoints siguen la arquitectura controlador-servicio-helper.
+- El endpoint `/api/products/scrape` se comunica con un microservicio externo y centraliza la lógica de scraping y notificaciones vía webhook.
+- El endpoint de categorías entrega la cantidad de productos por categoría y el total general.
+- Puedes encontrar detalles específicos de cada endpoint en los archivos de rutas y controladores correspondientes.
+
+---
+
+> Si necesitas ejemplos de request/response o detalles de middlewares (como autenticación), revisa los archivos en `src/middlewares/` y la colección Postman incluida en el repo.
 ## ☁️ Despliegue en Railway
 
 1. Subir el proyecto a un repositorio GitHub.
