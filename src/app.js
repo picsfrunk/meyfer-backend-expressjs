@@ -5,15 +5,22 @@ const { connectToMongo } = require('./database/mongo');
 const app = express();
 const apiRoutes = require('./routes/api.routes');
 
-const allowedOrigin =
-    process.env.NODE_ENV === 'production'
-        ? process.env.CORS_ORIGIN
-        : '*';
+const allowedOrigins = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
+    : ['*'];
 
 app.use(cors({
-    origin: allowedOrigin,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', "PATCH"],
-    credentials: true
+    origin: (origin, callback) => {
+        if (!origin && process.env.NODE_ENV !== 'production') {
+            return callback(null, true);
+        }
+        if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+        return callback(new Error('CORS: origen no permitido'));
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    credentials: true,
 }));
 
 app.use(express.json());
