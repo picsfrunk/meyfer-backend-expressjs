@@ -137,7 +137,7 @@ const updateProductPrices = async () => {
             return {
                 updateOne: {
                     filter: { _id: product._id },
-                    update: { $set: { list_price: newPrice } }
+                    update: { $set: { final_price: newPrice } }
                 }
             };
         });
