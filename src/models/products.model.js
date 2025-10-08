@@ -26,6 +26,10 @@ const scrapedProductSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    final_price: {
+        type: Number,
+        required: true
+    },
     product_type: {
         type: String
     },
