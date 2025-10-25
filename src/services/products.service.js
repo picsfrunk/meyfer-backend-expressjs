@@ -50,8 +50,6 @@ const runScraper = async (scraperType, params = {}) => {
         let scraperUrl;
         let payload = { ...params };
 
-        payload.webhookUrl = process.env.WEBHOOK_URL;
-
         switch (scraperType) {
             case 'categoryScraper':
                 scraperUrl = process.env.CATEGORY_SCRAPER_URL;
@@ -64,6 +62,21 @@ const runScraper = async (scraperType, params = {}) => {
         }
 
         const response = await axios.post(scraperUrl, payload);
+        return response.data;
+    } catch (error) {
+        throw {
+            statusCode: error.response?.status || 500,
+            message: error.message,
+            details: error.response?.data || null
+        };
+    }
+};
+
+const runSitemapAnalysis = async (params = {}) => {
+    try {
+        let payload = { ...params };
+
+        const response = await axios.post(process.env.SITEMAP_ANALYSIS_URL, payload);
         return response.data;
     } catch (error) {
         throw {
@@ -160,4 +173,5 @@ module.exports = {
     getScrapedProductById,
     getSections,
     updateProductPrices,
+    runSitemapAnalysis
 }
