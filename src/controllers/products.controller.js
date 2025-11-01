@@ -32,6 +32,19 @@ const triggerScraper = async (req, res) => {
   }
 };
 
+const analyzeSitemap = async (req, res) => {
+    const { ...params } = req.body;
+    try {
+        const result = await ProductsService.runSitemapAnalysis(params);
+        res.status(202).json({ message: 'Analisis iniciado', result });
+    } catch (error) {
+        res.status(error.statusCode || 500).json({
+            error: error.message || 'Error al ejecutar analisis',
+            details: error.details
+        });
+    }
+};
+
 const getScrapedProducts = async (req, res, next) => {
     try {
         const page = parseInt(req.query.page, 10) || 1;
@@ -72,5 +85,6 @@ module.exports = {
     updateParsedProducts,
     triggerScraper,
     getScrapedProducts,
-    getScrapedProductById
+    getScrapedProductById,
+    analyzeSitemap
 };
