@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 const OrdersController = require('../controllers/orders.controller');
 const {authenticateAdmin} = require("../middlewares/auth.middleware");
+const {limiter} = require("../middlewares/limiter.middleware");
 
 router.get('/', authenticateAdmin, OrdersController.getAllOrders);
-router.post('/new', OrdersController.createOrder);
+router.post('/new', limiter, OrdersController.createOrder);
 router.get('/:id', authenticateAdmin, OrdersController.getOrderById);
 router.put('/:id', authenticateAdmin, OrdersController.updateOrder);
 router.delete('/:id', authenticateAdmin, OrdersController.deleteOrder);
