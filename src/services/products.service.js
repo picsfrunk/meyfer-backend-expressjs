@@ -99,8 +99,8 @@ const getPaginatedScrapedProducts = async (page = 1,
     }
 
     if (searchKeyword) {
-        // Usa el operador $text con la palabra clave
-        filter.$text = { $search: searchKeyword };
+        const keywords = searchKeyword.split(/\s+/).map(w => `"${w}"`).join(' ');
+        filter.$text = { $search: keywords };
     }
 
     const projection = searchKeyword ? { score: { $meta: "textScore" } } : {};
