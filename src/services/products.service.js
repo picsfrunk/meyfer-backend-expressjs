@@ -87,29 +87,33 @@ const runSitemapAnalysis = async (params = {}) => {
     }
 };
 
-const getPaginatedScrapedProducts = async (page = 1,
-                                             limit = 20,
-                                             categoryId = null,
-                                             searchKeyword = null) => {
+const getPaginatedScrapedProducts = async (page = 1, limit = 20, categoryId = null, searchKeyword = null) => {
     const skip = (page - 1) * limit;
-
     const filter = {};
+
     if (categoryId) {
         filter.category_id = categoryId;
     }
 
     if (searchKeyword) {
-        const keywords = searchKeyword.split(/\s+/).map(w => `"${w}"`).join(' ');
-        filter.$text = { $search: keywords };
+        const trimmedKeyword = searchKeyword.trim();
+        const isNumeric = /^\d+$/.test(trimmedKeyword);
+
+        if (isNumeric) {
+            filter.$or = [
+                { product_id: parseInt(trimmedKeyword) },
+                { category_id: parseInt(trimmedKeyword) },
+                ...buildTextSearchConditions(trimmedKeyword)
+            ];
+        } else {
+            filter.$or = buildTextSearchConditions(trimmedKeyword);
+        }
     }
 
-    const projection = searchKeyword ? { score: { $meta: "textScore" } } : {};
-    const sort = searchKeyword ? { score: { $meta: "textScore" } } : { _id: 1 }; // O el orden que prefieras
-
-
+    const sort = searchKeyword ? buildSmartSort() : { _id: 1 };
 
     const [products, total] = await Promise.all([
-        ScrapedProduct.find(filter, projection).skip(skip).limit(limit).sort(sort),
+        ScrapedProduct.find(filter).skip(skip).limit(limit).sort(sort).lean(),
         ScrapedProduct.countDocuments(filter)
     ]);
 
@@ -121,6 +125,51 @@ const getPaginatedScrapedProducts = async (page = 1,
         products
     };
 };
+
+const buildTextSearchConditions = (keyword) => {
+    const words = keyword.split(/\s+/).filter(Boolean);
+    const wordRegexes = words.map(word => new RegExp(escapeRegex(word), 'i'));
+    const phraseRegex = new RegExp(escapeRegex(keyword), 'i');
+
+    const conditions = [
+        { display_name: phraseRegex },
+        { brand: phraseRegex },
+        { product_type: phraseRegex },
+        { category_name: phraseRegex },
+        { base_unit_name: phraseRegex }
+    ];
+
+    for (const regex of wordRegexes) {
+        conditions.push(
+            { display_name: regex },
+            { brand: regex },
+            { product_type: regex }
+        );
+    }
+
+    if (words.length > 1) {
+        conditions.push({
+            $and: wordRegexes.map(regex => ({
+                $or: [
+                    { display_name: regex },
+                    { brand: regex },
+                    { product_type: regex }
+                ]
+            }))
+        });
+    }
+
+    return conditions;
+};
+
+const escapeRegex = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const buildSmartSort = () => ({
+    display_name: 1,
+    brand: 1,
+    _id: 1
+});
+
 
 const getScrapedProductById = async (id) => {
     try {
