@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const scrapedProductSchema = new mongoose.Schema({
     product_id: {
-        type: Number,
+        type: String,
         required: true,
         unique: true
     },
