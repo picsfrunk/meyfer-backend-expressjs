@@ -5,6 +5,41 @@ const { processSheetItems } = require('./parser.service');
 const Section = require('../models/sections.model');
 const Config = require('../models/config.model');
 const ScrapedProduct = require('../models/products.model');
+const SitemapAnalysis = require('../models/sitemap_analysis.model');
+
+const getProductBrands = async () => {
+    try {
+        // Intentar obtener las marcas desde el análisis del sitemap
+        const sitemapAnalysis = await SitemapAnalysis.findOne().sort({ analyzedAt: -1 });
+
+        if (sitemapAnalysis && sitemapAnalysis.brands && sitemapAnalysis.brands.length > 0) {
+            // Filtrar marcas con ID válido y ordenar alfabéticamente
+            const brands = sitemapAnalysis.brands
+                .filter(brand => brand.id !== null && brand.name)
+                .map(brand => ({
+                    id: brand.id,
+                    name: brand.name,
+                    slug: brand.slug,
+                    products: brand.products
+                }))
+                .sort((a, b) => a.name.localeCompare(b.name, 'es'));
+
+            return brands;
+        }
+
+        // Fallback: obtener marcas desde los productos si no hay análisis del sitemap
+        const brandsFromProducts = await ScrapedProduct.distinct('brand', {
+            brand: { $ne: null, $ne: '' }
+        });
+
+        return brandsFromProducts
+            .sort((a, b) => a.localeCompare(b, 'es'))
+            .map(brand => ({ name: brand }));
+
+    } catch (error) {
+        throw new Error(`Error al obtener las marcas: ${error.message}`);
+    }
+};
 
 const getSections = async () => {
     try {
@@ -222,5 +257,6 @@ module.exports = {
     getScrapedProductById,
     getSections,
     updateProductPrices,
-    runSitemapAnalysis
+    runSitemapAnalysis,
+    getProductBrands
 }
