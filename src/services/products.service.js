@@ -81,27 +81,29 @@ const updateCatalogFromXls = async () => {
 };
 
 const runScraper = async (scraperType, params = {}) => {
-    try {
-        let scraperUrl;
-        let payload = { ...params };
+    const scraperConfig = {
+        categoryScraper: process.env.CATEGORY_SCRAPER_URL,
+        sitemapScraper: process.env.SITEMAP_SCRAPER_URL,
+    };
 
-        switch (scraperType) {
-            case 'categoryScraper':
-                scraperUrl = process.env.CATEGORY_SCRAPER_URL;
-                break;
-            case 'sitemapScraper':
-                scraperUrl = process.env.SITEMAP_SCRAPER_URL;
-                break;
-            default:
-                throw { statusCode: 400, message: 'Tipo de scraper inválido' };
+    try {
+        const scraperUrl = scraperConfig[scraperType];
+        if (!scraperUrl) {
+            throw { statusCode: 400, message: 'Tipo de scraper inválido o URL no configurada' };
         }
+
+        const payload = {
+            webhookUrl: process.env.WEBHOOK_URL,
+            ...params
+        };
 
         const response = await axios.post(scraperUrl, payload);
         return response.data;
+
     } catch (error) {
         throw {
             statusCode: error.response?.status || 500,
-            message: error.message,
+            message: error.message || 'Error desconocido en el scraper',
             details: error.response?.data || null
         };
     }
