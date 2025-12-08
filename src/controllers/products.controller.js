@@ -80,11 +80,30 @@ const getScrapedProductById  = async (req, res, next) => {
     }
 }
 
+const getProductBrands = async (req, res) => {
+    try {
+        const brands = await ProductsService.getProductBrands();
+
+        res.status(200).json({
+            success: true,
+            count: brands.length,
+            data: brands
+        });
+    } catch (error) {
+        console.error('Error en getProductBrands:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al obtener las marcas',
+            error: error.message
+        });
+    }
+};
 module.exports = {
     getParsedProducts,
     updateParsedProducts,
     triggerScraper,
     getScrapedProducts,
     getScrapedProductById,
-    analyzeSitemap
+    analyzeSitemap,
+    getProductBrands,
 };
