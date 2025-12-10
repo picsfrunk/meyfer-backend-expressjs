@@ -51,12 +51,15 @@ const getScrapedProducts = async (req, res, next) => {
         const limit = parseInt(req.query.limit, 10) || 20;
         const categoryId = parseInt(req.query.category_id);
         const searchKeyword = req.query.search;
+        const brand = req.query.brand;
 
         const result = await ProductsService.getPaginatedScrapedProducts(
             page,
             limit,
             categoryId,
-            searchKeyword);
+            searchKeyword,
+            brand
+        );
 
         res.json(result);
     } catch (err) {
@@ -83,7 +86,6 @@ const getScrapedProductById  = async (req, res, next) => {
 const getProductBrands = async (req, res) => {
     try {
         const brands = await ProductsService.getProductBrands();
-
         res.status(200).json({
             success: true,
             count: brands.length,

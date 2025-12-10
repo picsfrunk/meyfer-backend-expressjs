@@ -124,12 +124,16 @@ const runSitemapAnalysis = async (params = {}) => {
     }
 };
 
-const getPaginatedScrapedProducts = async (page = 1, limit = 20, categoryId = null, searchKeyword = null) => {
+const getPaginatedScrapedProducts = async (page = 1, limit = 20, categoryId = null, searchKeyword = null, brand = null) => {
     const skip = (page - 1) * limit;
     const filter = {};
 
     if (categoryId) {
         filter.category_id = categoryId;
+    }
+
+    if (brand && typeof brand === 'string' && brand.trim().length > 0) {
+        filter.brand = new RegExp(brand.trim(), 'i');
     }
 
     if (searchKeyword) {
@@ -138,7 +142,7 @@ const getPaginatedScrapedProducts = async (page = 1, limit = 20, categoryId = nu
 
         if (isNumeric) {
             filter.$or = [
-                { product_id: parseInt(trimmedKeyword) },
+                { product_id: trimmedKeyword }, // ¡STRING!
                 { category_id: parseInt(trimmedKeyword) },
                 ...buildTextSearchConditions(trimmedKeyword)
             ];
