@@ -1,18 +1,45 @@
 const { generateOrderId } = require("../utils/generateOrderId");
 const OrderModel = require('../models/order.model');
+const ScrapedProduct = require('../models/products.model');
 const {
     sendOrderNotificationToAdmins,
     sendOrderConfirmationToCustomer
 } = require("./email.service");
 
 class OrdersService {
+    /**
+     * Transforma cartItems (del FE) en items normalizados
+     * Recibe: [{ _id, nombre, precio, ... }, ...]
+     * Retorna: [{ productId, quantity, priceAtPurchase }, ...]
+     */
+    static transformCartItemsToOrderItems(cartItems) {
+        return cartItems.map(item => {
+            // El producto está en item.productCartItem
+            const product = item.productCartItem || item;
 
+            return {
+                product_id: product._id || product.product_id,
+                quantity: item.qty || item.quantity || 1,
+                priceAtPurchase: product.final_price || product.list_price || product.precio || 0
+            };
+        });
+    }
+
+    /**
+     * Crea un nuevo pedido (normalizado)
+     */
     static async handleNewOrder(orderData) {
+        const normalizedItems = this.transformCartItemsToOrderItems(orderData.cartItems);
+        console.log(normalizedItems)
         const orderDoc = await OrderModel.create({
-            ...orderData,
+            customerInfo: orderData.customerInfo,
+            items: normalizedItems,
+            total: orderData.total,
+            totalItems: orderData.totalItems,
             orderId: await generateOrderId(orderData.customerInfo?.cliente)
         });
 
+        // Notificaciones asíncronas
         Promise.allSettled([
             sendOrderNotificationToAdmins(orderDoc),
             sendOrderConfirmationToCustomer(orderDoc)
@@ -29,7 +56,6 @@ class OrdersService {
             console.error('[mail] Error inesperado en notificaciones:', err.message);
         });
 
-
         return {
             orderId: orderDoc.orderId,
             order: orderDoc
@@ -37,9 +63,9 @@ class OrdersService {
     }
 
     /**
-     * Obtiene todos los pedidos (READ all, con filtro opcional de estado)
+     * Obtiene todos los pedidos con productos poblados
      */
-    static async getAllOrders(status) {
+    static async getAllOrders(status, populate = true) {
         const filter = {};
         if (status) {
             if (status.includes(',')) {
@@ -48,39 +74,104 @@ class OrdersService {
                 filter.status = status;
             }
         }
-        return OrderModel.find(filter);
+
+        let query = OrderModel.find(filter).sort({ createdAt: -1 });
+
+        // Poblar productos si se solicita
+        if (populate) {
+            query = query.populate({
+                path: 'items.product_id',
+                select: 'nombre descripcion precio codigo imagen categoria' // Ajusta según tu modelo
+            });
+        }
+
+        return query;
     }
 
     /**
-     * Obtiene un pedido por su orderId (READ one)
+     * Obtiene un pedido por orderId con productos poblados
      */
-    static async getOrderById(orderId) {
-        return OrderModel.findOne({ orderId });
+    static async getOrderById(orderId, populate = true) {
+        let query = OrderModel.findOne({ orderId });
+
+        if (populate) {
+            query = query.populate({
+                path: 'items.productId',
+                select: 'nombre descripcion precio codigo imagen categoria'
+            });
+        }
+
+        return query;
     }
 
     /**
-     * Actualiza un pedido completo (UPDATE)
+     * Reconstruye el pedido completo (para emails, vistas detalladas, etc.)
+     */
+    static async getOrderWithFullDetails(orderId) {
+        const order = await this.getOrderById(orderId, true);
+
+        if (!order) {
+            return null;
+        }
+
+        // Mapear items con info completa del producto
+        const enrichedItems = order.items.map(item => ({
+            product: item.productId,
+            quantity: item.quantity,
+            priceAtPurchase: item.priceAtPurchase,
+            subtotal: item.quantity * item.priceAtPurchase
+        }));
+
+        return {
+            ...order.toObject(),
+            items: enrichedItems
+        };
+    }
+
+    /**
+     * Actualiza un pedido completo
      */
     static async updateOrder(orderId, updatedData) {
-        return OrderModel.findOneAndUpdate({ orderId }, updatedData, { new: true });
+        if (updatedData.cartItems) {
+            updatedData.items = this.transformCartItemsToOrderItems(updatedData.cartItems);
+            delete updatedData.cartItems;
+        }
+
+        return OrderModel.findOneAndUpdate(
+            { orderId },
+            updatedData,
+            { new: true, runValidators: true }
+        ).populate('items.productId');
     }
 
     /**
-     * Elimina lógicamente un pedido (Soft Delete)
+     * Elimina lógicamente un pedido
      */
     static async deleteOrder(orderId) {
-        return OrderModel.findOneAndUpdate({ orderId }, { status: 'deleted' }, { new: true });
+        return OrderModel.findOneAndUpdate(
+            { orderId },
+            { status: 'deleted' },
+            { new: true }
+        );
     }
 
     /**
-     * Actualiza solo el estado de un pedido (UPDATE parcial)
+     * Actualiza solo el estado
      */
     static async updateOrderStatus(orderId, newStatus) {
-        return OrderModel.findOneAndUpdate({ orderId }, { status: newStatus }, { new: true });
+        return OrderModel.findOneAndUpdate(
+            { orderId },
+            { status: newStatus },
+            { new: true, runValidators: true }
+        );
     }
 
+    /**
+     * Reenvía emails (necesita productos poblados)
+     */
     static async resendOrderEmails(orderId, options = { admin: true, customer: false }) {
-        const order = await OrderModel.findOne({ orderId });
+        const order = await this.getOrderById(orderId, true);
+
         if (!order) {
             const error = new Error('Pedido no encontrado');
             error.statusCode = 404;
@@ -93,7 +184,7 @@ class OrdersService {
 
         const results = await Promise.allSettled(tasks);
         return results.map((r, i) => ({
-            target: i === 0 ? 'admin' : 'customer',
+            target: i === 0 && options.admin ? 'admin' : 'customer',
             status: r.status,
             error: r.status === 'rejected' ? r.reason.message : null
         }));
