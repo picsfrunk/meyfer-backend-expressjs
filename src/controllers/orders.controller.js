@@ -60,30 +60,6 @@ class OrdersController {
         }
     }
 
-    /**
-     * Endpoint para obtener pedido con detalles completos
-     */
-    static async getOrderWithDetails(req, res) {
-        try {
-            const { id } = req.params;
-            const order = await OrdersService.getOrderWithFullDetails(id);
-
-            if (!order) {
-                return res.status(404).json({
-                    message: 'Pedido no encontrado'
-                });
-            }
-
-            res.status(200).json(order);
-        } catch (err) {
-            console.error('Error obteniendo detalles del pedido:', err);
-            res.status(500).json({
-                status: 'error',
-                message: err.message
-            });
-        }
-    }
-
     static async updateOrder(req, res) {
         try {
             const { id } = req.params;

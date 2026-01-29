@@ -11,9 +11,6 @@ router.get('/', OrdersController.getAllOrders);
 // Obtener pedido por ID
 router.get('/:id', OrdersController.getOrderById);
 
-// Obtener pedido con detalles completos
-router.get('/:id/details', OrdersController.getOrderWithDetails);
-
 // Actualizar pedido completo
 router.put('/:id', OrdersController.updateOrder);
 

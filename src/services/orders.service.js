@@ -131,28 +131,6 @@ class OrdersService {
     }
 
     /**
-     * Reconstruye el pedido completo (para emails, vistas detalladas, etc.)
-     */
-    static async getOrderWithFullDetails(orderId) {
-        const order = await this.getOrderById(orderId, true);
-
-        if (!order) {
-            return null;
-        }
-
-        // Ya viene con cartItems del método getOrderById
-        // Agregar subtotales si es necesario
-        if (order.cartItems) {
-            order.cartItems = order.cartItems.map(item => ({
-                ...item,
-                subtotal: item.qty * (item.productCartItem?.list_price || 0)
-            }));
-        }
-
-        return order;
-    }
-
-    /**
      * Actualiza un pedido completo
      */
     static async updateOrder(orderId, updatedData) {
