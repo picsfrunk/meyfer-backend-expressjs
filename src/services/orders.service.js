@@ -18,7 +18,7 @@ class OrdersService {
             const product = item.productCartItem || item;
 
             return {
-                product_id: product._id || product.product_id,
+                product_id: product.product_id,
                 quantity: item.qty || item.quantity || 1,
                 priceAtPurchase: product.final_price || product.list_price || product.precio || 0
             };
@@ -75,33 +75,35 @@ class OrdersService {
             }
         }
 
-        let query = OrderModel.find(filter).sort({ createdAt: -1 });
+        const orders = await OrderModel.find(filter).sort({ createdAt: -1 });
 
-        // Poblar productos si se solicita
-        if (populate) {
-            query = query.populate({
-                path: 'items.product_id',
-                select: 'nombre descripcion precio codigo imagen categoria' // Ajusta según tu modelo
-            });
+        if (!populate) {
+            return orders;
         }
 
-        return query;
+        for (const order of orders) {
+            for (const item of order.items) {
+                item.product = await ScrapedProduct.findOne({ product_id: item.product_id });
+            }
+        }
+
+        return orders;
     }
 
-    /**
-     * Obtiene un pedido por orderId con productos poblados
-     */
     static async getOrderById(orderId, populate = true) {
-        let query = OrderModel.findOne({ orderId });
+        const order = await OrderModel.findOne({ orderId });
 
-        if (populate) {
-            query = query.populate({
-                path: 'items.productId',
-                select: 'nombre descripcion precio codigo imagen categoria'
-            });
+        if (!order || !populate) {
+            return order;
         }
 
-        return query;
+        const ProductModel = require('../models/products.model');
+
+        for (const item of order.items) {
+            item.product = await ProductModel.findOne({ product_id: item.product_id });
+        }
+
+        return order;
     }
 
     /**

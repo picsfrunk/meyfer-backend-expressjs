@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const OrderItemSchema = new mongoose.Schema({
     product_id: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: String,
         ref: 'ScrapedProduct',
         required: true
     },
