@@ -9,12 +9,9 @@ const {
 class OrdersService {
     /**
      * Transforma cartItems (del FE) en items normalizados
-     * Recibe: [{ _id, nombre, precio, ... }, ...]
-     * Retorna: [{ productId, quantity, priceAtPurchase }, ...]
      */
     static transformCartItemsToOrderItems(cartItems) {
         return cartItems.map(item => {
-            // El producto está en item.productCartItem
             const product = item.productCartItem || item;
 
             return {
@@ -26,11 +23,23 @@ class OrdersService {
     }
 
     /**
+     * Transforma items normalizados (de DB) al formato que espera el frontend
+     * Convierte: { product_id, quantity, priceAtPurchase, product: {...} }
+     * A: { qty, productCartItem: {...} }
+     */
+    static transformItemsToCartItems(items) {
+        return items.map(item => ({
+            qty: item.quantity,
+            productCartItem: item.product || {}
+        }));
+    }
+
+    /**
      * Crea un nuevo pedido (normalizado)
      */
     static async handleNewOrder(orderData) {
         const normalizedItems = this.transformCartItemsToOrderItems(orderData.cartItems);
-        console.log(normalizedItems)
+
         const orderDoc = await OrderModel.create({
             customerInfo: orderData.customerInfo,
             items: normalizedItems,
@@ -75,33 +84,48 @@ class OrdersService {
             }
         }
 
-        const orders = await OrderModel.find(filter).sort({ createdAt: -1 });
+        // ✨ .lean() convierte documentos Mongoose a objetos JavaScript planos
+        const orders = await OrderModel.find(filter).sort({ createdAt: -1 }).lean();
 
         if (!populate) {
             return orders;
         }
 
+        // Poblar productos manualmente y transformar al formato del frontend
         for (const order of orders) {
             for (const item of order.items) {
-                item.product = await ScrapedProduct.findOne({ product_id: item.product_id });
+                const product = await ScrapedProduct.findOne({ product_id: item.product_id }).lean();
+                item.product = product;
             }
+
+            // Transformar items → cartItems para el frontend
+            order.cartItems = this.transformItemsToCartItems(order.items);
+            delete order.items; // Eliminar items de la respuesta
         }
 
         return orders;
     }
 
+    /**
+     * Obtiene un pedido por orderId con productos poblados
+     */
     static async getOrderById(orderId, populate = true) {
-        const order = await OrderModel.findOne({ orderId });
+        // ✨ .lean() convierte a objeto plano
+        const order = await OrderModel.findOne({ orderId }).lean();
 
         if (!order || !populate) {
             return order;
         }
 
-        const ProductModel = require('../models/products.model');
-
+        // Poblar productos manualmente
         for (const item of order.items) {
-            item.product = await ProductModel.findOne({ product_id: item.product_id });
+            const product = await ScrapedProduct.findOne({ product_id: item.product_id }).lean();
+            item.product = product;
         }
+
+        // Transformar items → cartItems para el frontend
+        order.cartItems = this.transformItemsToCartItems(order.items);
+        delete order.items; // Eliminar items de la respuesta
 
         return order;
     }
@@ -116,18 +140,16 @@ class OrdersService {
             return null;
         }
 
-        // Mapear items con info completa del producto
-        const enrichedItems = order.items.map(item => ({
-            product: item.productId,
-            quantity: item.quantity,
-            priceAtPurchase: item.priceAtPurchase,
-            subtotal: item.quantity * item.priceAtPurchase
-        }));
+        // Ya viene con cartItems del método getOrderById
+        // Agregar subtotales si es necesario
+        if (order.cartItems) {
+            order.cartItems = order.cartItems.map(item => ({
+                ...item,
+                subtotal: item.qty * (item.productCartItem?.list_price || 0)
+            }));
+        }
 
-        return {
-            ...order.toObject(),
-            items: enrichedItems
-        };
+        return order;
     }
 
     /**
@@ -139,11 +161,25 @@ class OrdersService {
             delete updatedData.cartItems;
         }
 
-        return OrderModel.findOneAndUpdate(
+        const updated = await OrderModel.findOneAndUpdate(
             { orderId },
             updatedData,
             { new: true, runValidators: true }
-        ).populate('items.productId');
+        ).lean();
+
+        // Poblar después de actualizar y transformar a cartItems
+        if (updated && updated.items) {
+            for (const item of updated.items) {
+                const product = await ScrapedProduct.findOne({ product_id: item.product_id }).lean();
+                item.product = product;
+            }
+
+            // Transformar items → cartItems para el frontend
+            updated.cartItems = this.transformItemsToCartItems(updated.items);
+            delete updated.items;
+        }
+
+        return updated;
     }
 
     /**
@@ -154,7 +190,7 @@ class OrdersService {
             { orderId },
             { status: 'deleted' },
             { new: true }
-        );
+        ).lean();
     }
 
     /**
@@ -165,7 +201,7 @@ class OrdersService {
             { orderId },
             { status: newStatus },
             { new: true, runValidators: true }
-        );
+        ).lean();
     }
 
     /**
