@@ -1,13 +1,60 @@
 const mongoose = require('mongoose');
 
+const OrderItemSchema = new mongoose.Schema({
+    product_id: {
+        type: String,
+        ref: 'ScrapedProduct',
+        required: true
+    },
+    quantity: {
+        type: Number,
+        required: true,
+        min: 1
+    },
+    priceAtPurchase: {
+        type: Number,
+        required: true
+    }
+}, { _id: false });
+
 const OrderSchema = new mongoose.Schema({
-    orderId: { type: String, unique: true },
-    customerInfo: { type: Object, required: true },
-    cartItems: { type: Array, required: true },
-    total: { type: Number, required: true },
-    totalItems: { type: Number, required: true },
-    status: { type: String, default: 'pending' },
-    createdAt: { type: Date, default: Date.now }
+    orderId: {
+        type: String,
+        unique: true,
+        index: true
+    },
+    customerInfo: {
+        type: Object,
+        required: true
+    },
+    items: {
+        type: [OrderItemSchema],
+        required: true,
+        validate: {
+            validator: (items) => items.length > 0,
+            message: 'El pedido debe tener al menos un producto'
+        }
+    },
+    total: {
+        type: Number,
+        required: true
+    },
+    totalItems: {
+        type: Number,
+        required: true
+    },
+    status: {
+        type: String,
+        default: 'pending',
+        enum: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'deleted']
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now,
+        index: true
+    }
 });
+
+OrderSchema.index({ status: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Order', OrderSchema);
