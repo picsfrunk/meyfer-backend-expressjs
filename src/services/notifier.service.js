@@ -1,13 +1,27 @@
-function notifyClients(event, payload) {
+const Config = require('../models/config.model');
+const emailService = require('./email.service');
+
+async function notifyScraperDone(payload) {
     const { source, status, processed, timestamp } = payload;
-    console.log(`\n📣 Notificación recibida: ${event.toUpperCase()}`);
-    console.log(`Fuente: ${source}`);
-    console.log(`Estado: ${status}`);
-    console.log(`Cantidad procesada: ${processed}`);
-    console.log(`Timestamp: ${timestamp}`);
-    console.log('-----------------------------------\n');
+
+    const now = new Date();
+    await Config.findOneAndUpdate(
+        { key: 'last_update' },
+        { value: now },
+        { upsert: true, new: true }
+    );
+
+    // console.log(`\n📣 Scraper Finalizado: ${source} (${status})`);
+
+    try {
+        await emailService.sendScraperFinishedNotification(payload);
+    } catch (error) {
+        console.error('❌ Error enviando email post-scraper:', error.message);
+    }
+
+    return { lastUpdate: now };
 }
 
 module.exports = {
-    notifyClients,
+    notifyScraperDone,
 };
