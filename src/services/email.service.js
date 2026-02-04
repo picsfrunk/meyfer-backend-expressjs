@@ -73,30 +73,58 @@ async function sendOrderConfirmationToCustomer(order) {
 }
 
 /**
- * Envía notificación de fin de Scraper a admins
+ * Envía notificación de fin de Scraper a admins con estadísticas detalladas
  */
 async function sendScraperFinishedNotification(payload = {}) {
     const adminEmails = await ConfigService.listActiveAdminEmails();
     if (!adminEmails.length) return { success: false, error: "No hay admins activos" };
 
-    const { source, status, processed, timestamp, jobId, stats = {} } = payload;
-    const finalProcessed = processed ?? stats.productsAdded ?? 0;
+    const { source, status, processed, stats = {}, timestamp } = payload;
+
+    // Formatear duración de ms a algo legible (ej: 1m 20s)
+    const durationSec = stats.durationMs ? Math.floor(stats.durationMs / 1000) : 0;
+    const minutes = Math.floor(durationSec / 60);
+    const seconds = durationSec % 60;
+    const durationText = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+
+    const isSuccess = status === 'success';
 
     const html = `
-        <div style="font-family:Arial,sans-serif">
-            <h2 style="color: #2c3e50;">🚀 Scraper Finalizado</h2>
-            <p><strong>Fuente:</strong> ${source || 'Desconocida'}</p>
-            ${jobId ? `<p><strong>Job ID:</strong> ${jobId}</p>` : ''}
-            <p><strong>Estado:</strong> <span style="color: ${status === 'success' ? 'green' : 'red'}">${status}</span></p>
-            <p><strong>Items Procesados:</strong> ${finalProcessed}</p>
-            <p><strong>Fecha:</strong> ${timestamp || new Date().toLocaleString()}</p>
-            <hr>
-            <p style="font-size: 12px; color: #7f8c8d;">Notificación automática del sistema Meyfer.</p>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; border: 1px solid #eee; padding: 20px;">
+            <h2 style="color: ${isSuccess ? '#27ae60' : '#c0392b'}; border-bottom: 2px solid #eee; padding-bottom: 10px;">
+                ${isSuccess ? '✅' : '❌'} Scraper: ${source}
+            </h2>
+            <p>El proceso de sincronización ha finalizado con estado: <strong>${status.toUpperCase()}</strong></p>
+            
+            <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                <tr style="background-color: #f8f9fa;">
+                    <td style="padding: 10px; border: 1px solid #ddd;"><strong>Productos Procesados</strong></td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">${processed}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;"><strong>Duración</strong></td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">${durationText}</td>
+                </tr>
+                <tr style="background-color: #f8f9fa;">
+                    <td style="padding: 10px; border: 1px solid #ddd;"><strong>Errores detectados</strong></td>
+                    <td style="padding: 10px; border: 1px solid #ddd; color: ${stats.totalErrors > 0 ? '#e74c3c' : '#27ae60'};">
+                        ${stats.totalErrors || 0}
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;"><strong>Finalizado el</strong></td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">${new Date(timestamp).toLocaleString('es-AR')}</td>
+                </tr>
+            </table>
+
+            <p style="font-size: 12px; color: #95a5a6; margin-top: 30px;">
+                Este es un mensaje automático del Backend de Meyfer.
+            </p>
         </div>`;
 
     return _send({
         to: adminEmails,
-        subject: `🤖 Scraper ${status}: ${source || ''}`,
+        subject: `${isSuccess ? '✅' : '❌'} Reporte Scraper: ${source}`,
         html
     });
 }

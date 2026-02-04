@@ -1,25 +1,23 @@
 const Config = require('../models/config.model');
 const emailService = require('./email.service');
 
+/**
+ * Orquestador de acciones tras finalizar el scraping
+ */
 async function notifyScraperDone(payload) {
-    const { source, status, processed, timestamp } = payload;
-
-    const now = new Date();
     await Config.findOneAndUpdate(
         { key: 'last_update' },
-        { value: now },
-        { upsert: true, new: true }
+        { value: new Date() },
+        { upsert: true }
     );
-
-    // console.log(`\n📣 Scraper Finalizado: ${source} (${status})`);
 
     try {
         await emailService.sendScraperFinishedNotification(payload);
     } catch (error) {
-        console.error('❌ Error enviando email post-scraper:', error.message);
+        console.error('[notifier.service] Falló el envío de email:', error.message);
     }
 
-    return { lastUpdate: now };
+    return { success: true };
 }
 
 module.exports = {
