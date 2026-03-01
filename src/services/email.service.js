@@ -80,9 +80,9 @@ async function sendScraperFinishedNotification(payload = {}) {
     if (!adminEmails.length) return { success: false, error: "No hay admins activos" };
 
     const { source, status, processed, stats = {}, timestamp } = payload;
+    const { updatedPrices = 0, totalErrors = 0, durationMs = 0 } = stats;
 
-    // Formatear duración de ms a algo legible (ej: 1m 20s)
-    const durationSec = stats.durationMs ? Math.floor(stats.durationMs / 1000) : 0;
+    const durationSec = durationMs ? Math.floor(durationMs / 1000) : 0;
     const minutes = Math.floor(durationSec / 60);
     const seconds = durationSec % 60;
     const durationText = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
@@ -102,16 +102,20 @@ async function sendScraperFinishedNotification(payload = {}) {
                     <td style="padding: 10px; border: 1px solid #ddd;">${processed}</td>
                 </tr>
                 <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;"><strong>Precios Actualizados</strong></td>
+                    <td style="padding: 10px; border: 1px solid #ddd; color: #2980b9;"><strong>${updatedPrices}</strong></td>
+                </tr>
+                <tr style="background-color: #f8f9fa;">
                     <td style="padding: 10px; border: 1px solid #ddd;"><strong>Duración</strong></td>
                     <td style="padding: 10px; border: 1px solid #ddd;">${durationText}</td>
                 </tr>
-                <tr style="background-color: #f8f9fa;">
+                <tr>
                     <td style="padding: 10px; border: 1px solid #ddd;"><strong>Errores detectados</strong></td>
-                    <td style="padding: 10px; border: 1px solid #ddd; color: ${stats.totalErrors > 0 ? '#e74c3c' : '#27ae60'};">
-                        ${stats.totalErrors || 0}
+                    <td style="padding: 10px; border: 1px solid #ddd; color: ${totalErrors > 0 ? '#e74c3c' : '#27ae60'};">
+                        ${totalErrors}
                     </td>
                 </tr>
-                <tr>
+                <tr style="background-color: #f8f9fa;">
                     <td style="padding: 10px; border: 1px solid #ddd;"><strong>Finalizado el</strong></td>
                     <td style="padding: 10px; border: 1px solid #ddd;">${new Date(timestamp).toLocaleString('es-AR')}</td>
                 </tr>
