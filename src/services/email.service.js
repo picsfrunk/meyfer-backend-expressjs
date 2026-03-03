@@ -80,7 +80,7 @@ async function sendScraperFinishedNotification(payload = {}) {
     if (!adminEmails.length) return { success: false, error: "No hay admins activos" };
 
     const { source, status, processed, stats = {}, timestamp } = payload;
-    const { updatedPrices = 0, totalErrors = 0, durationMs = 0 } = stats;
+    const { updatedPrices = 0, totalErrors = 0, durationMs = 0, orphansDeleted = 0 } = stats;
 
     const durationSec = durationMs ? Math.floor(durationMs / 1000) : 0;
     const minutes = Math.floor(durationSec / 60);
@@ -106,16 +106,22 @@ async function sendScraperFinishedNotification(payload = {}) {
                     <td style="padding: 10px; border: 1px solid #ddd; color: #2980b9;"><strong>${updatedPrices}</strong></td>
                 </tr>
                 <tr style="background-color: #f8f9fa;">
+                    <td style="padding: 10px; border: 1px solid #ddd;"><strong>Productos Eliminados</strong></td>
+                    <td style="padding: 10px; border: 1px solid #ddd; color: ${orphansDeleted > 0 ? '#e67e22' : '#95a5a6'};">
+                        <strong>${orphansDeleted}</strong>
+                    </td>
+                </tr>
+                <tr>
                     <td style="padding: 10px; border: 1px solid #ddd;"><strong>Duración</strong></td>
                     <td style="padding: 10px; border: 1px solid #ddd;">${durationText}</td>
                 </tr>
-                <tr>
+                <tr style="background-color: #f8f9fa;">
                     <td style="padding: 10px; border: 1px solid #ddd;"><strong>Errores detectados</strong></td>
                     <td style="padding: 10px; border: 1px solid #ddd; color: ${totalErrors > 0 ? '#e74c3c' : '#27ae60'};">
                         ${totalErrors}
                     </td>
                 </tr>
-                <tr style="background-color: #f8f9fa;">
+                <tr>
                     <td style="padding: 10px; border: 1px solid #ddd;"><strong>Finalizado el</strong></td>
                     <td style="padding: 10px; border: 1px solid #ddd;">${new Date(timestamp).toLocaleString('es-AR')}</td>
                 </tr>
