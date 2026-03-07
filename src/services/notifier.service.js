@@ -2,14 +2,19 @@ const Config = require('../models/config.model');
 const emailService = require('./email.service');
 
 /**
- * Orquestador de acciones tras finalizar el scraping
+ * Orquestador de acciones tras finalizar el scraping.
+ * Ahora recibe opcionalmente `queueInfo` con datos de cola
+ * para enriquecer el email.
  */
 async function notifyScraperDone(payload) {
-    await Config.findOneAndUpdate(
-        { key: 'last_update' },
-        { value: new Date() },
-        { upsert: true }
-    );
+    // Actualizar fecha de última sincronización solo en éxito
+    if (payload.status === 'success') {
+        await Config.findOneAndUpdate(
+            { key: 'last_update' },
+            { value: new Date() },
+            { upsert: true }
+        );
+    }
 
     try {
         await emailService.sendScraperFinishedNotification(payload);
