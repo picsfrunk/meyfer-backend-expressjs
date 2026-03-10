@@ -6,7 +6,7 @@ const emailService = require('./email.service');
  * Ahora recibe opcionalmente `queueInfo` con datos de cola
  * para enriquecer el email.
  */
-async function notifyScraperDone(payload) {
+async function notifyScraper(payload) {
     // Actualizar fecha de última sincronización solo en éxito
     if (payload.status === 'success') {
         await Config.findOneAndUpdate(
@@ -26,5 +26,5 @@ async function notifyScraperDone(payload) {
 }
 
 module.exports = {
-    notifyScraperDone,
+    notifyScraper,
 };

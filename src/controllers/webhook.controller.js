@@ -1,4 +1,4 @@
-const { notifyScraperDone } = require('../services/notifier.service');
+const { notifyScraper } = require('../services/notifier.service');
 const ScraperMonitor = require('../services/scraper_monitor.service');
 
 /**
@@ -62,16 +62,42 @@ async function _handleEvent(body) {
 
         case 'enqueued':
             await ScraperMonitor.handleJobEnqueued({ job, queueSnapshot, message: body.message });
+
+            await notifyScraper({
+                jobId:     job?.id,
+                source:    job?.type || 'scraper',
+                status:    'enqueued',
+                processed: 0,
+                stats:     {},
+                timestamp: new Date().toISOString(),
+                queueInfo: {
+                    pendingAfter:   queueSnapshot?.pending ?? 0,
+                    waitTimeMs:     null,
+                    position:       queueSnapshot?.pending ?? 1,
+                    runningJobId:   queueSnapshot?.running?.id   ?? null,
+                    runningJobType: queueSnapshot?.running?.type ?? null,
+                    runningElapsed: queueSnapshot?.running?.elapsedMs ?? null,
+                },
+            });
             break;
 
         case 'started':
             await ScraperMonitor.handleJobStarted({ job, queueSnapshot });
+
+            await notifyScraper({
+                jobId:     job?.id,
+                source:    job?.type || 'scraper',
+                status:    'running',
+                processed: 0,
+                stats:     {},
+                timestamp: new Date().toISOString(),
+            });
             break;
 
         case 'completed':
             await ScraperMonitor.handleJobFinished({ job, status: 'completed', result, queueSnapshot });
 
-            await notifyScraperDone({
+            await notifyScraper({
                 jobId:     job?.id,
                 source:    job?.type || source || 'scraper',
                 status:    'success',
@@ -93,7 +119,7 @@ async function _handleEvent(body) {
         case 'failed':
             await ScraperMonitor.handleJobFinished({ job, status: 'failed', result, queueSnapshot });
 
-            await notifyScraperDone({
+            await notifyScraper({
                 jobId:     job?.id,
                 source:    job?.type || source || 'scraper',
                 status:    'error',
@@ -106,7 +132,7 @@ async function _handleEvent(body) {
         default:
             // ── Formato legado ────────────────────────────────────────────
             if (source && status) {
-                await notifyScraperDone({ source, status, processed, stats, timestamp });
+                await notifyScraper({ source, status, processed, stats, timestamp });
                 console.log(`[webhook] Evento legado: ${source} → ${status}`);
             } else {
                 console.warn('[webhook] Payload no reconocido:', JSON.stringify(body));
