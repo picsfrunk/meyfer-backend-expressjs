@@ -15,6 +15,7 @@
  */
 function buildScraperEmail(payload = {}) {
     const {
+        jobId     = null,
         source,
         status,
         processed = 0,
@@ -176,6 +177,7 @@ function buildScraperEmail(payload = {}) {
             </tr>
           </thead>
           <tbody>
+            ${jobId ? row('Job ID', `<code style="font-family:monospace;font-size:12px;background:#f4f6f7;padding:2px 6px;border-radius:4px;color:#555;">${jobId}</code>`, { bg: '#f8f9fa' }) : ''}
             ${row('Productos procesados', processed.toLocaleString('es-AR'), { bold: true })}
             ${row('Precios actualizados', updatedPrices.toLocaleString('es-AR'), { bg: '#f8f9fa', valueColor: '#1a5276', bold: true })}
             ${row('Productos eliminados (huérfanos)', orphansValue)}

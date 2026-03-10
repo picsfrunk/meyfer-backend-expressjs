@@ -72,6 +72,7 @@ async function _handleEvent(body) {
             await ScraperMonitor.handleJobFinished({ job, status: 'completed', result, queueSnapshot });
 
             await notifyScraperDone({
+                jobId:     job?.id,
                 source:    job?.type || source || 'scraper',
                 status:    'success',
                 processed: result?.processed || 0,
@@ -93,6 +94,7 @@ async function _handleEvent(body) {
             await ScraperMonitor.handleJobFinished({ job, status: 'failed', result, queueSnapshot });
 
             await notifyScraperDone({
+                jobId:     job?.id,
                 source:    job?.type || source || 'scraper',
                 status:    'error',
                 processed: 0,
