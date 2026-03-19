@@ -1,7 +1,8 @@
 const buildOrderHtml = require("../utils/buildOrderHtml");
-const { buildScraperEmail } = require("../utils/buildScraperEmail");
-const { mailjet } = require("./MailJet.service");
-const ConfigService = require("./config.service");
+const { buildScraperEmail }     = require("../utils/buildScraperEmail");
+const { buildPriceCheckEmail }  = require("../utils/buildPriceCheckEmail");
+const { mailjet }       = require("./MailJet.service");
+const ConfigService     = require("./config.service");
 
 const { MAIL_FROM, MAIL_FROM_NAME } = process.env;
 
@@ -67,7 +68,18 @@ async function sendScraperFinishedNotification(payload = {}) {
     if (!adminEmails.length) return { success: false, error: "No hay admins activos" };
 
     const { subject, html } = buildScraperEmail(payload);
+    return _send({ to: adminEmails, subject, html });
+}
 
+/**
+ * Envía notificación de resultado de verificación de precios a admins.
+ * El HTML y subject se generan en utils/buildPriceCheckEmail.js
+ */
+async function sendPriceCheckNotification(payload = {}) {
+    const adminEmails = await ConfigService.listActiveAdminEmails();
+    if (!adminEmails.length) return { success: false, error: "No hay admins activos" };
+
+    const { subject, html } = buildPriceCheckEmail(payload);
     return _send({ to: adminEmails, subject, html });
 }
 
@@ -75,4 +87,5 @@ module.exports = {
     sendOrderNotificationToAdmins,
     sendOrderConfirmationToCustomer,
     sendScraperFinishedNotification,
+    sendPriceCheckNotification,
 };

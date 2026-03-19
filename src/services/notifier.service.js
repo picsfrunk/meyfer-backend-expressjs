@@ -3,11 +3,9 @@ const emailService = require('./email.service');
 
 /**
  * Orquestador de acciones tras finalizar el scraping.
- * Ahora recibe opcionalmente `queueInfo` con datos de cola
- * para enriquecer el email.
+ * Recibe opcionalmente `queueInfo` con datos de cola para enriquecer el email.
  */
 async function notifyScraper(payload) {
-    // Actualizar fecha de última sincronización solo en éxito
     if (payload.status === 'success') {
         await Config.findOneAndUpdate(
             { key: 'last_update' },
@@ -19,7 +17,21 @@ async function notifyScraper(payload) {
     try {
         await emailService.sendScraperFinishedNotification(payload);
     } catch (error) {
-        console.error('[notifier.service] Falló el envío de email:', error.message);
+        console.error('[notifier.service] Falló el envío de email del scraper:', error.message);
+    }
+
+    return { success: true };
+}
+
+/**
+ * Notificación de resultado de verificación de precios.
+ * Se llama desde webhook.controller cuando llega el resultado del priceChecker.
+ */
+async function notifyPriceCheck(payload) {
+    try {
+        await emailService.sendPriceCheckNotification(payload);
+    } catch (error) {
+        console.error('[notifier.service] Falló el envío de email del price check:', error.message);
     }
 
     return { success: true };
@@ -27,4 +39,5 @@ async function notifyScraper(payload) {
 
 module.exports = {
     notifyScraper,
+    notifyPriceCheck,
 };

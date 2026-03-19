@@ -1,74 +1,45 @@
-const { notifyScraper } = require('../services/notifier.service');
+const { notifyScraper, notifyPriceCheck } = require('../services/notifier.service');
 const ScraperMonitor = require('../services/scraper_monitor.service');
 
-/**
- * POST /webhooks/scraper/result
- *
- * Recibe todos los eventos del scraper API:
- *   - enqueued   → job encolado (hay otro corriendo)
- *   - started    → job comenzó a ejecutarse
- *   - completed  → job terminó con éxito
- *   - failed     → job terminó con error
- *
- * Formato esperado (modo cola):
- * {
- *   event: 'started',
- *   job: { id, type },
- *   queueSnapshot: { isRunning, running, pending, pendingJobs },
- *   result: { total, processed, errors, ... },  // solo en completed/failed
- *   source: 'scraperQueue',
- *   status: 'started',
- *   timestamp: '...'
- * }
- *
- * Formato legado (sin event):
- * { source, status, processed, stats, timestamp }
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// SCRAPER WEBHOOK
+// POST /webhooks/scraper/result
+// ─────────────────────────────────────────────────────────────────────────────
+
 exports.scraperFinished = async (req, res) => {
     try {
         const body = req.body;
-
         if (!body || typeof body !== 'object') {
             return res.status(400).json({ message: 'Body inválido' });
         }
 
-        // Responder rápido al scraper API para no bloquearlo
         res.status(200).json({ message: 'Webhook recibido' });
-
-        await _handleEvent(body);
+        await _handleScraperEvent(body);
 
     } catch (error) {
-        console.error('[webhook.controller] Error procesando webhook:', error);
+        console.error('[webhook.controller] Error procesando scraper webhook:', error);
     }
 };
 
-async function _handleEvent(body) {
+async function _handleScraperEvent(body) {
     const {
-        event,
-        job,
-        result,
-        queueSnapshot,
+        event, job, result, queueSnapshot,
         // legado
-        source,
-        status,
-        processed,
-        stats,
-        timestamp,
+        source, status, processed, stats, timestamp,
     } = body;
 
-    console.log(`[webhook] Evento recibido: ${event ?? 'legado'} | job: ${job?.id ?? '-'}`);
+    console.log(`[webhook] scraper evento: ${event ?? 'legado'} | job: ${job?.id ?? '-'}`);
 
     switch (event) {
 
         case 'enqueued':
             await ScraperMonitor.handleJobEnqueued({ job, queueSnapshot, message: body.message });
-
             await notifyScraper({
-                jobId:     job?.id,
-                source:    job?.type || 'scraper',
-                status:    'enqueued',
+                jobId:  job?.id,
+                source: job?.type || 'scraper',
+                status: 'enqueued',
                 processed: 0,
-                stats:     {},
+                stats:  {},
                 timestamp: new Date().toISOString(),
                 queueInfo: {
                     pendingAfter:   queueSnapshot?.pending ?? 0,
@@ -83,24 +54,22 @@ async function _handleEvent(body) {
 
         case 'started':
             await ScraperMonitor.handleJobStarted({ job, queueSnapshot });
-
             await notifyScraper({
-                jobId:     job?.id,
-                source:    job?.type || 'scraper',
-                status:    'running',
+                jobId:  job?.id,
+                source: job?.type || 'scraper',
+                status: 'running',
                 processed: 0,
-                stats:     {},
+                stats:  {},
                 timestamp: new Date().toISOString(),
             });
             break;
 
         case 'completed':
             await ScraperMonitor.handleJobFinished({ job, status: 'completed', result, queueSnapshot });
-
             await notifyScraper({
-                jobId:     job?.id,
-                source:    job?.type || source || 'scraper',
-                status:    'success',
+                jobId:  job?.id,
+                source: job?.type || source || 'scraper',
+                status: 'success',
                 processed: result?.processed || 0,
                 stats: {
                     updatedPrices:  result?.total          || 0,
@@ -118,11 +87,10 @@ async function _handleEvent(body) {
 
         case 'failed':
             await ScraperMonitor.handleJobFinished({ job, status: 'failed', result, queueSnapshot });
-
             await notifyScraper({
-                jobId:     job?.id,
-                source:    job?.type || source || 'scraper',
-                status:    'error',
+                jobId:  job?.id,
+                source: job?.type || source || 'scraper',
+                status: 'error',
                 processed: 0,
                 stats: { totalErrors: 1, durationMs: result?.durationMs || 0 },
                 timestamp: new Date().toISOString(),
@@ -130,12 +98,37 @@ async function _handleEvent(body) {
             break;
 
         default:
-            // ── Formato legado ────────────────────────────────────────────
             if (source && status) {
                 await notifyScraper({ source, status, processed, stats, timestamp });
-                console.log(`[webhook] Evento legado: ${source} → ${status}`);
+                console.log(`[webhook] legado: ${source} → ${status}`);
             } else {
                 console.warn('[webhook] Payload no reconocido:', JSON.stringify(body));
             }
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PRICE CHECK WEBHOOK
+// POST /webhooks/price-check/result
+// ─────────────────────────────────────────────────────────────────────────────
+
+exports.priceCheckFinished = async (req, res) => {
+    try {
+        const body = req.body;
+        if (!body || typeof body !== 'object') {
+            return res.status(400).json({ message: 'Body inválido' });
+        }
+
+        res.status(200).json({ message: 'Webhook recibido' });
+        await _handlePriceCheckEvent(body);
+
+    } catch (error) {
+        console.error('[webhook.controller] Error procesando price check webhook:', error);
+    }
+};
+
+async function _handlePriceCheckEvent(body) {
+    const { status, summary, changed = [], error, timestamp } = body;
+
+    await notifyPriceCheck({ status, summary, changed, error, timestamp });
 }
