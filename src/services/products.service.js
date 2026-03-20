@@ -124,6 +124,30 @@ const runSitemapAnalysis = async (params = {}) => {
     }
 };
 
+const runPriceCheck = async () => {
+    if (!process.env.PRICE_CHECK_URL) {
+        throw { statusCode: 503, message: 'PRICE_CHECK_URL no está configurada en el entorno del backend' };
+    }
+    if (!process.env.WEBHOOK_PRICE_CHECK_URL) {
+        throw { statusCode: 503, message: 'WEBHOOK_PRICE_CHECK_URL no está configurada en el entorno del backend' };
+    }
+
+    try {
+        const payload = {
+            webhookUrl: process.env.WEBHOOK_PRICE_CHECK_URL,
+        };
+
+        const response = await axios.post(process.env.PRICE_CHECK_URL, payload);
+        return response.data;
+    } catch (error) {
+        throw {
+            statusCode: error.response?.status || 500,
+            message: error.message || 'Error al ejecutar price check',
+            details: error.response?.data || null
+        };
+    }
+};
+
 const getPaginatedScrapedProducts = async (page = 1, limit = 20, categoryId = null, searchKeyword = null, brand = null) => {
     const skip = (page - 1) * limit;
     const filter = {};
@@ -264,5 +288,6 @@ module.exports = {
     getSections,
     updateProductPrices,
     runSitemapAnalysis,
+    runPriceCheck,
     getProductBrands
 }
