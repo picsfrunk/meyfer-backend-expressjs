@@ -45,6 +45,18 @@ const analyzeSitemap = async (req, res) => {
     }
 };
 
+const checkPrices = async (req, res) => {
+    try {
+        const result = await ProductsService.runPriceCheck();
+        res.status(202).json({ message: 'Verificación de precios iniciada', result });
+    } catch (error) {
+        res.status(error.statusCode || 500).json({
+            error: error.message || 'Error al ejecutar price check',
+            details: error.details
+        });
+    }
+};
+
 const getScrapedProducts = async (req, res, next) => {
     try {
         const page = parseInt(req.query.page, 10) || 1;
@@ -107,5 +119,6 @@ module.exports = {
     getScrapedProducts,
     getScrapedProductById,
     analyzeSitemap,
+    checkPrices,
     getProductBrands,
 };
