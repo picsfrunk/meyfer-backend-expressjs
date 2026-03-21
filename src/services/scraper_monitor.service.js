@@ -101,7 +101,7 @@ async function handleJobFinished({ job, status, result, queueSnapshot }) {
                 finishedAt: now,
                 durationMs,
                 waitTimeMs,
-                result: _normalizeResult(result),
+                result: _normalizeResult(result, job?.type),
                 lastQueueSnapshot: queueSnapshot,
             },
             $setOnInsert: {
@@ -117,7 +117,22 @@ async function handleJobFinished({ job, status, result, queueSnapshot }) {
     );
 }
 
-function _normalizeResult(result = {}) {
+function _normalizeResult(result = {}, jobType = null) {
+    // Price check tiene una estructura de resultado diferente al scraper
+    if (jobType === 'priceCheck' || result?.summary) {
+        return {
+            // Campos de price check
+            summary:       result.summary       ?? null,
+            changedCount:  result.summary?.changed   ?? result.changed?.length  ?? null,
+            newCount:      result.summary?.new        ?? result.new?.length      ?? null,
+            removedCount:  result.summary?.removed    ?? result.removed?.length  ?? null,
+            failedCount:   result.summary?.failed     ?? null,
+            durationMs:    result.summary?.durationMs ?? result.durationMs       ?? null,
+            error:         result.error          ?? null,
+        };
+    }
+
+    // Scraper estándar
     return {
         total:          result.total          ?? null,
         processed:      result.processed      ?? null,

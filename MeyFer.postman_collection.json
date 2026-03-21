@@ -1,1128 +1,1574 @@
 {
-	"info": {
-		"_postman_id": "606f8d31-08cf-4f5f-a992-228a899f63f3",
-		"name": "MeyFer",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "46281585"
-	},
-	"item": [
-		{
-			"name": "local",
-			"item": [
-				{
-					"name": "backend-express-api",
-					"item": [
-						{
-							"name": "Orders",
-							"item": [
-								{
-									"name": "new order",
-									"request": {
-										"method": "POST",
-										"header": [],
-										"body": {
-											"mode": "raw",
-											"raw": "{\n  \"customerInfo\": {\n    \"cliente\": \"Tubos Pepito\",\n    \"razonSocial\": \"ACME Corp.\",\n    \"cuit\": \"20-12345678-9\",\n    \"telefono1\": \"+1155551234\",\n    \"email\": \"picsfrunk@gmail.com\",\n    \"direccion\": {\n      \"calle\": \"Main Street\",\n      \"numero\": \"123\",\n      \"piso\": \"Floor 4\",\n      \"timbre\": \"Apto. 4B\",\n      \"entreCalles\": \"Pine & Oak\",\n      \"localidad\": \"Springfield\",\n      \"partido\": \"Simpsonsville\"\n    },\n    \"contacto\": \"Jane Smith\",\n    \"horarios\": \"9 AM - 5 PM\",\n    \"notas\": \"Please leave the package at the front door.\"\n  },\n  \"cartItems\": [\n    {\n      \"productCartItem\": {\n        \"_id\": \"6897e1621e07665743f851c7\",\n        \"product_id\": 1528,\n        \"base_unit_name\": \"Un\",\n        \"brand\": \"DUKE\",\n        \"category_id\": 8,\n        \"category_name\": \"Químicos\",\n        \"display_name\": \"ADHESIVO PARA PVC 50 cc \\\"DUKE\\\"\",\n        \"image_url\": \"https://rhcomercial.com.ar/web/image/product.product/1528/image_1024/%5B0938%5D%20ADHESIVO%20PARA%20PVC%2050%20cc%20%22DUKE%22?unique=7ed1c27\",\n        \"list_price\": 2241.3,\n        \"product_type\": \"consu\"\n      },\n      \"qty\": 3\n    },\n    {\n      \"productCartItem\": {\n        \"_id\": \"6897e1611e07665743f851c4\",\n        \"product_id\": 1527,\n        \"base_unit_name\": \"Un\",\n        \"brand\": \"DUKE\",\n        \"category_id\": 8,\n        \"category_name\": \"Químicos\",\n        \"display_name\": \"ADHESIVO PARA PVC 250 cc \\\"DUKE\\\"\",\n        \"image_url\": \"https://rhcomercial.com.ar/web/image/product.product/1527/image_1024/%5B0940%5D%20ADHESIVO%20PARA%20PVC%20250%20cc%20%22DUKE%22?unique=7ed1c27\",\n        \"list_price\": 7077.4,\n        \"product_type\": \"consu\"\n      },\n      \"qty\": 2\n    }\n  ],\n  \"total\": 20878.7,\n  \"totalItems\": 5\n}",
-											"options": {
-												"raw": {
-													"language": "json"
-												}
-											}
-										},
-										"url": {
-											"raw": "http://localhost:3000/api/orders/new",
-											"protocol": "http",
-											"host": [
-												"localhost"
-											],
-											"port": "3000",
-											"path": [
-												"api",
-												"orders",
-												"new"
-											]
-										}
-									},
-									"response": []
-								},
-								{
-									"name": "all orders",
-									"request": {
-										"method": "GET",
-										"header": [
-											{
-												"key": "Authorization",
-												"value": "Bearer {{JWT}}",
-												"type": "text"
-											}
-										],
-										"url": {
-											"raw": "http://localhost:3000/api/orders",
-											"protocol": "http",
-											"host": [
-												"localhost"
-											],
-											"port": "3000",
-											"path": [
-												"api",
-												"orders"
-											]
-										}
-									},
-									"response": []
-								},
-								{
-									"name": "all orders with filter",
-									"request": {
-										"method": "GET",
-										"header": [
-											{
-												"key": "Authorization",
-												"value": "Bearer {{JWT}}",
-												"type": "text"
-											}
-										],
-										"url": {
-											"raw": "http://localhost:3000/api/orders?status=deleted,pending",
-											"protocol": "http",
-											"host": [
-												"localhost"
-											],
-											"port": "3000",
-											"path": [
-												"api",
-												"orders"
-											],
-											"query": [
-												{
-													"key": "status",
-													"value": "deleted,pending"
-												}
-											]
-										}
-									},
-									"response": []
-								},
-								{
-									"name": "one order",
-									"request": {
-										"method": "GET",
-										"header": [
-											{
-												"key": "Authorization",
-												"value": "Bearer {{JWT}}",
-												"type": "text"
-											}
-										],
-										"url": {
-											"raw": "http://localhost:3000/api/orders/00009-JOH-20250831-0945",
-											"protocol": "http",
-											"host": [
-												"localhost"
-											],
-											"port": "3000",
-											"path": [
-												"api",
-												"orders",
-												"00009-JOH-20250831-0945"
-											]
-										}
-									},
-									"response": []
-								},
-								{
-									"name": "update all order",
-									"request": {
-										"method": "PUT",
-										"header": [
-											{
-												"key": "Authorization",
-												"value": "Bearer {{JWT}}",
-												"type": "text"
-											}
-										],
-										"body": {
-											"mode": "raw",
-											"raw": "{\n  \"customerInfo\": {\n    \"cliente\": \"Acme Modificado\"\n  }\n}",
-											"options": {
-												"raw": {
-													"language": "json"
-												}
-											}
-										},
-										"url": {
-											"raw": "http://localhost:3000/api/orders/00009-JOH-20250831-0945",
-											"protocol": "http",
-											"host": [
-												"localhost"
-											],
-											"port": "3000",
-											"path": [
-												"api",
-												"orders",
-												"00009-JOH-20250831-0945"
-											]
-										}
-									},
-									"response": []
-								},
-								{
-									"name": "update order status",
-									"request": {
-										"method": "PATCH",
-										"header": [
-											{
-												"key": "Authorization",
-												"value": "Bearer {{JWT}}",
-												"type": "text"
-											}
-										],
-										"body": {
-											"mode": "raw",
-											"raw": "{\n        \"status\": \"delivered\"\n}",
-											"options": {
-												"raw": {
-													"language": "json"
-												}
-											}
-										},
-										"url": {
-											"raw": "http://localhost:3000/api/orders/00009-JOH-20250831-0945/status",
-											"protocol": "http",
-											"host": [
-												"localhost"
-											],
-											"port": "3000",
-											"path": [
-												"api",
-												"orders",
-												"00009-JOH-20250831-0945",
-												"status"
-											]
-										}
-									},
-									"response": []
-								},
-								{
-									"name": "delete order",
-									"request": {
-										"method": "DELETE",
-										"header": [
-											{
-												"key": "Authorization",
-												"value": "Bearer {{JWT}}",
-												"type": "text"
-											}
-										],
-										"url": {
-											"raw": "http://localhost:3000/api/orders/00009-JOH-20250831-0945",
-											"protocol": "http",
-											"host": [
-												"localhost"
-											],
-											"port": "3000",
-											"path": [
-												"api",
-												"orders",
-												"00009-JOH-20250831-0945"
-											]
-										}
-									},
-									"response": []
-								}
-							]
-						},
-						{
-							"name": "Admin",
-							"item": [
-								{
-									"name": "Admin Emails",
-									"request": {
-										"method": "GET",
-										"header": [],
-										"url": {
-											"raw": "http://localhost:3000/api/config/admin-emails",
-											"protocol": "http",
-											"host": [
-												"localhost"
-											],
-											"port": "3000",
-											"path": [
-												"api",
-												"config",
-												"admin-emails"
-											]
-										}
-									},
-									"response": []
-								},
-								{
-									"name": "Admin Emails",
-									"request": {
-										"method": "POST",
-										"header": [],
-										"body": {
-											"mode": "raw",
-											"raw": "{\n  \"email\": \"dev.test.adn@gmail.com\"\n}",
-											"options": {
-												"raw": {
-													"language": "json"
-												}
-											}
-										},
-										"url": {
-											"raw": "http://localhost:3000/api/config/admin-emails",
-											"protocol": "http",
-											"host": [
-												"localhost"
-											],
-											"port": "3000",
-											"path": [
-												"api",
-												"config",
-												"admin-emails"
-											]
-										}
-									},
-									"response": []
-								}
-							]
-						},
-						{
-							"name": "login",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"exec": [
-											"// Analiza la respuesta JSON",
-											"const responseData = pm.response.json();",
-											"",
-											"// Verifica que la respuesta contenga el token",
-											"if (responseData && responseData.token) {",
-											"    // Asigna el valor del token a una variable de la colección",
-											"    pm.collectionVariables.set(\"JWT\", responseData.token);",
-											"    ",
-											"    // Opcional: Para verificar que funcionó",
-											"    console.log(\"Token asignado: \" + pm.collectionVariables.get(\"JWT\"));",
-											"} else {",
-											"    console.log(\"No se encontró el token en la respuesta.\");",
-											"}"
-										],
-										"type": "text/javascript",
-										"packages": {}
-									}
-								},
-								{
-									"listen": "prerequest",
-									"script": {
-										"exec": [],
-										"type": "text/javascript"
-									}
-								}
-							],
-							"request": {
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"username\": \"meyfer\",\n    \"password\": \"Ruleman7308!\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "http://localhost:3000/api/auth/login",
-									"protocol": "http",
-									"host": [
-										"localhost"
-									],
-									"port": "3000",
-									"path": [
-										"api",
-										"auth",
-										"login"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "trigger sitemap scraper",
-							"request": {
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"scraperType\": \"sitemapScraper\",\n  \"pageDelay\": 250\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "http://localhost:3000/api/products/scrape",
-									"protocol": "http",
-									"host": [
-										"localhost"
-									],
-									"port": "3000",
-									"path": [
-										"api",
-										"products",
-										"scrape"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "trigger category scraper",
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{JWT}}",
-										"type": "text"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"scraperType\": \"categoryScraper\",\n  \"rubros\": 4,\n  \"pageDelay\": 250,\n  \"categoryDelay\": 800\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "http://localhost:3000/api/config/scrape",
-									"protocol": "http",
-									"host": [
-										"localhost"
-									],
-									"port": "3000",
-									"path": [
-										"api",
-										"config",
-										"scrape"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "webhook simulation",
-							"request": {
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"status\": \"completed\",\n  \"source\": \"sitemap\",\n  \"processed\": 10,\n  \"timestamp\": \"2025-08-07T02:35:45.038Z\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "http://localhost:3000/api/webhook/scraper",
-									"protocol": "http",
-									"host": [
-										"localhost"
-									],
-									"port": "3000",
-									"path": [
-										"api",
-										"webhook",
-										"scraper"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "test order mail",
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{JWT}}",
-										"type": "text"
-									}
-								],
-								"url": {
-									"raw": "http://localhost:3000/api/dev/test-email",
-									"protocol": "http",
-									"host": [
-										"localhost"
-									],
-									"port": "3000",
-									"path": [
-										"api",
-										"dev",
-										"test-email"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "all scraped products",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "http://localhost:3000/api/products/scraped",
-									"protocol": "http",
-									"host": [
-										"localhost"
-									],
-									"port": "3000",
-									"path": [
-										"api",
-										"products",
-										"scraped"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "all scraped product by Id",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "http://localhost:3000/api/products/scraped/1726",
-									"protocol": "http",
-									"host": [
-										"localhost"
-									],
-									"port": "3000",
-									"path": [
-										"api",
-										"products",
-										"scraped",
-										"1726"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "filter scraped products search and cat id",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "http://localhost:3000/api/products/scraped?page=1&category_id=7&search=ze",
-									"protocol": "http",
-									"host": [
-										"localhost"
-									],
-									"port": "3000",
-									"path": [
-										"api",
-										"products",
-										"scraped"
-									],
-									"query": [
-										{
-											"key": "page",
-											"value": "1"
-										},
-										{
-											"key": "category_id",
-											"value": "7"
-										},
-										{
-											"key": "search",
-											"value": "ze"
-										}
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "filter scraped products search",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "http://localhost:3000/api/products/scraped?search=pala",
-									"protocol": "http",
-									"host": [
-										"localhost"
-									],
-									"port": "3000",
-									"path": [
-										"api",
-										"products",
-										"scraped"
-									],
-									"query": [
-										{
-											"key": "search",
-											"value": "pala"
-										}
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "category",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "http://localhost:3000/api/categories",
-									"protocol": "http",
-									"host": [
-										"localhost"
-									],
-									"port": "3000",
-									"path": [
-										"api",
-										"categories"
-									]
-								}
-							},
-							"response": []
-						}
-					]
-				},
-				{
-					"name": "scraper-api",
-					"item": [
-						{
-							"name": "Root",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "http://localhost:3001",
-									"protocol": "http",
-									"host": [
-										"localhost"
-									],
-									"port": "3001"
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Scrap Electricidad",
-							"request": {
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"rubros\": 4,\n  \"pageDelay\": 100,\n  \"categoryDelay\": 300,\n  \"webhookUrl\": \"http://localhost:3000/api/webhook/scraper\"\n}\n",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "http://localhost:3001/api/scraper/category/",
-									"protocol": "http",
-									"host": [
-										"localhost"
-									],
-									"port": "3001",
-									"path": [
-										"api",
-										"scraper",
-										"category",
-										""
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Scrap by sitemap.xml",
-							"request": {
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"pageDelay\": 250,\n    \"webhookUrl\": \"http://localhost:3000/api/webhook/scraper\"\n}\n",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "http://localhost:3001/api/scraper/sitemap/",
-									"protocol": "http",
-									"host": [
-										"localhost"
-									],
-									"port": "3001",
-									"path": [
-										"api",
-										"scraper",
-										"sitemap",
-										""
-									]
-								}
-							},
-							"response": []
-						}
-					]
-				}
-			],
-			"auth": {
-				"type": "bearer",
-				"bearer": [
-					{
-						"key": "token",
-						"value": "{{JWT}}",
-						"type": "string"
-					}
-				]
-			},
-			"event": [
-				{
-					"listen": "prerequest",
-					"script": {
-						"type": "text/javascript",
-						"packages": {},
-						"exec": [
-							""
-						]
-					}
-				},
-				{
-					"listen": "test",
-					"script": {
-						"type": "text/javascript",
-						"packages": {},
-						"exec": [
-							""
-						]
-					}
-				}
-			]
-		},
-		{
-			"name": "server",
-			"item": [
-				{
-					"name": "Railway Production",
-					"item": [
-						{
-							"name": "Last Update",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{URL_RAILWAY_PROD}}/api/config/last-update",
-									"host": [
-										"{{URL_RAILWAY_PROD}}"
-									],
-									"path": [
-										"api",
-										"config",
-										"last-update"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "trigger category scraper",
-							"request": {
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"scraperType\": \"categoryScraper\",\n  \"pageDelay\": 250,\n  \"categoryDelay\": 800\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{URL_RAILWAY_PROD}}/api/products/scrape",
-									"host": [
-										"{{URL_RAILWAY_PROD}}"
-									],
-									"path": [
-										"api",
-										"products",
-										"scrape"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "webhook simulation",
-							"request": {
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"status\": \"completed\",\n  \"source\": \"sitemap\",\n  \"processed\": 10,\n  \"timestamp\": \"2025-08-07T02:35:45.038Z\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{URL_RAILWAY_PROD}}/api/webhook/scraper",
-									"host": [
-										"{{URL_RAILWAY_PROD}}"
-									],
-									"path": [
-										"api",
-										"webhook",
-										"scraper"
-									]
-								}
-							},
-							"response": []
-						}
-					]
-				},
-				{
-					"name": "Railway Development",
-					"item": [
-						{
-							"name": "New Order",
-							"request": {
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"customerInfo\": {\n    \"cliente\": \"Tubos Pepito\",\n    \"razonSocial\": \"ACME Corp.\",\n    \"cuit\": \"20-12345678-9\",\n    \"telefono1\": \"+1155551234\",\n    \"email\": \"picsfrunk@gmail.com\",\n    \"direccion\": {\n      \"calle\": \"Main Street\",\n      \"numero\": \"123\",\n      \"piso\": \"Floor 4\",\n      \"timbre\": \"Apto. 4B\",\n      \"entreCalles\": \"Pine & Oak\",\n      \"localidad\": \"Springfield\",\n      \"partido\": \"Simpsonsville\"\n    },\n    \"contacto\": \"Jane Smith\",\n    \"horarios\": \"9 AM - 5 PM\",\n    \"notas\": \"Please leave the package at the front door.\"\n  },\n  \"cartItems\": [\n    {\n      \"productCartItem\": {\n        \"_id\": \"6897e1621e07665743f851c7\",\n        \"product_id\": 1528,\n        \"base_unit_name\": \"Un\",\n        \"brand\": \"DUKE\",\n        \"category_id\": 8,\n        \"category_name\": \"Químicos\",\n        \"display_name\": \"ADHESIVO PARA PVC 50 cc \\\"DUKE\\\"\",\n        \"image_url\": \"https://rhcomercial.com.ar/web/image/product.product/1528/image_1024/%5B0938%5D%20ADHESIVO%20PARA%20PVC%2050%20cc%20%22DUKE%22?unique=7ed1c27\",\n        \"list_price\": 2241.3,\n        \"product_type\": \"consu\"\n      },\n      \"qty\": 3\n    },\n    {\n      \"productCartItem\": {\n        \"_id\": \"6897e1611e07665743f851c4\",\n        \"product_id\": 1527,\n        \"base_unit_name\": \"Un\",\n        \"brand\": \"DUKE\",\n        \"category_id\": 8,\n        \"category_name\": \"Químicos\",\n        \"display_name\": \"ADHESIVO PARA PVC 250 cc \\\"DUKE\\\"\",\n        \"image_url\": \"https://rhcomercial.com.ar/web/image/product.product/1527/image_1024/%5B0940%5D%20ADHESIVO%20PARA%20PVC%20250%20cc%20%22DUKE%22?unique=7ed1c27\",\n        \"list_price\": 7077.4,\n        \"product_type\": \"consu\"\n      },\n      \"qty\": 2\n    }\n  ],\n  \"total\": 20878.7,\n  \"totalItems\": 5\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{URL_RAILWAY_DEV}}/api/orders",
-									"host": [
-										"{{URL_RAILWAY_DEV}}"
-									],
-									"path": [
-										"api",
-										"orders"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "test order mail",
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{JWT}}",
-										"type": "text",
-										"disabled": true
-									}
-								],
-								"url": {
-									"raw": "{{URL_RAILWAY_DEV}}/api/dev/test-email",
-									"host": [
-										"{{URL_RAILWAY_DEV}}"
-									],
-									"path": [
-										"api",
-										"dev",
-										"test-email"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Scraped Products",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{URL_RAILWAY_DEV}}/api/products/scraped?page=10&limit=20",
-									"host": [
-										"{{URL_RAILWAY_DEV}}"
-									],
-									"path": [
-										"api",
-										"products",
-										"scraped"
-									],
-									"query": [
-										{
-											"key": "page",
-											"value": "10"
-										},
-										{
-											"key": "limit",
-											"value": "20"
-										}
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Scraped Products Copy",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{URL_RAILWAY_DEV}}/api/products/scraped?search=flex",
-									"host": [
-										"{{URL_RAILWAY_DEV}}"
-									],
-									"path": [
-										"api",
-										"products",
-										"scraped"
-									],
-									"query": [
-										{
-											"key": "search",
-											"value": "flex"
-										}
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "webhook simulation",
-							"request": {
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"status\": \"completed\",\n  \"source\": \"sitemap\",\n  \"processed\": 10,\n  \"timestamp\": \"2025-08-07T02:35:45.038Z\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{URL_RAILWAY_DEV}}/api/webhook/scraper",
-									"host": [
-										"{{URL_RAILWAY_DEV}}"
-									],
-									"path": [
-										"api",
-										"webhook",
-										"scraper"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "trigger category scraper",
-							"request": {
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"scraperType\": \"categoryScraper\",\n  \"rubros\": 4\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{URL_RAILWAY_DEV}}/api/products/scrape",
-									"host": [
-										"{{URL_RAILWAY_DEV}}"
-									],
-									"path": [
-										"api",
-										"products",
-										"scrape"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "trigger category scraper ALL PRODUCTS",
-							"request": {
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"scraperType\": \"categoryScraper\",\n  \"pageDelay\": 1000,\n  \"categoryDelay\": 800\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{URL_RAILWAY_DEV}}/api/products/scrape",
-									"host": [
-										"{{URL_RAILWAY_DEV}}"
-									],
-									"path": [
-										"api",
-										"products",
-										"scrape"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "trigger sitemap scraper",
-							"request": {
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"scraperType\": \"sitemapScraper\",\n  \"pageDelay\": 250\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "meyfer-backend-expressjs-development.up.railway.app/api/products/scrape",
-									"host": [
-										"meyfer-backend-expressjs-development",
-										"up",
-										"railway",
-										"app"
-									],
-									"path": [
-										"api",
-										"products",
-										"scrape"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "get parsed products",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{URL_RAILWAY_DEV}}/api/products/parsed",
-									"host": [
-										"{{URL_RAILWAY_DEV}}"
-									],
-									"path": [
-										"api",
-										"products",
-										"parsed"
-									]
-								}
-							},
-							"response": []
-						}
-					]
-				},
-				{
-					"name": "Railway PR",
-					"item": [
-						{
-							"name": "Login PR",
-							"request": {
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"username\": \"meyfer\",\n    \"password\": {{PASSWORD}}\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{URL_RAILWAY_PR}}/api/auth/login",
-									"host": [
-										"{{URL_RAILWAY_PR}}"
-									],
-									"path": [
-										"api",
-										"auth",
-										"login"
-									]
-								}
-							},
-							"response": []
-						}
-					]
-				}
-			]
-		}
-	],
-	"event": [
-		{
-			"listen": "prerequest",
-			"script": {
-				"type": "text/javascript",
-				"packages": {},
-				"exec": [
-					""
-				]
-			}
-		},
-		{
-			"listen": "test",
-			"script": {
-				"type": "text/javascript",
-				"packages": {},
-				"exec": [
-					""
-				]
-			}
-		}
-	],
-	"variable": [
-		{
-			"key": "URL_RAILWAY_PROD",
-			"value": "https://meyfer-backend-expressjs-production-a5e7.up.railway.app"
-		},
-		{
-			"key": "URL_RAILWAY_DEV",
-			"value": "https://meyfer-backend-expressjs-development.up.railway.app"
-		},
-		{
-			"key": "JWT",
-			"value": ""
-		},
-		{
-			"key": "URL_RAILWAY_PR",
-			"value": ""
-		},
-		{
-			"key": "PASSWORD",
-			"value": ""
-		}
-	]
+  "info": {
+    "_postman_id": "606f8d31-08cf-4f5f-a992-228a899f63f3",
+    "name": "MeyFer",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "46281585"
+  },
+  "item": [
+    {
+      "name": "local",
+      "item": [
+        {
+          "name": "backend-express-api",
+          "item": [
+            {
+              "name": "Orders",
+              "item": [
+                {
+                  "name": "new order",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"customerInfo\": {\n    \"cliente\": \"Tubos Pepito\",\n    \"razonSocial\": \"ACME Corp.\",\n    \"cuit\": \"20-12345678-9\",\n    \"telefono1\": \"+1155551234\",\n    \"email\": \"picsfrunk@gmail.com\",\n    \"direccion\": {\n      \"calle\": \"Main Street\",\n      \"numero\": \"123\",\n      \"piso\": \"Floor 4\",\n      \"timbre\": \"Apto. 4B\",\n      \"entreCalles\": \"Pine & Oak\",\n      \"localidad\": \"Springfield\",\n      \"partido\": \"Simpsonsville\"\n    },\n    \"contacto\": \"Jane Smith\",\n    \"horarios\": \"9 AM - 5 PM\",\n    \"notas\": \"Please leave the package at the front door.\"\n  },\n  \"cartItems\": [\n    {\n      \"productCartItem\": {\n        \"_id\": \"6897e1621e07665743f851c7\",\n        \"product_id\": 1528,\n        \"base_unit_name\": \"Un\",\n        \"brand\": \"DUKE\",\n        \"category_id\": 8,\n        \"category_name\": \"Químicos\",\n        \"display_name\": \"ADHESIVO PARA PVC 50 cc \\\"DUKE\\\"\",\n        \"image_url\": \"https://rhcomercial.com.ar/web/image/product.product/1528/image_1024/%5B0938%5D%20ADHESIVO%20PARA%20PVC%2050%20cc%20%22DUKE%22?unique=7ed1c27\",\n        \"list_price\": 2241.3,\n        \"product_type\": \"consu\"\n      },\n      \"qty\": 3\n    },\n    {\n      \"productCartItem\": {\n        \"_id\": \"6897e1611e07665743f851c4\",\n        \"product_id\": 1527,\n        \"base_unit_name\": \"Un\",\n        \"brand\": \"DUKE\",\n        \"category_id\": 8,\n        \"category_name\": \"Químicos\",\n        \"display_name\": \"ADHESIVO PARA PVC 250 cc \\\"DUKE\\\"\",\n        \"image_url\": \"https://rhcomercial.com.ar/web/image/product.product/1527/image_1024/%5B0940%5D%20ADHESIVO%20PARA%20PVC%20250%20cc%20%22DUKE%22?unique=7ed1c27\",\n        \"list_price\": 7077.4,\n        \"product_type\": \"consu\"\n      },\n      \"qty\": 2\n    }\n  ],\n  \"total\": 20878.7,\n  \"totalItems\": 5\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/orders/new",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "orders",
+                        "new"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "all orders",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{JWT}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "http://localhost:3000/api/orders",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "orders"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "all orders with filter",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{JWT}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "http://localhost:3000/api/orders?status=deleted,pending",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "orders"
+                      ],
+                      "query": [
+                        {
+                          "key": "status",
+                          "value": "deleted,pending"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "one order",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{JWT}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "http://localhost:3000/api/orders/00054-TER-20260126-2329",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "orders",
+                        "00054-TER-20260126-2329"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "update all order",
+                  "request": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{JWT}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"customerInfo\": {\n    \"cliente\": \"Acme Modificado\"\n  }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/orders/00009-JOH-20250831-0945",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "orders",
+                        "00009-JOH-20250831-0945"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "update order status",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{JWT}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n        \"status\": \"delivered\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/orders/00009-JOH-20250831-0945/status",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "orders",
+                        "00009-JOH-20250831-0945",
+                        "status"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "delete order",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{JWT}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "http://localhost:3000/api/orders/00009-JOH-20250831-0945",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "orders",
+                        "00009-JOH-20250831-0945"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "resend emails",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"admin\": true,\n  \"customer\": true\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/orders/00035-TUB-20250921-1337/resend-emails",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "orders",
+                        "00035-TUB-20250921-1337",
+                        "resend-emails"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Admin",
+              "item": [
+                {
+                  "name": "Admin Emails",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:3000/api/config/admin-emails",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "config",
+                        "admin-emails"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Admin Emails",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"email\": \"dev.test.adn@gmail.com\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/config/admin-emails",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "config",
+                        "admin-emails"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "trigger sitemap analysis",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{JWT}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"webhookUrl\": \"http://localhost:3000/api/webhook/scraper/result\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/config/sitemap/analyze",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "config",
+                        "sitemap",
+                        "analyze"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "trigger sitemap scraper",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"scraperType\": \"sitemapScraper\",\n    \"sitemapSource\": \"https://rhcomercial.com.ar/sitemap.xml\",\n    \"limitProducts\": 100,\n    \"pageDelay\": 1000,\n    \"webhookUrl\": \"http://localhost:3000/api/webhook/scraper/result\"\n}\n",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/config/scrape",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "config",
+                        "scrape"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "trigger category scraper",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{JWT}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"scraperType\": \"categoryScraper\",\n    \"categoryIds\": 116,\n    \"pageDelay\": 500,\n    \"categoryDelay\": 100,\n    \"webhookUrl\": \"http://localhost:3000/api/webhook/scraper/result\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/config/scrape",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "config",
+                        "scrape"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "webhook simulation",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"source\": \"amazon_scraper\",\n  \"status\": \"success\",\n  \"processed\": 150,\n  \"stats\": {\n    \"success\": 145,\n    \"failed\": 5,\n    \"duration_seconds\": 12.5\n  },\n  \"timestamp\": \"2026-03-05T22:15:00Z\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/webhook/scraper/result",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "webhook",
+                        "scraper",
+                        "result"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "test order mail",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{JWT}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "http://localhost:3000/api/dev/test-email",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "dev",
+                        "test-email"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "scraper stats",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:3000/api/admin/scraper/stats",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "admin",
+                        "scraper",
+                        "stats"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "scraper status",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:3000/api/admin/scraper/status",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "admin",
+                        "scraper",
+                        "status"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "scraper history",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:3000/api/admin/scraper/history/",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "admin",
+                        "scraper",
+                        "history",
+                        ""
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "scraper hist one",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:3000/api/admin/scraper/history/sitemapScraper-1774107303137-3",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "admin",
+                        "scraper",
+                        "history",
+                        "sitemapScraper-1774107303137-3"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "scraper price check",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:3000/api/config/price-check",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "config",
+                        "price-check"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Products",
+              "item": [
+                {
+                  "name": "all scraped products",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:3000/api/products/scraped",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "products",
+                        "scraped"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "all scraped product by Id",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:3000/api/products/scraped/116",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "products",
+                        "scraped",
+                        "116"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "filter scraped products search and cat id",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:3000/api/products/scraped?page=1&category_id=116",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "products",
+                        "scraped"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "category_id",
+                          "value": "116"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "filter scraped products by brand",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:3000/api/products/scraped?brand=chayto",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "products",
+                        "scraped"
+                      ],
+                      "query": [
+                        {
+                          "key": "brand",
+                          "value": "chayto"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "filter scraped products search",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:3000/api/products/scraped?search=alarsa",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "products",
+                        "scraped"
+                      ],
+                      "query": [
+                        {
+                          "key": "search",
+                          "value": "alarsa"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "category",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:3000/api/categories",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "categories"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "one product",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:3000/api/products/scraped/0441",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "products",
+                        "scraped",
+                        "0441"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "brands",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:3000/api/products/brands",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "products",
+                        "brands"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "login",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Analiza la respuesta JSON",
+                      "const responseData = pm.response.json();",
+                      "",
+                      "// Verifica que la respuesta contenga el token",
+                      "if (responseData && responseData.token) {",
+                      "    // Asigna el valor del token a una variable de la colección",
+                      "    pm.collectionVariables.set(\"JWT\", responseData.token);",
+                      "    ",
+                      "    // Opcional: Para verificar que funcionó",
+                      "    console.log(\"Token asignado: \" + pm.collectionVariables.get(\"JWT\"));",
+                      "} else {",
+                      "    console.log(\"No se encontró el token en la respuesta.\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"username\": \"meyfer\",\n    \"password\": \"Ruleman7308!\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/auth/login",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "scraper-api",
+          "item": [
+            {
+              "name": "Root",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3001",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3001"
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Scrap by sitemap.xml",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"sitemapSource\": \"https://rhcomercial.com.ar/sitemap.xml\",\n    \"limitProducts\": 2,\n    \"pageDelay\": 500,\n    \"webhookUrl\": \"http://localhost:3000/api/webhook/scraper/result\"\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3001/api/scraper/sitemap/",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3001",
+                  "path": [
+                    "api",
+                    "scraper",
+                    "sitemap",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Scrap Electricidad",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"categoryId\": 4,\n  \"pageDelay\": 500,\n  \"categoryDelay\": 500,\n  \"webhookUrl\": \"http://localhost:3000/api/webhook/scraper/result\"\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3001/api/scraper/category/",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3001",
+                  "path": [
+                    "api",
+                    "scraper",
+                    "category",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Status Scraper",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3001/api/scraper/status/",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3001",
+                  "path": [
+                    "api",
+                    "scraper",
+                    "status",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "check prices sync",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n\"sync\": true\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3001/api/scraper/check-prices",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3001",
+                  "path": [
+                    "api",
+                    "scraper",
+                    "check-prices"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "check prices webhook",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"webhookUrl\": \"http://localhost:3000/api/webhook/price-check/result\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3001/api/scraper/check-prices",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3001",
+                  "path": [
+                    "api",
+                    "scraper",
+                    "check-prices"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{JWT}}",
+            "type": "string"
+          }
+        ]
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "packages": {},
+            "exec": [
+              ""
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "packages": {},
+            "exec": [
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "server",
+      "item": [
+        {
+          "name": "Railway Production",
+          "item": [
+            {
+              "name": "login",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Analiza la respuesta JSON",
+                      "const responseData = pm.response.json();",
+                      "",
+                      "// Verifica que la respuesta contenga el token",
+                      "if (responseData && responseData.token) {",
+                      "    // Asigna el valor del token a una variable de la colección",
+                      "    pm.collectionVariables.set(\"JWT\", responseData.token);",
+                      "    ",
+                      "    // Opcional: Para verificar que funcionó",
+                      "    console.log(\"Token asignado: \" + pm.collectionVariables.get(\"JWT\"));",
+                      "} else {",
+                      "    console.log(\"No se encontró el token en la respuesta.\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"username\": \"meyfer\",\n    \"password\": \"meyfer123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{URL_RAILWAY_PROD}}/api/auth/login",
+                  "host": [
+                    "{{URL_RAILWAY_PROD}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Last Update",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{URL_RAILWAY_PROD}}/api/config/last-update",
+                  "host": [
+                    "{{URL_RAILWAY_PROD}}"
+                  ],
+                  "path": [
+                    "api",
+                    "config",
+                    "last-update"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "trigger category scraper",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{JWT}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"scraperType\": \"categoryScraper\",\n  \"pageDelay\": 500,\n  \"categoryDelay\": 800\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{URL_RAILWAY_PROD}}/api/config/scrape",
+                  "host": [
+                    "{{URL_RAILWAY_PROD}}"
+                  ],
+                  "path": [
+                    "api",
+                    "config",
+                    "scrape"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "webhook simulation",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"completed\",\n  \"source\": \"sitemap\",\n  \"processed\": 10,\n  \"timestamp\": \"2025-08-07T02:35:45.038Z\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{URL_RAILWAY_PROD}}/api/webhook/scraper",
+                  "host": [
+                    "{{URL_RAILWAY_PROD}}"
+                  ],
+                  "path": [
+                    "api",
+                    "webhook",
+                    "scraper"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "prod: new order",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"customerInfo\": {\n    \"cliente\": \"Tubos Pepito\",\n    \"razonSocial\": \"ACME Corp.\",\n    \"cuit\": \"20-12345678-9\",\n    \"telefono1\": \"+1155551234\",\n    \"email\": \"picsfrunk@gmail.com\",\n    \"direccion\": {\n      \"calle\": \"Main Street\",\n      \"numero\": \"123\",\n      \"piso\": \"Floor 4\",\n      \"timbre\": \"Apto. 4B\",\n      \"entreCalles\": \"Pine & Oak\",\n      \"localidad\": \"Springfield\",\n      \"partido\": \"Simpsonsville\"\n    },\n    \"contacto\": \"Jane Smith\",\n    \"horarios\": \"9 AM - 5 PM\",\n    \"notas\": \"Please leave the package at the front door.\"\n  },\n  \"cartItems\": [\n    {\n      \"productCartItem\": {\n        \"_id\": \"6897e1621e07665743f851c7\",\n        \"product_id\": 1528,\n        \"base_unit_name\": \"Un\",\n        \"brand\": \"DUKE\",\n        \"category_id\": 8,\n        \"category_name\": \"Químicos\",\n        \"display_name\": \"ADHESIVO PARA PVC 50 cc \\\"DUKE\\\"\",\n        \"image_url\": \"https://rhcomercial.com.ar/web/image/product.product/1528/image_1024/%5B0938%5D%20ADHESIVO%20PARA%20PVC%2050%20cc%20%22DUKE%22?unique=7ed1c27\",\n        \"list_price\": 2241.3,\n        \"product_type\": \"consu\"\n      },\n      \"qty\": 3\n    },\n    {\n      \"productCartItem\": {\n        \"_id\": \"6897e1611e07665743f851c4\",\n        \"product_id\": 1527,\n        \"base_unit_name\": \"Un\",\n        \"brand\": \"DUKE\",\n        \"category_id\": 8,\n        \"category_name\": \"Químicos\",\n        \"display_name\": \"ADHESIVO PARA PVC 250 cc \\\"DUKE\\\"\",\n        \"image_url\": \"https://rhcomercial.com.ar/web/image/product.product/1527/image_1024/%5B0940%5D%20ADHESIVO%20PARA%20PVC%20250%20cc%20%22DUKE%22?unique=7ed1c27\",\n        \"list_price\": 7077.4,\n        \"product_type\": \"consu\"\n      },\n      \"qty\": 2\n    }\n  ],\n  \"total\": 20878.7,\n  \"totalItems\": 5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{URL_RAILWAY_PR}}/api/orders/new",
+                  "host": [
+                    "{{URL_RAILWAY_PR}}"
+                  ],
+                  "path": [
+                    "api",
+                    "orders",
+                    "new"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Railway Development",
+          "item": [
+            {
+              "name": "New Order",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"customerInfo\": {\n    \"cliente\": \"Tubos Pepito\",\n    \"razonSocial\": \"ACME Corp.\",\n    \"cuit\": \"20-12345678-9\",\n    \"telefono1\": \"+1155551234\",\n    \"email\": \"picsfrunk@gmail.com\",\n    \"direccion\": {\n      \"calle\": \"Main Street\",\n      \"numero\": \"123\",\n      \"piso\": \"Floor 4\",\n      \"timbre\": \"Apto. 4B\",\n      \"entreCalles\": \"Pine & Oak\",\n      \"localidad\": \"Springfield\",\n      \"partido\": \"Simpsonsville\"\n    },\n    \"contacto\": \"Jane Smith\",\n    \"horarios\": \"9 AM - 5 PM\",\n    \"notas\": \"Please leave the package at the front door.\"\n  },\n  \"cartItems\": [\n    {\n      \"productCartItem\": {\n        \"_id\": \"6897e1621e07665743f851c7\",\n        \"product_id\": 1528,\n        \"base_unit_name\": \"Un\",\n        \"brand\": \"DUKE\",\n        \"category_id\": 8,\n        \"category_name\": \"Químicos\",\n        \"display_name\": \"ADHESIVO PARA PVC 50 cc \\\"DUKE\\\"\",\n        \"image_url\": \"https://rhcomercial.com.ar/web/image/product.product/1528/image_1024/%5B0938%5D%20ADHESIVO%20PARA%20PVC%2050%20cc%20%22DUKE%22?unique=7ed1c27\",\n        \"list_price\": 2241.3,\n        \"product_type\": \"consu\"\n      },\n      \"qty\": 3\n    },\n    {\n      \"productCartItem\": {\n        \"_id\": \"6897e1611e07665743f851c4\",\n        \"product_id\": 1527,\n        \"base_unit_name\": \"Un\",\n        \"brand\": \"DUKE\",\n        \"category_id\": 8,\n        \"category_name\": \"Químicos\",\n        \"display_name\": \"ADHESIVO PARA PVC 250 cc \\\"DUKE\\\"\",\n        \"image_url\": \"https://rhcomercial.com.ar/web/image/product.product/1527/image_1024/%5B0940%5D%20ADHESIVO%20PARA%20PVC%20250%20cc%20%22DUKE%22?unique=7ed1c27\",\n        \"list_price\": 7077.4,\n        \"product_type\": \"consu\"\n      },\n      \"qty\": 2\n    }\n  ],\n  \"total\": 20878.7,\n  \"totalItems\": 5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{URL_RAILWAY_DEV}}/api/orders/new",
+                  "host": [
+                    "{{URL_RAILWAY_DEV}}"
+                  ],
+                  "path": [
+                    "api",
+                    "orders",
+                    "new"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "test order mail",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{JWT}}",
+                    "type": "text",
+                    "disabled": true
+                  }
+                ],
+                "url": {
+                  "raw": "{{URL_RAILWAY_DEV}}/api/dev/test-email",
+                  "host": [
+                    "{{URL_RAILWAY_DEV}}"
+                  ],
+                  "path": [
+                    "api",
+                    "dev",
+                    "test-email"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Scraped Products",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{URL_RAILWAY_DEV}}/api/products/scraped?page=10&limit=20",
+                  "host": [
+                    "{{URL_RAILWAY_DEV}}"
+                  ],
+                  "path": [
+                    "api",
+                    "products",
+                    "scraped"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "10"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Scraped Products Copy",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{URL_RAILWAY_DEV}}/api/products/scraped?search=flex",
+                  "host": [
+                    "{{URL_RAILWAY_DEV}}"
+                  ],
+                  "path": [
+                    "api",
+                    "products",
+                    "scraped"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": "flex"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "webhook simulation",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"completed\",\n  \"source\": \"sitemap\",\n  \"processed\": 10,\n  \"timestamp\": \"2025-08-07T02:35:45.038Z\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{URL_RAILWAY_DEV}}/api/webhook/scraper",
+                  "host": [
+                    "{{URL_RAILWAY_DEV}}"
+                  ],
+                  "path": [
+                    "api",
+                    "webhook",
+                    "scraper"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "trigger category scraper",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"scraperType\": \"categoryScraper\",\n  \"rubros\": 4\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{URL_RAILWAY_DEV}}/api/products/scrape",
+                  "host": [
+                    "{{URL_RAILWAY_DEV}}"
+                  ],
+                  "path": [
+                    "api",
+                    "products",
+                    "scrape"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "trigger category scraper ALL PRODUCTS",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"scraperType\": \"categoryScraper\",\n  \"pageDelay\": 1000,\n  \"categoryDelay\": 800\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{URL_RAILWAY_DEV}}/api/products/scrape",
+                  "host": [
+                    "{{URL_RAILWAY_DEV}}"
+                  ],
+                  "path": [
+                    "api",
+                    "products",
+                    "scrape"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "trigger sitemap scraper",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"scraperType\": \"sitemapScraper\",\n  \"pageDelay\": 250\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "meyfer-backend-expressjs-development.up.railway.app/api/products/scrape",
+                  "host": [
+                    "meyfer-backend-expressjs-development",
+                    "up",
+                    "railway",
+                    "app"
+                  ],
+                  "path": [
+                    "api",
+                    "products",
+                    "scrape"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "get parsed products",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{URL_RAILWAY_DEV}}/api/products/parsed",
+                  "host": [
+                    "{{URL_RAILWAY_DEV}}"
+                  ],
+                  "path": [
+                    "api",
+                    "products",
+                    "parsed"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Railway PR",
+          "item": [
+            {
+              "name": "Login PR",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"username\": \"meyfer\",\n    \"password\": {{PASSWORD}}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{URL_RAILWAY_PR}}/api/auth/login",
+                  "host": [
+                    "{{URL_RAILWAY_PR}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "New Request",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "URL_RAILWAY_PROD",
+      "value": "https://meyfer-backend-expressjs-production-a5e7.up.railway.app"
+    },
+    {
+      "key": "URL_RAILWAY_DEV",
+      "value": "https://meyfer-backend-expressjs-development.up.railway.app"
+    },
+    {
+      "key": "JWT",
+      "value": ""
+    },
+    {
+      "key": "URL_RAILWAY_PR",
+      "value": ""
+    },
+    {
+      "key": "PASSWORD",
+      "value": ""
+    }
+  ]
 }

@@ -66,35 +66,52 @@ async function _handleScraperEvent(body) {
 
         case 'completed':
             await ScraperMonitor.handleJobFinished({ job, status: 'completed', result, queueSnapshot });
-            await notifyScraper({
-                jobId:  job?.id,
-                source: job?.type || source || 'scraper',
-                status: 'success',
-                processed: result?.processed || 0,
-                stats: {
-                    updatedPrices:  result?.total          || 0,
-                    totalErrors:    result?.errors         || 0,
-                    durationMs:     result?.durationMs     || 0,
-                    orphansDeleted: result?.orphansDeleted || 0,
-                },
-                timestamp: new Date().toISOString(),
-                queueInfo: {
-                    waitTimeMs:   queueSnapshot?.running?.elapsedMs ?? null,
-                    pendingAfter: queueSnapshot?.pending || 0,
-                },
-            });
+
+            if (job?.type === 'priceCheck') {
+                await notifyPriceCheck({
+                    status:  'success',
+                    summary: result?.summary ?? {},
+                    changed: result?.changed ?? [],
+                });
+            } else {
+                await notifyScraper({
+                    jobId:  job?.id,
+                    source: job?.type || source || 'scraper',
+                    status: 'success',
+                    processed: result?.processed || 0,
+                    stats: {
+                        updatedPrices:  result?.total          || 0,
+                        totalErrors:    result?.errors         || 0,
+                        durationMs:     result?.durationMs     || 0,
+                        orphansDeleted: result?.orphansDeleted || 0,
+                    },
+                    timestamp: new Date().toISOString(),
+                    queueInfo: {
+                        waitTimeMs:   queueSnapshot?.running?.elapsedMs ?? null,
+                        pendingAfter: queueSnapshot?.pending || 0,
+                    },
+                });
+            }
             break;
 
         case 'failed':
             await ScraperMonitor.handleJobFinished({ job, status: 'failed', result, queueSnapshot });
-            await notifyScraper({
-                jobId:  job?.id,
-                source: job?.type || source || 'scraper',
-                status: 'error',
-                processed: 0,
-                stats: { totalErrors: 1, durationMs: result?.durationMs || 0 },
-                timestamp: new Date().toISOString(),
-            });
+
+            if (job?.type === 'priceCheck') {
+                await notifyPriceCheck({
+                    status: 'error',
+                    error:  result?.error ?? 'Error desconocido en price check',
+                });
+            } else {
+                await notifyScraper({
+                    jobId:  job?.id,
+                    source: job?.type || source || 'scraper',
+                    status: 'error',
+                    processed: 0,
+                    stats: { totalErrors: 1, durationMs: result?.durationMs || 0 },
+                    timestamp: new Date().toISOString(),
+                });
+            }
             break;
 
         default:
@@ -129,6 +146,8 @@ exports.priceCheckFinished = async (req, res) => {
 
 async function _handlePriceCheckEvent(body) {
     const { status, summary, changed = [], error, timestamp } = body;
+
+    console.log(`[webhook] priceCheck ${status} — changed:${summary?.changed ?? 0} new:${summary?.new ?? 0} removed:${summary?.removed ?? 0}`);
 
     await notifyPriceCheck({ status, summary, changed, error, timestamp });
 }

@@ -4,6 +4,12 @@ const scraperMonitorController = require('../controllers/scraper_monitor.control
 
 /**
  * Rutas del panel de administración para monitoreo de scrapers.
+ * Montar en: /admin/scraper
+ *
+ * Agregar en app.js / index.js:
+ *   const adminScraperRoutes = require('./routes/admin_scraper.routes');
+ *   app.use('/admin/scraper', adminScraperRoutes);        // sin auth
+ *   app.use('/admin/scraper', authMiddleware, adminScraperRoutes);  // con auth
  */
 
 // ── Estado live de la cola ─────────────────────────────────────────────────
