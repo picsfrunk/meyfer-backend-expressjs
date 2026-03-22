@@ -5,9 +5,10 @@ const webhookRoutes = require("./webhooks.routes");
 const categoryRoutes = require("./category.routes");
 const ordersRoutes = require("./orders.routes");
 const devRoutes = require("./dev.routes");
+const adminScraperRoutes = require("./admin_scraper.routes");
+const adminPriceCheckRoutes = require("./admin_price_check.routes");
 const { authenticateAdmin } = require("../middlewares/auth.middleware");
 const { Router } = require("express/lib/express");
-const adminScraperRoutes = require("./admin_scraper.routes");
 
 const router = Router();
 
@@ -18,6 +19,8 @@ router.use('/webhook', webhookRoutes);
 router.use('/categories', categoryRoutes);
 router.use('/orders', ordersRoutes);
 router.use('/dev', authenticateAdmin, devRoutes);
-router.use('/admin/scraper', authenticateAdmin, adminScraperRoutes);
+router.use('/admin/scraper',      authenticateAdmin, adminScraperRoutes);
+router.use('/admin/price-check',  authenticateAdmin, adminPriceCheckRoutes);
+
 
 module.exports = router;

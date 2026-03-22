@@ -17,7 +17,7 @@ const scraperJobSchema = new mongoose.Schema({
     // Tipo de job
     type: {
         type: String,
-        enum: ['sitemapScraper', 'categoryScraper', 'sitemapAnalysis'],
+        enum: ['sitemapScraper', 'categoryScraper', 'sitemapAnalysis', 'priceCheck'],
         required: true,
     },
 
