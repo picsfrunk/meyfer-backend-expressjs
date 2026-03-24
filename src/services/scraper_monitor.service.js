@@ -43,6 +43,7 @@ async function handleJobEnqueued({ job, queueSnapshot, message }) {
                 pendingAtEnqueue: queueSnapshot?.pending ?? 0,
                 enqueuedAt: new Date(),
                 lastQueueSnapshot: queueSnapshot,
+                params: job.params ?? null,
             }
         },
         { upsert: true, new: true }
@@ -72,6 +73,7 @@ async function handleJobStarted({ job, queueSnapshot }) {
                 enqueuedAt: now,
                 queuePosition: 0,
                 pendingAtEnqueue: 0,
+                params: job.params ?? null,
             }
         },
         { upsert: true, new: true }

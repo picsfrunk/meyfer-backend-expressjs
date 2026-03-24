@@ -52,6 +52,13 @@ const scraperJobSchema = new mongoose.Schema({
     // Tiempo que esperó en cola (startedAt - enqueuedAt) en ms
     waitTimeMs: { type: Number, default: null },
 
+    // Parámetros con los que fue disparado el job
+    // Para categoryScraper guarda { categoryIds } — null si fue "todas las categorías"
+    params: {
+        type: mongoose.Schema.Types.Mixed,
+        default: null,
+    },
+
     // Resultado del job (stats del scraper)
     result: {
         total:         { type: Number, default: null },
