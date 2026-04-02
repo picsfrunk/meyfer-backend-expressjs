@@ -42,6 +42,11 @@ const scrapedProductSchema = new mongoose.Schema({
     },
     category_name: {
         type: String
+    },
+    isManual: {
+        type: Boolean,
+        default: false,
+        index: true  // el scraper filtrará por este campo en deleteMany
     }
 }, {
     collection: 'scraped-products',
