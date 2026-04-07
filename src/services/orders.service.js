@@ -7,27 +7,6 @@ const {
 } = require("./email.service");
 
 class OrdersService {
-    static sanitizeObjectForMongoOperators(value, path = '') {
-        if (Array.isArray(value)) {
-            return value.map((item, index) => this.sanitizeObjectForMongoOperators(item, `${path}[${index}]`));
-        }
-
-        if (!value || typeof value !== 'object') {
-            return value;
-        }
-
-        const sanitized = {};
-        for (const [key, nestedValue] of Object.entries(value)) {
-            if (key.startsWith('$') || key.includes('.')) {
-                const error = new Error(`Campo inválido en actualización: ${path ? `${path}.` : ''}${key}`);
-                error.statusCode = 400;
-                throw error;
-            }
-            sanitized[key] = this.sanitizeObjectForMongoOperators(nestedValue, path ? `${path}.${key}` : key);
-        }
-
-        return sanitized;
-    }
 
     /**
      * Devuelve los estados válidos definidos en el schema de Order
@@ -106,8 +85,11 @@ class OrdersService {
             throw error;
         }
 
-        const productsTotal = items.reduce((acc, item) => acc + (item.quantity * item.priceAtPurchase), 0);
-        const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
+        const { productsTotal, totalItems } = items.reduce((acc, item) => {
+            acc.productsTotal += item.quantity * item.priceAtPurchase;
+            acc.totalItems += item.quantity;
+            return acc;
+        }, { productsTotal: 0, totalItems: 0 });
         const total = Number((productsTotal + normalizedExtraCharge).toFixed(2));
 
         return {
@@ -259,11 +241,11 @@ class OrdersService {
 
         const shouldRecalculateTotals =
             Array.isArray(updatePayload.items) ||
-            Object.prototype.hasOwnProperty.call(updatePayload, 'extraCharge');
+            'extraCharge' in updatePayload;
 
         if (shouldRecalculateTotals) {
             const items = updatePayload.items || currentOrder.items;
-            const extraCharge = Object.prototype.hasOwnProperty.call(updatePayload, 'extraCharge')
+            const extraCharge = 'extraCharge' in updatePayload
                 ? updatePayload.extraCharge
                 : currentOrder.extraCharge;
             const totals = this.calculateOrderTotals(items, extraCharge);
@@ -273,11 +255,25 @@ class OrdersService {
             updatePayload.extraCharge = totals.extraCharge;
         }
 
-        const sanitizedUpdatePayload = this.sanitizeObjectForMongoOperators(updatePayload);
+        const allowedFields = ['customerInfo', 'items', 'total', 'totalItems', 'status', 'extraCharge', 'createdAt'];
+        const updateSet = {};
+        for (const field of allowedFields) {
+            if (field in updatePayload) {
+                updateSet[field] = updatePayload[field];
+            }
+        }
+
+        if (!Object.keys(updateSet).length) {
+            const error = new Error('No hay campos válidos para actualizar');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const updateDocument = { $set: updateSet };
 
         const updated = await OrderModel.findOneAndUpdate(
             { orderId },
-            sanitizedUpdatePayload,
+            updateDocument,
             { new: true, runValidators: true }
         ).lean();
 
@@ -309,7 +305,7 @@ class OrdersService {
             throw error;
         }
 
-        if (Object.prototype.hasOwnProperty.call(pricingData, 'extraCharge')) {
+        if ('extraCharge' in pricingData) {
             updatePayload.extraCharge = pricingData.extraCharge;
         }
 
