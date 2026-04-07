@@ -63,7 +63,25 @@ Devuelve los estados de pedido válidos definidos en el modelo.
 Detalle de un pedido por ID.
 
 ### `PUT /orders/:id` (Admin)
-Actualización completa de un pedido.
+Actualización de pedido (permite editar `customerInfo`, dirección de entrega, ítems y precios).
+- Si se envía `customerInfo` o `customerInfo.direccion`, se mergea con los datos actuales.
+- Si se envía `cartItems`/`items` y/o `extraCharge`, el backend recalcula `total` y `totalItems`.
+
+### `PATCH /orders/:id/pricing` (Admin)
+Actualiza precios/cantidades de un pedido y recargo extra (ej. flete) recalculando totales.
+- **Body:**
+```json
+{
+  "cartItems": [
+    {
+      "productCartItem": { "product_id": "1528" },
+      "qty": 3,
+      "priceAtPurchase": 2500
+    }
+  ],
+  "extraCharge": 1200
+}
+```
 
 ### `PATCH /orders/:id/status` (Admin)
 Cambiar el estado de un pedido. Solo acepta valores del enum del modelo.

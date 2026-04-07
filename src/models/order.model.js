@@ -39,6 +39,10 @@ const OrderSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    extraCharge: {
+        type: Number,
+        default: 0
+    },
     totalItems: {
         type: Number,
         required: true

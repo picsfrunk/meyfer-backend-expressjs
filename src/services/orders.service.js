@@ -24,15 +24,62 @@ class OrdersService {
      * Transforma cartItems (del FE) en items normalizados
      */
     static transformCartItemsToOrderItems(cartItems) {
+        if (!Array.isArray(cartItems) || cartItems.length === 0) {
+            const error = new Error('El pedido debe tener al menos un producto');
+            error.statusCode = 400;
+            throw error;
+        }
+
         return cartItems.map(item => {
             const product = item.productCartItem || item;
+            const quantity = Number(item.qty ?? item.quantity ?? 1);
+            const priceAtPurchase = Number(
+                item.priceAtPurchase ??
+                item.unitPrice ??
+                product.priceAtPurchase ??
+                product.final_price ??
+                product.list_price ??
+                product.precio ??
+                0
+            );
+
+            if (!product.product_id) {
+                const error = new Error('Cada item debe incluir product_id');
+                error.statusCode = 400;
+                throw error;
+            }
+
+            if (!Number.isFinite(quantity) || quantity < 1) {
+                const error = new Error('La cantidad de cada item debe ser mayor o igual a 1');
+                error.statusCode = 400;
+                throw error;
+            }
+
+            if (!Number.isFinite(priceAtPurchase) || priceAtPurchase < 0) {
+                const error = new Error('El precio por item debe ser un número mayor o igual a 0');
+                error.statusCode = 400;
+                throw error;
+            }
 
             return {
-                product_id: product.product_id,
-                quantity: item.qty || item.quantity || 1,
-                priceAtPurchase: product.final_price || product.list_price || product.precio || 0
+                product_id: String(product.product_id),
+                quantity,
+                priceAtPurchase
             };
         });
+    }
+
+    static calculateOrderTotals(items, extraCharge = 0) {
+        const normalizedExtraCharge = Number(extraCharge ?? 0);
+        const safeExtraCharge = Number.isFinite(normalizedExtraCharge) ? normalizedExtraCharge : 0;
+        const productsTotal = items.reduce((acc, item) => acc + (item.quantity * item.priceAtPurchase), 0);
+        const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
+
+        return {
+            total: productsTotal + safeExtraCharge,
+            totalItems,
+            extraCharge: safeExtraCharge
+        };
     }
 
     /**
@@ -43,6 +90,7 @@ class OrdersService {
     static transformItemsToCartItems(items) {
         return items.map(item => ({
             qty: item.quantity,
+            priceAtPurchase: item.priceAtPurchase,
             productCartItem: item.product || {}
         }));
     }
@@ -52,12 +100,14 @@ class OrdersService {
      */
     static async handleNewOrder(orderData) {
         const normalizedItems = this.transformCartItemsToOrderItems(orderData.cartItems);
+        const totals = this.calculateOrderTotals(normalizedItems, orderData.extraCharge);
 
         const orderDoc = await OrderModel.create({
             customerInfo: orderData.customerInfo,
             items: normalizedItems,
-            total: orderData.total,
-            totalItems: orderData.totalItems,
+            total: totals.total,
+            totalItems: totals.totalItems,
+            extraCharge: totals.extraCharge,
             orderId: await generateOrderId(orderData.customerInfo?.cliente)
         });
 
@@ -147,14 +197,50 @@ class OrdersService {
      * Actualiza un pedido completo
      */
     static async updateOrder(orderId, updatedData) {
-        if (updatedData.cartItems) {
-            updatedData.items = this.transformCartItemsToOrderItems(updatedData.cartItems);
-            delete updatedData.cartItems;
+        const updatePayload = { ...updatedData };
+        const currentOrder = await OrderModel.findOne({ orderId }).lean();
+
+        if (!currentOrder) {
+            return null;
+        }
+
+        if (updatePayload.customerInfo && currentOrder.customerInfo) {
+            updatePayload.customerInfo = {
+                ...currentOrder.customerInfo,
+                ...updatePayload.customerInfo,
+                direccion: {
+                    ...(currentOrder.customerInfo.direccion || {}),
+                    ...(updatePayload.customerInfo.direccion || {})
+                }
+            };
+        }
+
+        if (updatePayload.cartItems) {
+            updatePayload.items = this.transformCartItemsToOrderItems(updatePayload.cartItems);
+            delete updatePayload.cartItems;
+        } else if (updatePayload.items) {
+            updatePayload.items = this.transformCartItemsToOrderItems(updatePayload.items);
+        }
+
+        const shouldRecalculateTotals =
+            Array.isArray(updatePayload.items) ||
+            Object.prototype.hasOwnProperty.call(updatePayload, 'extraCharge');
+
+        if (shouldRecalculateTotals) {
+            const items = updatePayload.items || currentOrder.items;
+            const extraCharge = Object.prototype.hasOwnProperty.call(updatePayload, 'extraCharge')
+                ? updatePayload.extraCharge
+                : currentOrder.extraCharge;
+            const totals = this.calculateOrderTotals(items, extraCharge);
+
+            updatePayload.total = totals.total;
+            updatePayload.totalItems = totals.totalItems;
+            updatePayload.extraCharge = totals.extraCharge;
         }
 
         const updated = await OrderModel.findOneAndUpdate(
             { orderId },
-            updatedData,
+            updatePayload,
             { new: true, runValidators: true }
         ).lean();
 
@@ -171,6 +257,26 @@ class OrdersService {
         }
 
         return updated;
+    }
+
+    static async updateOrderPricing(orderId, pricingData = {}) {
+        const updatePayload = {};
+
+        if (pricingData.cartItems) {
+            updatePayload.cartItems = pricingData.cartItems;
+        } else if (pricingData.items) {
+            updatePayload.items = pricingData.items;
+        } else {
+            const error = new Error('Debes enviar items o cartItems para actualizar precios');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        if (Object.prototype.hasOwnProperty.call(pricingData, 'extraCharge')) {
+            updatePayload.extraCharge = pricingData.extraCharge;
+        }
+
+        return this.updateOrder(orderId, updatePayload);
     }
 
     /**
