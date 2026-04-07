@@ -96,7 +96,7 @@ Cambiar el estado de un pedido. Solo acepta valores del enum del modelo.
 ```
 
 ### `DELETE /orders/:id` (Admin)
-Soft delete (cambia estado a `Eliminado`).
+Soft delete (cambia estado a `deleted`).
 
 ### `POST /orders/:orderId/resend-emails` (Admin)
 Reenvío manual de correos de confirmación.
