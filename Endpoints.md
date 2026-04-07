@@ -36,10 +36,28 @@ Lista de categorías con conteo de productos.
 ### `POST /orders/new` (Pública)
 Registra un nuevo pedido y dispara notificaciones por email.
 - **Body:** `{ "customerInfo": {...}, "cartItems": [...] }`
+- **Response 201:**
+```json
+{
+  "orderId": "MF-001",
+  "status": "success",
+  "message": "Pedido recibido correctamente"
+}
+```
 
 ### `GET /orders` (Admin)
 Lista de pedidos con filtros.
-- **Query Params:** `status` (pending, confirmed, etc.), `populate` (true/false).
+- **Query Params:** `status` (uno o varios separados por coma, ej. `Pendiente,Procesado`), `populate` (true/false).
+
+### `GET /orders/statuses` (Admin)
+Devuelve los estados de pedido válidos definidos en el modelo.
+- **Response 200:**
+```json
+{
+  "statuses": ["Pendiente", "Procesado", "Enviado", "Entregado", "Cancelado", "Eliminado"],
+  "defaultStatus": "Pendiente"
+}
+```
 
 ### `GET /orders/:id` (Admin)
 Detalle de un pedido por ID.
@@ -48,11 +66,37 @@ Detalle de un pedido por ID.
 Actualización completa de un pedido.
 
 ### `PATCH /orders/:id/status` (Admin)
-Cambiar el estado del pedido.
-- **Body:** `{ "status": "..." }`
+Cambiar el estado de un pedido. Solo acepta valores del enum del modelo.
+- **Body:**
+```json
+{ "status": "Enviado" }
+```
+- **Response 200:**
+```json
+{
+  "status": "success",
+  "message": "Estado del pedido actualizado",
+  "order": { "orderId": "MF-001", "status": "Enviado", "..." }
+}
+```
+- **Response 400 — estado ausente:**
+```json
+{ "message": "El estado del pedido es requerido" }
+```
+- **Response 400 — estado inválido:**
+```json
+{
+  "message": "Estado de pedido no válido",
+  "allowedStatuses": ["Pendiente", "Procesado", "Enviado", "Entregado", "Cancelado", "Eliminado"]
+}
+```
+- **Response 404:**
+```json
+{ "message": "Pedido no encontrado" }
+```
 
 ### `DELETE /orders/:id` (Admin)
-Soft delete (cambia estado a `deleted`).
+Soft delete (cambia estado a `Eliminado`).
 
 ### `POST /orders/:orderId/resend-emails` (Admin)
 Reenvío manual de correos de confirmación.
