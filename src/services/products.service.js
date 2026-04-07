@@ -1,20 +1,38 @@
 const axios = require('axios');
 const XLSX = require('xlsx');
-const { EXCEL_URL, DEFAULT_PROFIT} = require("../utils/constants");
+const { EXCEL_URL, DEFAULT_PROFIT } = require("../utils/constants");
 const { processSheetItems } = require('./parser.service');
 const Section = require('../models/sections.model');
 const Config = require('../models/config.model');
 const ScrapedProduct = require('../models/products.model');
 const SitemapAnalysis = require('../models/sitemap_analysis.model');
+const { uploadProductImage, deleteProductImage } = require('./cloudinary.service');
+
+// ─── Helpers internos ────────────────────────────────────────────────────────
+
+/**
+ * Obtiene el margen de ganancia vigente desde la config.
+ * @returns {Promise<number>} margen en porcentaje (ej: 30)
+ */
+const getCurrentProfitMargin = async () => {
+    const configProfit = await Config.findOne({ key: 'profitMargin' });
+    return configProfit?.value ?? DEFAULT_PROFIT;
+};
+
+/**
+ * Calcula el final_price a partir del list_price y el margen.
+ */
+const calcFinalPrice = (listPrice, profitPercent) =>
+    listPrice * (1 + profitPercent / 100);
+
+// ─── Marcas ──────────────────────────────────────────────────────────────────
 
 const getProductBrands = async () => {
     try {
-        // Intentar obtener las marcas desde el análisis del sitemap
         const sitemapAnalysis = await SitemapAnalysis.findOne().sort({ analyzedAt: -1 });
 
         if (sitemapAnalysis && sitemapAnalysis.brands && sitemapAnalysis.brands.length > 0) {
-            // Filtrar marcas con ID válido y ordenar alfabéticamente
-            const brands = sitemapAnalysis.brands
+            return sitemapAnalysis.brands
                 .filter(brand => brand.id !== null && brand.name)
                 .map(brand => ({
                     id: brand.id,
@@ -23,11 +41,8 @@ const getProductBrands = async () => {
                     products: brand.products
                 }))
                 .sort((a, b) => a.name.localeCompare(b.name, 'es'));
-
-            return brands;
         }
 
-        // Fallback: obtener marcas desde los productos si no hay análisis del sitemap
         const brandsFromProducts = await ScrapedProduct.distinct('brand', {
             brand: { $ne: null, $ne: '' }
         });
@@ -40,6 +55,8 @@ const getProductBrands = async () => {
         throw new Error(`Error al obtener las marcas: ${error.message}`);
     }
 };
+
+// ─── Secciones / catálogo XLS ────────────────────────────────────────────────
 
 const getSections = async () => {
     try {
@@ -58,9 +75,7 @@ const updateCatalogFromXls = async () => {
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         const sheetItems = XLSX.utils.sheet_to_json(worksheet, { raw: true, range: 15 });
 
-        const configProfit = await Config.findOne({ key: 'profitMargin' });
-        const profit = configProfit?.value ?? DEFAULT_PROFIT;
-
+        const profit = await getCurrentProfitMargin();
         const parsedSections = processSheetItems(sheetItems, profit);
 
         await Section.deleteMany();
@@ -80,10 +95,12 @@ const updateCatalogFromXls = async () => {
     }
 };
 
+// ─── Scraper / análisis / price check ────────────────────────────────────────
+
 const runScraper = async (scraperType, params = {}) => {
     const scraperConfig = {
         categoryScraper: process.env.CATEGORY_SCRAPER_URL,
-        sitemapScraper: process.env.SITEMAP_SCRAPER_URL,
+        sitemapScraper:  process.env.SITEMAP_SCRAPER_URL,
     };
 
     try {
@@ -92,12 +109,7 @@ const runScraper = async (scraperType, params = {}) => {
             throw { statusCode: 400, message: 'Tipo de scraper inválido o URL no configurada' };
         }
 
-        const payload = {
-            webhookUrl: process.env.WEBHOOK_URL,
-            ...params
-        };
-
-        const response = await axios.post(scraperUrl, payload);
+        const response = await axios.post(scraperUrl, { webhookUrl: process.env.WEBHOOK_URL, ...params });
         return response.data;
 
     } catch (error) {
@@ -111,9 +123,7 @@ const runScraper = async (scraperType, params = {}) => {
 
 const runSitemapAnalysis = async (params = {}) => {
     try {
-        let payload = { ...params };
-
-        const response = await axios.post(process.env.SITEMAP_ANALYSIS_URL, payload);
+        const response = await axios.post(process.env.SITEMAP_ANALYSIS_URL, { ...params });
         return response.data;
     } catch (error) {
         throw {
@@ -125,19 +135,15 @@ const runSitemapAnalysis = async (params = {}) => {
 };
 
 const runPriceCheck = async () => {
-    if (!process.env.PRICE_CHECK_URL) {
+    if (!process.env.PRICE_CHECK_URL)
         throw { statusCode: 503, message: 'PRICE_CHECK_URL no está configurada en el entorno del backend' };
-    }
-    if (!process.env.WEBHOOK_PRICE_CHECK_URL) {
+    if (!process.env.WEBHOOK_PRICE_CHECK_URL)
         throw { statusCode: 503, message: 'WEBHOOK_PRICE_CHECK_URL no está configurada en el entorno del backend' };
-    }
 
     try {
-        const payload = {
+        const response = await axios.post(process.env.PRICE_CHECK_URL, {
             webhookUrl: process.env.WEBHOOK_PRICE_CHECK_URL,
-        };
-
-        const response = await axios.post(process.env.PRICE_CHECK_URL, payload);
+        });
         return response.data;
     } catch (error) {
         throw {
@@ -148,13 +154,13 @@ const runPriceCheck = async () => {
     }
 };
 
+// ─── Listado paginado ────────────────────────────────────────────────────────
+
 const getPaginatedScrapedProducts = async (page = 1, limit = 20, categoryId = null, searchKeyword = null, brand = null) => {
     const skip = (page - 1) * limit;
     const filter = {};
 
-    if (categoryId) {
-        filter.category_id = categoryId;
-    }
+    if (categoryId) filter.category_id = categoryId;
 
     if (brand && typeof brand === 'string' && brand.trim().length > 0) {
         filter.brand = new RegExp(brand.trim(), 'i');
@@ -164,15 +170,13 @@ const getPaginatedScrapedProducts = async (page = 1, limit = 20, categoryId = nu
         const trimmedKeyword = searchKeyword.trim();
         const isNumeric = /^\d+$/.test(trimmedKeyword);
 
-        if (isNumeric) {
-            filter.$or = [
-                { product_id: trimmedKeyword }, // ¡STRING!
+        filter.$or = isNumeric
+            ? [
+                { product_id: trimmedKeyword },
                 { category_id: parseInt(trimmedKeyword) },
                 ...buildTextSearchConditions(trimmedKeyword)
-            ];
-        } else {
-            filter.$or = buildTextSearchConditions(trimmedKeyword);
-        }
+              ]
+            : buildTextSearchConditions(trimmedKeyword);
     }
 
     const sort = searchKeyword ? buildSmartSort() : { _id: 1 };
@@ -182,13 +186,7 @@ const getPaginatedScrapedProducts = async (page = 1, limit = 20, categoryId = nu
         ScrapedProduct.countDocuments(filter)
     ]);
 
-    return {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-        products
-    };
+    return { page, limit, total, totalPages: Math.ceil(total / limit), products };
 };
 
 const buildTextSearchConditions = (keyword) => {
@@ -205,21 +203,13 @@ const buildTextSearchConditions = (keyword) => {
     ];
 
     for (const regex of wordRegexes) {
-        conditions.push(
-            { display_name: regex },
-            { brand: regex },
-            { product_type: regex }
-        );
+        conditions.push({ display_name: regex }, { brand: regex }, { product_type: regex });
     }
 
     if (words.length > 1) {
         conditions.push({
             $and: wordRegexes.map(regex => ({
-                $or: [
-                    { display_name: regex },
-                    { brand: regex },
-                    { product_type: regex }
-                ]
+                $or: [{ display_name: regex }, { brand: regex }, { product_type: regex }]
             }))
         });
     }
@@ -228,55 +218,190 @@ const buildTextSearchConditions = (keyword) => {
 };
 
 const escapeRegex = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const buildSmartSort = () => ({ display_name: 1, brand: 1, _id: 1 });
 
-const buildSmartSort = () => ({
-    display_name: 1,
-    brand: 1,
-    _id: 1
-});
-
+// ─── Producto por ID ─────────────────────────────────────────────────────────
 
 const getScrapedProductById = async (id) => {
     try {
-        return await ScrapedProduct.findOne({product_id: id}).exec();
+        return await ScrapedProduct.findOne({ product_id: id }).exec();
     } catch (error) {
         throw new Error(`Error al obtener el producto con product_id ${id}: ${error.message}`);
     }
 };
 
+// ─── Actualización masiva de precios ─────────────────────────────────────────
+
 const updateProductPrices = async () => {
     try {
-        const configProfit = await Config.findOne({ key: 'profitMargin' });
-        const profit = configProfit?.value ?? DEFAULT_PROFIT;
-
-        const profitMarginDecimal = profit / 100;
+        const profit = await getCurrentProfitMargin();
+        const profitDecimal = profit / 100;
 
         const productsToUpdate = await ScrapedProduct.find();
+        if (productsToUpdate.length === 0) return { message: 'No hay productos para actualizar.' };
 
-        if (productsToUpdate.length === 0) {
-            return { message: 'No hay productos para actualizar.' };
-        }
-
-        const bulkOperations = productsToUpdate.map(product => {
-            const oldPrice = product.list_price;
-            const newPrice = oldPrice * (1 + profitMarginDecimal);
-
-            return {
-                updateOne: {
-                    filter: { _id: product._id },
-                    update: { $set: { final_price: newPrice } }
-                }
-            };
-        });
+        const bulkOperations = productsToUpdate.map(product => ({
+            updateOne: {
+                filter: { _id: product._id },
+                update: { $set: { final_price: product.list_price * (1 + profitDecimal) } }
+            }
+        }));
 
         const result = await ScrapedProduct.bulkWrite(bulkOperations);
-
         console.log(`✅ Precios actualizados. ${result.modifiedCount} productos modificados.`);
         return { message: 'Precios de productos actualizados con éxito.', modifiedCount: result.modifiedCount };
 
     } catch (error) {
         console.error('Error al actualizar precios de productos:', error);
         throw { statusCode: 500, message: 'Error al actualizar precios', details: error.message };
+    }
+};
+
+// ─── CRUD manual de productos ─────────────────────────────────────────────────
+
+/**
+ * Crear un producto manualmente.
+ *
+ * Body esperado (JSON o multipart/form-data):
+ * {
+ *   product_id:     string  (requerido, único)
+ *   display_name:   string  (requerido)
+ *   base_unit_name: string  (requerido, ej: "unidad", "kg")
+ *   category_id:    number  (requerido)
+ *   list_price:     number  (requerido — final_price se calcula automáticamente)
+ *   category_name:  string  (opcional)
+ *   brand:          string  (opcional)
+ *   product_type:   string  (opcional)
+ *   image:          File    (opcional, campo multipart)
+ * }
+ *
+ * isManual se fuerza a true siempre.
+ * final_price se calcula con el margen vigente si no viene en el body.
+ */
+const createProduct = async (data, imageBuffer = null) => {
+    try {
+        const profit = await getCurrentProfitMargin();
+
+        // Calcular final_price automáticamente si no viene explícito
+        const finalPrice = data.final_price !== undefined
+            ? Number(data.final_price)
+            : calcFinalPrice(Number(data.list_price), profit);
+
+        const productData = {
+            ...data,
+            list_price:  Number(data.list_price),
+            category_id: Number(data.category_id),
+            final_price: finalPrice,
+            isManual:    true,  // siempre forzado
+        };
+
+        const product = new ScrapedProduct(productData);
+        const saved = await product.save();
+
+        // Subir imagen después de guardar (ya tenemos el product_id)
+        if (imageBuffer) {
+            const imageUrl = await uploadProductImage(imageBuffer, saved.product_id);
+            saved.image_url = imageUrl;
+            await saved.save();
+        }
+
+        return saved;
+
+    } catch (error) {
+        if (error.code === 11000) {
+            throw { statusCode: 409, message: `Ya existe un producto con product_id "${data.product_id}"` };
+        }
+        throw { statusCode: 400, message: 'Error al crear producto', details: error.message };
+    }
+};
+
+/**
+ * Actualizar un producto existente por su product_id externo.
+ *
+ * Campos editables vía body (todos opcionales en update):
+ * {
+ *   display_name:   string
+ *   base_unit_name: string
+ *   category_id:    number
+ *   category_name:  string
+ *   brand:          string
+ *   product_type:   string
+ *   list_price:     number  → recalcula final_price automáticamente
+ *   final_price:    number  → solo se usa si NO viene list_price
+ *   image:          File    → campo multipart, reemplaza la imagen en Cloudinary
+ * }
+ *
+ * Campos inmutables (se descartan aunque vengan en el body):
+ *   _id, product_id, isManual, createdAt, updatedAt
+ */
+const updateProduct = async (productId, data, imageBuffer = null) => {
+    // Descartar campos inmutables
+    const { _id, product_id, isManual, createdAt, updatedAt, ...safeData } = data;
+
+    // Normalizar tipos numéricos si vienen como string (multipart/form-data los manda así)
+    if (safeData.list_price !== undefined) {
+        safeData.list_price = Number(safeData.list_price);
+        const profit = await getCurrentProfitMargin();
+        safeData.final_price = calcFinalPrice(safeData.list_price, profit);
+        safeData.priceUpdatedAt = new Date();
+    }
+
+    if (safeData.final_price !== undefined) {
+        safeData.final_price = Number(safeData.final_price);
+    }
+
+    if (safeData.category_id !== undefined) {
+        safeData.category_id = Number(safeData.category_id);
+    }
+
+    // Subir nueva imagen si viene
+    if (imageBuffer) {
+        safeData.image_url = await uploadProductImage(imageBuffer, productId);
+    }
+
+    try {
+        const updated = await ScrapedProduct.findOneAndUpdate(
+            { product_id: productId },
+            { $set: safeData },
+            { new: true, runValidators: true }
+        ).lean();
+
+        if (!updated) {
+            throw { statusCode: 404, message: `Producto con product_id "${productId}" no encontrado` };
+        }
+
+        return updated;
+
+    } catch (error) {
+        if (error.statusCode) throw error;
+        throw { statusCode: 400, message: 'Error al actualizar producto', details: error.message };
+    }
+};
+
+/**
+ * Eliminar un producto por su product_id.
+ * Si era manual y tenía imagen propia en Cloudinary, la elimina también.
+ */
+const deleteProduct = async (productId) => {
+    try {
+        const product = await ScrapedProduct.findOne({ product_id: productId }).lean();
+
+        if (!product) {
+            throw { statusCode: 404, message: `Producto con product_id "${productId}" no encontrado` };
+        }
+
+        await ScrapedProduct.deleteOne({ product_id: productId });
+
+        // Limpiar imagen de Cloudinary solo si era manual (los scrapeados apuntan a URLs externas)
+        if (product.isManual && product.image_url) {
+            await deleteProductImage(productId);
+        }
+
+        return { message: `Producto "${productId}" eliminado correctamente` };
+
+    } catch (error) {
+        if (error.statusCode) throw error;
+        throw { statusCode: 500, message: 'Error al eliminar producto', details: error.message };
     }
 };
 
@@ -289,5 +414,8 @@ module.exports = {
     updateProductPrices,
     runSitemapAnalysis,
     runPriceCheck,
-    getProductBrands
-}
+    getProductBrands,
+    createProduct,
+    updateProduct,
+    deleteProduct,
+};

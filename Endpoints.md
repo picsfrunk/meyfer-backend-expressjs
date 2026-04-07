@@ -1,299 +1,165 @@
-> IMPORTANTE: Todas las rutas aquí documentadas requieren autenticación de administrador mediante JWT.
->
->
-> El admin debe loguearse en `/auth/login` y utilizar el token en las siguientes llamadas.
->
+# 🚀 Meyfer API - Documentación de Endpoints
+
+**Base URL:** `{{URL}}/api`  
+**Autenticación:** Header `Authorization: Bearer <token>` requerido para todas las rutas `/admin`, `/config`, `/dev`.
 
 ---
 
-## Autenticación
+## 🔐 Autenticación
+### `POST /auth/login`
+Autentica al administrador.
+- **Body:** `{ "username": "...", "password": "..." }`
+- **Response:** `{ "token": "JWT_TOKEN" }`
 
-### POST `/auth/login`
+---
 
-- **Descripción:** Autentica al usuario administrador y devuelve un token JWT.
+## 🛒 Productos (Público)
+### `GET /products/parsed`
+Obtiene el catálogo estructurado desde el archivo Excel.
+
+### `GET /products/scraped`
+Obtiene productos scrapeados de la base de datos con paginación y filtros.
+- **Query Params:** `page`, `limit`, `brand`, `category_id`, `search`.
+
+### `GET /products/scraped/:id`
+Detalle técnico de un producto específico.
+
+### `GET /products/brands`
+Lista de marcas detectadas en el análisis del sitio.
+
+### `GET /categories`
+Lista de categorías con conteo de productos.
+
+---
+
+## 📦 Pedidos (Orders)
+### `POST /orders/new` (Pública)
+Registra un nuevo pedido y dispara notificaciones por email.
+- **Body:** `{ "customerInfo": {...}, "cartItems": [...] }`
+- **Response 201:**
+```json
+{
+  "orderId": "MF-001",
+  "status": "success",
+  "message": "Pedido recibido correctamente"
+}
+```
+
+### `GET /orders` (Admin)
+Lista de pedidos con filtros.
+- **Query Params:** `status` (uno o varios separados por coma, ej. `Pendiente,Procesado`), `populate` (true/false).
+
+### `GET /orders/statuses` (Admin)
+Devuelve los estados de pedido válidos definidos en el modelo.
+- **Response 200:**
+```json
+{
+  "statuses": ["Pendiente", "Procesado", "Enviado", "Entregado", "Cancelado", "Eliminado"],
+  "defaultStatus": "Pendiente"
+}
+```
+
+### `GET /orders/:id` (Admin)
+Detalle de un pedido por ID.
+
+### `PUT /orders/:id` (Admin)
+Actualización completa de un pedido.
+
+### `PATCH /orders/:id/status` (Admin)
+Cambiar el estado de un pedido. Solo acepta valores del enum del modelo.
 - **Body:**
+```json
+{ "status": "Enviado" }
+```
+- **Response 200:**
+```json
+{
+  "status": "success",
+  "message": "Estado del pedido actualizado",
+  "order": { "orderId": "MF-001", "status": "Enviado", "..." }
+}
+```
+- **Response 400 — estado ausente:**
+```json
+{ "message": "El estado del pedido es requerido" }
+```
+- **Response 400 — estado inválido:**
+```json
+{
+  "message": "Estado de pedido no válido",
+  "allowedStatuses": ["Pendiente", "Procesado", "Enviado", "Entregado", "Cancelado", "Eliminado"]
+}
+```
+- **Response 404:**
+```json
+{ "message": "Pedido no encontrado" }
+```
 
-    ```json
-    {
-      "username": "admin",
-      "password": "supersegura123"
-    }
-    
-    ```
+### `DELETE /orders/:id` (Admin)
+Soft delete (cambia estado a `deleted`).
 
-- **Response:**
-
-    ```json
-    { "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." }
-    
-    ```
-
-- **Errores:**
-
-    ```json
-    { "error": "Credenciales incorrectas" }
-    
-    ```
-
-
----
-
-## 1. `/api/config`
-
-### GET `/api/config/profit`
-
-- **Descripción:** Devuelve el margen de ganancia actual configurado en el sistema.
-- **Response:**
-
-    ```json
-    { "margin": 1.27 }
-    
-    ```
-
+### `POST /orders/:orderId/resend-emails` (Admin)
+Reenvío manual de correos de confirmación.
+- **Body:** `{ "admin": boolean, "customer": boolean }`
 
 ---
 
-### PUT `/api/config/profit`
+## ⚙️ Configuración y Sistema (Admin)
+### `GET /config/profit`
+Margen de ganancia actual.
 
-- **Descripción:** Actualiza el margen de ganancia para el cálculo de precios.
-- **Body:**
+### `PUT /config/profit`
+Actualiza el margen y recalcula automáticamente todos los `final_price`.
+- **Body:** `{ "margin": number }`
 
-    ```json
-    { "margin": 1.35 }
-    
-    ```
+### `GET /config/last-update`
+Fecha de la última sincronización exitosa.
 
-- **Response:**
+### `GET /config/admin-emails`
+Lista de emails que reciben notificaciones del sistema.
 
-    ```json
-    { "message": "Profit margin actualizado", "margin": 1.35 }
-    
-    ```
-
-
----
-
-### GET `/api/config/last-update`
-
-- **Descripción:** Devuelve la fecha de la última actualización del catálogo.
-- **Response:**
-
-    ```json
-    { "lastUpdate": "2025-09-16T22:41:32Z" }
-    
-    ```
-
+### `POST /config/admin-emails`
+Agrega un nuevo admin/vendedor.
+- **Body:** `{ "email": "...", "role": "admin" | "seller" }`
 
 ---
 
-## 2. `/api/config/parsed`
+## 🤖 Administración de Scrapers & Precios (Admin)
+### `GET /admin/scraper/status`
+Estado en tiempo real de la cola de procesamiento.
 
-### POST `/api/config/parsed`
+### `GET /admin/scraper/stats`
+Métricas de rendimiento (Jobs completados, fallidos, duración media).
 
-- **Descripción:** Actualiza el catálogo parseado desde el archivo XLS remoto (trigger manual).
-- **Body:***No requiere parámetros*
-- **Response:**
+### `GET /admin/scraper/history`
+Historial paginado de ejecuciones.
 
-    ```json
-    {
-      "updatedCount": 425,
-      "message": "Catálogo actualizado correctamente",
-      "details": {
-        "timestamp": "2025-09-17T02:00:00Z"
-      }
-    }
-    
-    ```
+### `POST /admin/scraper/trigger`
+Dispara manualmente un scraper.
+- **Body:** `{ "scraperType": "sitemapScraper" | "categoryScraper", ...params }`
 
+### `POST /config/price-check`
+Inicia el monitor de comparación de precios contra la competencia.
 
----
-
-## 3. `/api/config/scrape`
-
-### POST `/api/config/scrape`
-
-- **Descripción:** Ejecuta el scraper de productos y categorías (trigger manual desde el dashboard admin).
-- **Body:**
-
-    ```json
-    {
-      "scraperType": "categoryScraper",
-      "categoryId": 8
-    }
-    
-    ```
-
-- **Response:**
-
-    ```json
-    {
-      "message": "Scraper iniciado",
-      "scraperType": "categoryScraper",
-      "result": { "jobId": "scraper-20250917-001", "status": "pending" }
-    }
-    
-    ```
-
+### `GET /admin/price-check/latest`
+Obtiene el último reporte de cambios de precios generado.
 
 ---
 
-## 4. `/api/webhook/scraper`
+## 🖼️ Gestión Manual de Productos (Admin)
+### `POST /admin/products`
+Crea un producto manual con carga de imagen a Cloudinary.
+- **Content-Type:** `multipart/form-data`
+- **Body:** `image` (File), `display_name`, `list_price`, `category_id`.
 
-### POST `/api/webhook/scraper`
+### `PUT /admin/products/:productId`
+Actualiza datos o imagen de un producto manual.
 
-- **Descripción:** Recibe notificación de finalización del scraper.
-- **Body:**
-
-    ```json
-    {
-      "jobId": "scraper-20250917-001",
-      "status": "finished",
-      "stats": {
-        "productsAdded": 84,
-        "durationSeconds": 42
-      }
-    }
-    
-    ```
-
-- **Response:**
-
-    ```json
-    {
-      "ok": true,
-      "message": "Notificación recibida",
-      "updatedCatalog": true
-    }
-    
-    ```
-
+### `DELETE /admin/products/:productId`
+Elimina el producto de la DB y su imagen de Cloudinary.
 
 ---
 
-## 5. `/api/orders`
-
-### GET `/api/orders`
-
-- **Descripción:** Devuelve todos los pedidos registrados (requiere admin).
-- **Response:**
-
-    ```json
-    [
-      {
-        "orderId": "ORD-20250917-001",
-        "customerInfo": { "nombre": "Juan Perez", "email": "juan@email.com" },
-        "items": [ { "product_id": "A123", "name": "Cinta aisladora", "qty": 2, "price": 350 } ],
-        "total": 700,
-        "status": "pendiente",
-        "address": "Calle Falsa 123"
-      }
-    ]
-    
-    ```
-
-
----
-
-### GET `/api/orders/:id`
-
-- **Descripción:** Devuelve pedido por ID (requiere admin).
-- **URL Param:** `id` (string)
-- **Response:**
-
-    ```json
-    {
-      "orderId": "ORD-20250917-001",
-      "customerInfo": { "nombre": "Juan Perez", "email": "juan@email.com" },
-      "items": [ { "product_id": "A123", "name": "Cinta aisladora", "qty": 2, "price": 350 } ],
-      "total": 700,
-      "status": "pendiente",
-      "address": "Calle Falsa 123"
-    }
-    
-    ```
-
-
----
-
-### PUT `/api/orders/:id`
-
-- **Descripción:** Actualiza un pedido completo (requiere admin).
-- **URL Param:** `id`
-- **Body:**
-
-    ```json
-    {
-      "customerInfo": { "nombre": "Juan Perez", "email": "juan@email.com" },
-      "items": [ { "product_id": "A123", "name": "Cinta aisladora", "qty": 3, "price": 350 } ],
-      "total": 1050,
-      "status": "procesado",
-      "address": "Calle Falsa 123"
-    }
-    
-    ```
-
-- **Response:**
-
-    ```json
-    {
-      "status": "success",
-      "message": "Pedido actualizado",
-      "order": {
-        "orderId": "ORD-20250917-001",
-        "customerInfo": { "nombre": "Juan Perez", "email": "juan@email.com" },
-        "items": [ { "product_id": "A123", "name": "Cinta aisladora", "qty": 3, "price": 350 } ],
-        "total": 1050,
-        "status": "procesado",
-        "address": "Calle Falsa 123"
-      }
-    }
-    
-    ```
-
-
----
-
-### DELETE `/api/orders/:id`
-
-- **Descripción:** Elimina un pedido (requiere admin).
-- **URL Param:** `id`
-- **Response:**
-
-    ```json
-    {
-      "status": "success",
-      "message": "Pedido eliminado"
-    }
-    
-    ```
-
-
----
-
-### PATCH `/api/orders/:id/status`
-
-- **Descripción:** Actualiza solo el estado de un pedido (requiere admin).
-- **URL Param:** `id`
-- **Body:**
-
-    ```json
-    { "status": "enviado" }
-    
-    ```
-
-- **Response:**
-
-    ```json
-    {
-      "status": "success",
-      "message": "Estado del pedido actualizado",
-      "order": {
-        "orderId": "ORD-20250917-001",
-        "status": "enviado"
-      }
-    }
-    
-    ```
-
-
----
+## 🛠️ Desarrollo (Dev)
+### `POST /dev/test-email`
+Envía un correo de prueba para verificar la integración con Mailjet.

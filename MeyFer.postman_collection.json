@@ -1,6 +1,6 @@
 {
   "info": {
-    "_postman_id": "606f8d31-08cf-4f5f-a992-228a899f63f3",
+    "_postman_id": "fa3e0004-1f2e-44f1-a774-fc16e5ea024c",
     "name": "MeyFer",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "46281585"
@@ -397,7 +397,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n    \"scraperType\": \"categoryScraper\",\n    \"categoryIds\": 116,\n    \"pageDelay\": 500,\n    \"categoryDelay\": 100,\n    \"webhookUrl\": \"http://localhost:3000/api/webhook/scraper/result\"\n}",
+                      "raw": "{\n    \"scraperType\": \"categoryScraper\",\n    \"categoryIds\": 8,\n    \"webhookUrl\": \"http://localhost:3000/api/webhook/scraper/result\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -588,6 +588,252 @@
                     }
                   },
                   "response": []
+                },
+                {
+                  "name": "scraper history — filter status completed",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:3000/api/admin/scraper/history?status=completed",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "admin",
+                        "scraper",
+                        "history"
+                      ],
+                      "query": [
+                        {
+                          "key": "status",
+                          "value": "completed"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "scraper history — filter status failed",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:3000/api/admin/scraper/history?status=failed",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "admin",
+                        "scraper",
+                        "history"
+                      ],
+                      "query": [
+                        {
+                          "key": "status",
+                          "value": "failed"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "scraper history — filter type priceCheck",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:3000/api/admin/scraper/history?type=priceCheck",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "admin",
+                        "scraper",
+                        "history"
+                      ],
+                      "query": [
+                        {
+                          "key": "type",
+                          "value": "priceCheck"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "scraper history — filter type sitemapScraper",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:3000/api/admin/scraper/history?type=sitemapScraper",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "admin",
+                        "scraper",
+                        "history"
+                      ],
+                      "query": [
+                        {
+                          "key": "type",
+                          "value": "sitemapScraper"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "scraper history — paginated",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:3000/api/admin/scraper/history?page=1&limit=10",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "admin",
+                        "scraper",
+                        "history"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "limit",
+                          "value": "10"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "admin scraper trigger sitemap",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{JWT}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"scraperType\": \"sitemapScraper\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/admin/scraper/trigger",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "admin",
+                        "scraper",
+                        "trigger"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "admin scraper trigger category",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{JWT}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"scraperType\": \"categoryScraper\",\n  \"categoryIds\": [\n    116\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/admin/scraper/trigger",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "admin",
+                        "scraper",
+                        "trigger"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "admin scraper analyze",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{JWT}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "http://localhost:3000/api/admin/scraper/analyze",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "admin",
+                        "scraper",
+                        "analyze"
+                      ]
+                    }
+                  },
+                  "response": []
                 }
               ]
             },
@@ -621,7 +867,7 @@
                     "method": "GET",
                     "header": [],
                     "url": {
-                      "raw": "http://localhost:3000/api/products/scraped/116",
+                      "raw": "http://localhost:3000/api/products/scraped/2381",
                       "protocol": "http",
                       "host": [
                         "localhost"
@@ -631,7 +877,7 @@
                         "api",
                         "products",
                         "scraped",
-                        "116"
+                        "2381"
                       ]
                     }
                   },
@@ -780,6 +1026,390 @@
                         "api",
                         "products",
                         "brands"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Price Check Monitor",
+              "item": [
+                {
+                  "name": "price check — latest",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{JWT}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "http://localhost:3000/api/admin/price-check/latest",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "admin",
+                        "price-check",
+                        "latest"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "price check — history",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{JWT}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "http://localhost:3000/api/admin/price-check/history",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "admin",
+                        "price-check",
+                        "history"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "price check — history with changes only",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{JWT}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "http://localhost:3000/api/admin/price-check/history?hasChanges=true",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "admin",
+                        "price-check",
+                        "history"
+                      ],
+                      "query": [
+                        {
+                          "key": "hasChanges",
+                          "value": "true"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "price check — history paginated",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{JWT}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "http://localhost:3000/api/admin/price-check/history?page=1&limit=10",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "admin",
+                        "price-check",
+                        "history"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "limit",
+                          "value": "10"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "price check — detail by id",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{JWT}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "http://localhost:3000/api/admin/price-check/history/REPLACE_WITH_ID",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "admin",
+                        "price-check",
+                        "history",
+                        "REPLACE_WITH_ID"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Webhooks",
+              "item": [
+                {
+                  "name": "webhook — scraper enqueued",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"event\": \"enqueued\",\n  \"job\": {\n    \"id\": \"sitemapScraper-test-001\",\n    \"type\": \"sitemapScraper\"\n  },\n  \"queueSnapshot\": {\n    \"isRunning\": true,\n    \"running\": {\n      \"id\": \"categoryScraper-test-000\",\n      \"type\": \"categoryScraper\",\n      \"startedAt\": \"2026-03-19T14:00:00.000Z\",\n      \"elapsedMs\": 30000\n    },\n    \"pending\": 1,\n    \"pendingJobs\": [\n      {\n        \"id\": \"sitemapScraper-test-001\",\n        \"type\": \"sitemapScraper\",\n        \"enqueuedAt\": \"2026-03-19T14:00:30.000Z\",\n        \"waitingMs\": 0\n      }\n    ]\n  },\n  \"message\": \"Hay un scraper en ejecucion.\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/webhook/scraper/result",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "webhook",
+                        "scraper",
+                        "result"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "webhook — scraper started",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"event\": \"started\",\n  \"job\": {\n    \"id\": \"sitemapScraper-test-001\",\n    \"type\": \"sitemapScraper\"\n  },\n  \"queueSnapshot\": {\n    \"isRunning\": true,\n    \"running\": {\n      \"id\": \"sitemapScraper-test-001\",\n      \"type\": \"sitemapScraper\",\n      \"startedAt\": \"2026-03-19T14:01:00.000Z\",\n      \"elapsedMs\": 0\n    },\n    \"pending\": 0,\n    \"pendingJobs\": []\n  }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/webhook/scraper/result",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "webhook",
+                        "scraper",
+                        "result"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "webhook — scraper completed",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"event\": \"completed\",\n  \"job\": {\n    \"id\": \"sitemapScraper-test-001\",\n    \"type\": \"sitemapScraper\"\n  },\n  \"result\": {\n    \"total\": 320,\n    \"processed\": 320,\n    \"errors\": 2,\n    \"uploaded\": 318,\n    \"orphansDeleted\": 5,\n    \"durationMs\": 94000\n  },\n  \"queueSnapshot\": {\n    \"isRunning\": false,\n    \"running\": null,\n    \"pending\": 0,\n    \"pendingJobs\": []\n  }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/webhook/scraper/result",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "webhook",
+                        "scraper",
+                        "result"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "webhook — scraper failed",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"event\": \"failed\",\n  \"job\": {\n    \"id\": \"sitemapScraper-test-002\",\n    \"type\": \"sitemapScraper\"\n  },\n  \"result\": {\n    \"error\": \"No se pudo autenticar en Odoo.\"\n  },\n  \"queueSnapshot\": {\n    \"isRunning\": false,\n    \"running\": null,\n    \"pending\": 0,\n    \"pendingJobs\": []\n  }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/webhook/scraper/result",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "webhook",
+                        "scraper",
+                        "result"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "webhook — priceCheck completed",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"event\": \"completed\",\n  \"job\": {\n    \"id\": \"priceCheck-test-001\",\n    \"type\": \"priceCheck\"\n  },\n  \"result\": {\n    \"summary\": {\n      \"changed\": 3,\n      \"new\": 1,\n      \"removed\": 0,\n      \"total_odoo\": 1602,\n      \"total_db\": 1572,\n      \"failed\": 2,\n      \"checkedAt\": \"2026-03-19T14:00:00.000Z\",\n      \"durationMs\": 95000\n    },\n    \"changed\": [\n      {\n        \"product_id\": \"1472\",\n        \"display_name\": \"Abrazadera Perfecto B1 08-10 mm\",\n        \"old_price\": 450.5,\n        \"new_price\": 520.0,\n        \"diff\": 69.5,\n        \"diff_percent\": 15.43\n      },\n      {\n        \"product_id\": \"1473\",\n        \"display_name\": \"Abrazadera Perfecto B2 10-12 mm\",\n        \"old_price\": 460.0,\n        \"new_price\": 430.0,\n        \"diff\": -30.0,\n        \"diff_percent\": -6.52\n      }\n    ],\n    \"newIds\": [\n      \"9999\"\n    ],\n    \"removedIds\": []\n  },\n  \"queueSnapshot\": {\n    \"isRunning\": false,\n    \"running\": null,\n    \"pending\": 0,\n    \"pendingJobs\": []\n  }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/webhook/scraper/result",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "webhook",
+                        "scraper",
+                        "result"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "webhook — priceCheck failed",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"event\": \"failed\",\n  \"job\": {\n    \"id\": \"priceCheck-test-002\",\n    \"type\": \"priceCheck\"\n  },\n  \"result\": {\n    \"error\": \"No se pudo autenticar en Odoo.\"\n  },\n  \"queueSnapshot\": {\n    \"isRunning\": false,\n    \"running\": null,\n    \"pending\": 0,\n    \"pendingJobs\": []\n  }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/webhook/scraper/result",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "webhook",
+                        "scraper",
+                        "result"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "webhook — price-check result endpoint",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"source\": \"priceChecker\",\n  \"status\": \"success\",\n  \"summary\": {\n    \"changed\": 3,\n    \"new\": 1,\n    \"removed\": 0,\n    \"total_odoo\": 1602,\n    \"total_db\": 1572,\n    \"failed\": 2,\n    \"checkedAt\": \"2026-03-19T14:00:00.000Z\",\n    \"durationMs\": 95000\n  },\n  \"changed\": [\n    {\n      \"product_id\": \"1472\",\n      \"display_name\": \"Abrazadera Perfecto B1 08-10 mm\",\n      \"old_price\": 450.5,\n      \"new_price\": 520.0,\n      \"diff\": 69.5,\n      \"diff_percent\": 15.43\n    }\n  ],\n  \"newIds\": [\n    \"9999\"\n  ],\n  \"removedIds\": [],\n  \"timestamp\": \"2026-03-19T14:01:35.000Z\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/webhook/price-check/result",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "webhook",
+                        "price-check",
+                        "result"
                       ]
                     }
                   },
@@ -1008,6 +1638,101 @@
                     "api",
                     "scraper",
                     "check-prices"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "price check history — latest",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3001/api/scraper/price-check/latest",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3001",
+                  "path": [
+                    "api",
+                    "scraper",
+                    "price-check",
+                    "latest"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "price check history — all",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3001/api/scraper/price-check/history",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3001",
+                  "path": [
+                    "api",
+                    "scraper",
+                    "price-check",
+                    "history"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "price check history — with changes",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3001/api/scraper/price-check/history?hasChanges=true",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3001",
+                  "path": [
+                    "api",
+                    "scraper",
+                    "price-check",
+                    "history"
+                  ],
+                  "query": [
+                    {
+                      "key": "hasChanges",
+                      "value": "true"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "price check history — detail by id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3001/api/scraper/price-check/history/REPLACE_WITH_ID",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3001",
+                  "path": [
+                    "api",
+                    "scraper",
+                    "price-check",
+                    "history",
+                    "REPLACE_WITH_ID"
                   ]
                 }
               },
@@ -1515,14 +2240,6 @@
           ]
         }
       ]
-    },
-    {
-      "name": "New Request",
-      "request": {
-        "method": "GET",
-        "header": []
-      },
-      "response": []
     }
   ],
   "event": [

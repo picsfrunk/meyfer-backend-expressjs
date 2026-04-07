@@ -8,6 +8,9 @@ router.post('/new', OrdersController.createOrder);
 // Obtener todos los pedidos (con filtro opcional por status)
 router.get('/', OrdersController.getAllOrders);
 
+// Obtener estados posibles de pedidos
+router.get('/statuses', OrdersController.getOrderStatuses);
+
 // Obtener pedido por ID
 router.get('/:id', OrdersController.getOrderById);
 
