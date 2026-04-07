@@ -167,6 +167,43 @@
                   "response": []
                 },
                 {
+                  "name": "update order pricing",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{JWT}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"cartItems\": [\n    {\n      \"productCartItem\": {\n        \"product_id\": \"1528\"\n      },\n      \"qty\": 3,\n      \"priceAtPurchase\": 2500\n    }\n  ],\n  \"extraCharge\": 1200\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/orders/00009-JOH-20250831-0945/pricing",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "orders",
+                        "00009-JOH-20250831-0945",
+                        "pricing"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
                   "name": "update order status",
                   "request": {
                     "method": "PATCH",
