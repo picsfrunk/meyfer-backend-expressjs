@@ -80,7 +80,33 @@ class OrdersController {
             });
         } catch (err) {
             console.error('Error actualizando pedido:', err);
-            res.status(500).json({
+            res.status(err.statusCode || 500).json({
+                status: 'error',
+                message: err.message
+            });
+        }
+    }
+
+    static async updateOrderPricing(req, res) {
+        try {
+            const { id } = req.params;
+            const pricingData = req.body;
+            const updatedOrder = await OrdersService.updateOrderPricing(id, pricingData);
+
+            if (!updatedOrder) {
+                return res.status(404).json({
+                    message: 'Pedido no encontrado'
+                });
+            }
+
+            res.status(200).json({
+                status: 'success',
+                message: 'Precios del pedido actualizados',
+                order: updatedOrder
+            });
+        } catch (err) {
+            console.error('Error actualizando precios del pedido:', err);
+            res.status(err.statusCode || 500).json({
                 status: 'error',
                 message: err.message
             });

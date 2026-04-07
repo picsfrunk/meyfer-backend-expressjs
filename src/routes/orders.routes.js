@@ -20,6 +20,9 @@ router.put('/:id', OrdersController.updateOrder);
 // Actualizar solo el estado
 router.patch('/:id/status', OrdersController.updateOrderStatus);
 
+// Actualizar precios/cantidades y recargo del pedido
+router.patch('/:id/pricing', OrdersController.updateOrderPricing);
+
 // Eliminar pedido (soft delete)
 router.delete('/:id', OrdersController.deleteOrder);
 

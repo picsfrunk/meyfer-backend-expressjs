@@ -7,6 +7,7 @@ const {
 } = require("./email.service");
 
 class OrdersService {
+
     /**
      * Devuelve los estados válidos definidos en el schema de Order
      */
@@ -24,15 +25,78 @@ class OrdersService {
      * Transforma cartItems (del FE) en items normalizados
      */
     static transformCartItemsToOrderItems(cartItems) {
+        if (!Array.isArray(cartItems)) {
+            const error = new Error('cartItems debe ser un array');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        if (cartItems.length === 0) {
+            const error = new Error('El pedido debe tener al menos un producto');
+            error.statusCode = 400;
+            throw error;
+        }
+
         return cartItems.map(item => {
             const product = item.productCartItem || item;
+            const quantity = Number(item.qty ?? item.quantity ?? 1);
+            const priceAtPurchase = Number(
+                item.priceAtPurchase ??
+                item.unitPrice ??
+                product.priceAtPurchase ??
+                product.final_price ??
+                product.list_price ??
+                product.precio ??
+                0
+            );
+
+            if (product.product_id === undefined || product.product_id === null || String(product.product_id).trim() === '') {
+                const error = new Error('Cada item debe incluir product_id');
+                error.statusCode = 400;
+                throw error;
+            }
+
+            if (!Number.isInteger(quantity) || quantity < 1) {
+                const error = new Error('La cantidad de cada item debe ser un entero mayor o igual a 1');
+                error.statusCode = 400;
+                throw error;
+            }
+
+            if (!Number.isFinite(priceAtPurchase) || priceAtPurchase < 0) {
+                const error = new Error('El precio por item debe ser un número mayor o igual a 0');
+                error.statusCode = 400;
+                throw error;
+            }
 
             return {
-                product_id: product.product_id,
-                quantity: item.qty || item.quantity || 1,
-                priceAtPurchase: product.final_price || product.list_price || product.precio || 0
+                product_id: String(product.product_id),
+                quantity,
+                priceAtPurchase
             };
         });
+    }
+
+    static calculateOrderTotals(items, extraCharge = 0) {
+        const normalizedExtraCharge = Number(extraCharge ?? 0);
+
+        if (!Number.isFinite(normalizedExtraCharge) || normalizedExtraCharge < 0) {
+            const error = new Error('El recargo extra debe ser un número mayor o igual a 0');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const { productsTotal, totalItems } = items.reduce((acc, item) => {
+            acc.productsTotal += item.quantity * item.priceAtPurchase;
+            acc.totalItems += item.quantity;
+            return acc;
+        }, { productsTotal: 0, totalItems: 0 });
+        const total = Number((productsTotal + normalizedExtraCharge).toFixed(2));
+
+        return {
+            total,
+            totalItems,
+            extraCharge: normalizedExtraCharge
+        };
     }
 
     /**
@@ -43,6 +107,7 @@ class OrdersService {
     static transformItemsToCartItems(items) {
         return items.map(item => ({
             qty: item.quantity,
+            priceAtPurchase: item.priceAtPurchase,
             productCartItem: item.product || {}
         }));
     }
@@ -52,12 +117,14 @@ class OrdersService {
      */
     static async handleNewOrder(orderData) {
         const normalizedItems = this.transformCartItemsToOrderItems(orderData.cartItems);
+        const totals = this.calculateOrderTotals(normalizedItems, orderData.extraCharge);
 
         const orderDoc = await OrderModel.create({
             customerInfo: orderData.customerInfo,
             items: normalizedItems,
-            total: orderData.total,
-            totalItems: orderData.totalItems,
+            total: totals.total,
+            totalItems: totals.totalItems,
+            extraCharge: totals.extraCharge,
             orderId: await generateOrderId(orderData.customerInfo?.cliente)
         });
 
@@ -147,14 +214,67 @@ class OrdersService {
      * Actualiza un pedido completo
      */
     static async updateOrder(orderId, updatedData) {
-        if (updatedData.cartItems) {
-            updatedData.items = this.transformCartItemsToOrderItems(updatedData.cartItems);
-            delete updatedData.cartItems;
+        const updatePayload = { ...updatedData };
+        const currentOrder = await OrderModel.findOne({ orderId }).lean();
+
+        if (!currentOrder) {
+            return null;
         }
+
+        if (updatePayload.customerInfo) {
+            const currentCustomerInfo = currentOrder.customerInfo || {};
+            updatePayload.customerInfo = {
+                ...currentCustomerInfo,
+                ...updatePayload.customerInfo,
+                direccion: {
+                    ...(currentCustomerInfo.direccion || {}),
+                    ...(updatePayload.customerInfo.direccion || {})
+                }
+            };
+        }
+
+        if (updatePayload.cartItems) {
+            updatePayload.items = this.transformCartItemsToOrderItems(updatePayload.cartItems);
+            delete updatePayload.cartItems;
+        } else if (updatePayload.items) {
+            updatePayload.items = this.transformCartItemsToOrderItems(updatePayload.items);
+        }
+
+        const shouldRecalculateTotals =
+            Array.isArray(updatePayload.items) ||
+            'extraCharge' in updatePayload;
+
+        if (shouldRecalculateTotals) {
+            const items = updatePayload.items || currentOrder.items;
+            const extraCharge = 'extraCharge' in updatePayload
+                ? updatePayload.extraCharge
+                : currentOrder.extraCharge;
+            const totals = this.calculateOrderTotals(items, extraCharge);
+
+            updatePayload.total = totals.total;
+            updatePayload.totalItems = totals.totalItems;
+            updatePayload.extraCharge = totals.extraCharge;
+        }
+
+        const allowedFields = ['customerInfo', 'items', 'total', 'totalItems', 'status', 'extraCharge'];
+        const updateSet = {};
+        for (const field of allowedFields) {
+            if (field in updatePayload) {
+                updateSet[field] = updatePayload[field];
+            }
+        }
+
+        if (!Object.keys(updateSet).length) {
+            const error = new Error('No hay campos válidos para actualizar');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const updateDocument = { $set: updateSet };
 
         const updated = await OrderModel.findOneAndUpdate(
             { orderId },
-            updatedData,
+            updateDocument,
             { new: true, runValidators: true }
         ).lean();
 
@@ -171,6 +291,26 @@ class OrdersService {
         }
 
         return updated;
+    }
+
+    static async updateOrderPricing(orderId, pricingData = {}) {
+        const updatePayload = {};
+
+        if (pricingData.cartItems) {
+            updatePayload.cartItems = pricingData.cartItems;
+        } else if (pricingData.items) {
+            updatePayload.items = pricingData.items;
+        } else {
+            const error = new Error('Debes enviar items o cartItems para actualizar precios');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        if ('extraCharge' in pricingData) {
+            updatePayload.extraCharge = pricingData.extraCharge;
+        }
+
+        return this.updateOrder(orderId, updatePayload);
     }
 
     /**
