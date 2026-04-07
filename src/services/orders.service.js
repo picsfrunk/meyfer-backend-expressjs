@@ -50,7 +50,7 @@ class OrdersService {
                 0
             );
 
-            if (!product.product_id) {
+            if (product.product_id === undefined || product.product_id === null || String(product.product_id).trim() === '') {
                 const error = new Error('Cada item debe incluir product_id');
                 error.statusCode = 400;
                 throw error;
@@ -221,12 +221,13 @@ class OrdersService {
             return null;
         }
 
-        if (updatePayload.customerInfo && currentOrder.customerInfo) {
+        if (updatePayload.customerInfo) {
+            const currentCustomerInfo = currentOrder.customerInfo || {};
             updatePayload.customerInfo = {
-                ...currentOrder.customerInfo,
+                ...currentCustomerInfo,
                 ...updatePayload.customerInfo,
                 direccion: {
-                    ...(currentOrder.customerInfo.direccion || {}),
+                    ...(currentCustomerInfo.direccion || {}),
                     ...(updatePayload.customerInfo.direccion || {})
                 }
             };
@@ -255,7 +256,7 @@ class OrdersService {
             updatePayload.extraCharge = totals.extraCharge;
         }
 
-        const allowedFields = ['customerInfo', 'items', 'total', 'totalItems', 'status', 'extraCharge', 'createdAt'];
+        const allowedFields = ['customerInfo', 'items', 'total', 'totalItems', 'status', 'extraCharge'];
         const updateSet = {};
         for (const field of allowedFields) {
             if (field in updatePayload) {
