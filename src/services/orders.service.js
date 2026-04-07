@@ -8,6 +8,19 @@ const {
 
 class OrdersService {
     /**
+     * Devuelve los estados válidos definidos en el schema de Order
+     */
+    static getOrderStatuses() {
+        const statusPath = OrderModel.schema.path('status');
+        const statuses = statusPath?.enumValues || [];
+
+        return {
+            statuses,
+            defaultStatus: statusPath?.defaultValue || null
+        };
+    }
+
+    /**
      * Transforma cartItems (del FE) en items normalizados
      */
     static transformCartItemsToOrderItems(cartItems) {
@@ -166,8 +179,8 @@ class OrdersService {
     static async deleteOrder(orderId) {
         return OrderModel.findOneAndUpdate(
             { orderId },
-            { status: 'deleted' },
-            { new: true }
+            { status: 'Eliminado' },
+            { new: true, runValidators: true }
         ).lean();
     }
 

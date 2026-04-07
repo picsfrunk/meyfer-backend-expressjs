@@ -115,10 +115,18 @@ class OrdersController {
         try {
             const { id } = req.params;
             const { status } = req.body;
+            const { statuses } = OrdersService.getOrderStatuses();
 
             if (!status) {
                 return res.status(400).json({
                     message: 'El estado del pedido es requerido'
+                });
+            }
+
+            if (!statuses.includes(status)) {
+                return res.status(400).json({
+                    message: 'Estado de pedido no válido',
+                    allowedStatuses: statuses
                 });
             }
 
@@ -137,6 +145,19 @@ class OrdersController {
             });
         } catch (err) {
             console.error('Error actualizando estado del pedido:', err);
+            res.status(500).json({
+                status: 'error',
+                message: err.message
+            });
+        }
+    }
+
+    static async getOrderStatuses(req, res) {
+        try {
+            const result = OrdersService.getOrderStatuses();
+            res.status(200).json(result);
+        } catch (err) {
+            console.error('Error obteniendo estados de pedidos:', err);
             res.status(500).json({
                 status: 'error',
                 message: err.message
