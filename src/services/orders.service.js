@@ -71,14 +71,20 @@ class OrdersService {
 
     static calculateOrderTotals(items, extraCharge = 0) {
         const normalizedExtraCharge = Number(extraCharge ?? 0);
-        const safeExtraCharge = Number.isFinite(normalizedExtraCharge) ? normalizedExtraCharge : 0;
+
+        if (!Number.isFinite(normalizedExtraCharge) || normalizedExtraCharge < 0) {
+            const error = new Error('El recargo extra debe ser un número mayor o igual a 0');
+            error.statusCode = 400;
+            throw error;
+        }
+
         const productsTotal = items.reduce((acc, item) => acc + (item.quantity * item.priceAtPurchase), 0);
         const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
 
         return {
-            total: productsTotal + safeExtraCharge,
+            total: productsTotal + normalizedExtraCharge,
             totalItems,
-            extraCharge: safeExtraCharge
+            extraCharge: normalizedExtraCharge
         };
     }
 
