@@ -179,7 +179,7 @@ class OrdersService {
     static async deleteOrder(orderId) {
         return OrderModel.findOneAndUpdate(
             { orderId },
-            { status: 'Eliminado' },
+            { status: 'deleted' },
             { new: true, runValidators: true }
         ).lean();
     }
