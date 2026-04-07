@@ -7,6 +7,28 @@ const {
 } = require("./email.service");
 
 class OrdersService {
+    static sanitizeObjectForMongoOperators(value, path = '') {
+        if (Array.isArray(value)) {
+            return value.map((item, index) => this.sanitizeObjectForMongoOperators(item, `${path}[${index}]`));
+        }
+
+        if (!value || typeof value !== 'object') {
+            return value;
+        }
+
+        const sanitized = {};
+        for (const [key, nestedValue] of Object.entries(value)) {
+            if (key.startsWith('$') || key.includes('.')) {
+                const error = new Error(`Campo inválido en actualización: ${path ? `${path}.` : ''}${key}`);
+                error.statusCode = 400;
+                throw error;
+            }
+            sanitized[key] = this.sanitizeObjectForMongoOperators(nestedValue, path ? `${path}.${key}` : key);
+        }
+
+        return sanitized;
+    }
+
     /**
      * Devuelve los estados válidos definidos en el schema de Order
      */
@@ -24,7 +46,13 @@ class OrdersService {
      * Transforma cartItems (del FE) en items normalizados
      */
     static transformCartItemsToOrderItems(cartItems) {
-        if (!Array.isArray(cartItems) || cartItems.length === 0) {
+        if (!Array.isArray(cartItems)) {
+            const error = new Error('cartItems debe ser un array');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        if (cartItems.length === 0) {
             const error = new Error('El pedido debe tener al menos un producto');
             error.statusCode = 400;
             throw error;
@@ -49,8 +77,8 @@ class OrdersService {
                 throw error;
             }
 
-            if (!Number.isFinite(quantity) || quantity < 1) {
-                const error = new Error('La cantidad de cada item debe ser mayor o igual a 1');
+            if (!Number.isInteger(quantity) || quantity < 1) {
+                const error = new Error('La cantidad de cada item debe ser un entero mayor o igual a 1');
                 error.statusCode = 400;
                 throw error;
             }
@@ -80,9 +108,10 @@ class OrdersService {
 
         const productsTotal = items.reduce((acc, item) => acc + (item.quantity * item.priceAtPurchase), 0);
         const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
+        const total = Number((productsTotal + normalizedExtraCharge).toFixed(2));
 
         return {
-            total: productsTotal + normalizedExtraCharge,
+            total,
             totalItems,
             extraCharge: normalizedExtraCharge
         };
@@ -244,9 +273,11 @@ class OrdersService {
             updatePayload.extraCharge = totals.extraCharge;
         }
 
+        const sanitizedUpdatePayload = this.sanitizeObjectForMongoOperators(updatePayload);
+
         const updated = await OrderModel.findOneAndUpdate(
             { orderId },
-            updatePayload,
+            sanitizedUpdatePayload,
             { new: true, runValidators: true }
         ).lean();
 

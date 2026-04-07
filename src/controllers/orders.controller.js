@@ -80,7 +80,7 @@ class OrdersController {
             });
         } catch (err) {
             console.error('Error actualizando pedido:', err);
-            res.status(500).json({
+            res.status(err.statusCode || 500).json({
                 status: 'error',
                 message: err.message
             });
