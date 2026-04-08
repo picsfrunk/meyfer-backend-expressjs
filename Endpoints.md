@@ -178,6 +178,58 @@ Elimina el producto de la DB y su imagen de Cloudinary.
 
 ---
 
+## 👥 Clientes (Admin)
+> Todas las rutas requieren `Authorization: Bearer <token>`.
+
+### `GET /admin/customers`
+Lista todos los clientes ordenados por fecha de creación descendente.
+
+### `GET /admin/customers/:id`
+Detalle de un cliente por su `_id` de MongoDB.
+
+### `POST /admin/customers`
+Crea un cliente manualmente.
+- **Body:**
+```json
+{
+  "cliente": "Nombre / empresa",
+  "razonSocial": "Razón Social S.A.",
+  "cuit": "20-12345678-9",
+  "contacto": "Juan Pérez",
+  "email": "cliente@ejemplo.com",
+  "telefono1": "11-1234-5678",
+  "direccion": {
+    "calle": "Av. Corrientes",
+    "numero": "1234",
+    "piso": "3",
+    "timbre": "B",
+    "entreCalles": "Callao y Montevideo",
+    "localidad": "CABA",
+    "partido": "CABA"
+  },
+  "horarios": "Lunes a Viernes 9-18h",
+  "notas": "Llamar antes de entregar"
+}
+```
+- **Response 201:** `{ "status": "success", "customer": {...} }`
+- **Response 409:** `{ "status": "error", "message": "Ya existe un cliente con ese CUIT o email" }`
+
+### `PUT /admin/customers/:id`
+Actualiza los datos de un cliente existente.
+- **Body:** mismos campos que POST (parcial o completo).
+- **Response 200:** `{ "status": "success", "customer": {...} }`
+
+### `DELETE /admin/customers/:id`
+Elimina definitivamente un cliente.
+- **Response 200:** `{ "status": "success", "message": "Cliente eliminado" }`
+
+> **Vinculación automática con pedidos:** al recibir un pedido (`POST /orders/new`), el backend
+> hace un *upsert* del cliente (por CUIT → email → nuevo registro) y guarda el `customerId`
+> resultante en el documento del pedido. El campo `customerInfo` se conserva como snapshot
+> denormalizado para compatibilidad con el historial existente.
+
+---
+
 ## 🛠️ Desarrollo (Dev)
 ### `POST /dev/test-email`
 Envía un correo de prueba para verificar la integración con Mailjet.
