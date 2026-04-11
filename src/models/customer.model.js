@@ -4,7 +4,7 @@ const DireccionSchema = require('./schemas/direccion.schema');
 const CustomerSchema = new mongoose.Schema({
     cliente:      { type: String, required: true, trim: true },
     razonSocial:  { type: String, trim: true, default: '' },
-    cuit:         { type: String, trim: true, default: '', index: true },
+    cuit:         { type: String, trim: true, default: '' },
     contacto:     { type: String, trim: true, default: '' },
     email:        { type: String, trim: true, lowercase: true, default: '' },
     telefono1:    { type: String, trim: true, default: '' },
