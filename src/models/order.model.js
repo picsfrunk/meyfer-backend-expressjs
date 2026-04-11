@@ -23,6 +23,12 @@ const OrderSchema = new mongoose.Schema({
         unique: true,
         index: true
     },
+    customerId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Customer',
+        index: true,
+        default: null
+    },
     customerInfo: {
         type: Object,
         required: true

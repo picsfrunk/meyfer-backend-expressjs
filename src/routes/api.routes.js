@@ -8,6 +8,7 @@ const devRoutes           = require("./dev.routes");
 const adminScraperRoutes  = require("./admin_scraper.routes");
 const adminPriceCheckRoutes = require("./admin_price_check.routes");
 const adminProductsRoutes = require("./admin_products.routes");
+const adminCustomersRoutes = require("./admin_customers.routes");
 const { authenticateAdmin } = require("../middlewares/auth.middleware");
 const { Router } = require("express/lib/express");
 
@@ -23,5 +24,6 @@ router.use('/dev',              authenticateAdmin, devRoutes);
 router.use('/admin/scraper',    authenticateAdmin, adminScraperRoutes);
 router.use('/admin/price-check',authenticateAdmin, adminPriceCheckRoutes);
 router.use('/admin/products',   authenticateAdmin, adminProductsRoutes);
+router.use('/admin/customers',  authenticateAdmin, adminCustomersRoutes);
 
 module.exports = router;

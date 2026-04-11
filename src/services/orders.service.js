@@ -1,6 +1,7 @@
 const { generateOrderId } = require("../utils/generateOrderId");
 const OrderModel = require('../models/order.model');
 const ScrapedProduct = require('../models/products.model');
+const CustomersService = require('./customers.service');
 const {
     sendOrderNotificationToAdmins,
     sendOrderConfirmationToCustomer
@@ -119,8 +120,15 @@ class OrdersService {
         const normalizedItems = this.transformCartItemsToOrderItems(orderData.cartItems);
         const totals = this.calculateOrderTotals(normalizedItems, orderData.extraCharge);
 
+        // Upsert del cliente y vinculación con el pedido
+        const customer = await CustomersService.upsertFromOrderInfo(orderData.customerInfo).catch(err => {
+            console.warn('[orders] No se pudo upsert customer:', err.message);
+            return null;
+        });
+
         const orderDoc = await OrderModel.create({
             customerInfo: orderData.customerInfo,
+            customerId: customer?._id ?? null,
             items: normalizedItems,
             total: totals.total,
             totalItems: totals.totalItems,
