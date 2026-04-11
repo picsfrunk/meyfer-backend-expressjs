@@ -1,5 +1,35 @@
 const Customer = require('../models/customer.model');
 
+const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+function randomChars(n) {
+    let result = '';
+    for (let i = 0; i < n; i++) {
+        result += CHARS[Math.floor(Math.random() * CHARS.length)];
+    }
+    return result;
+}
+
+function generateCustomerCode(cliente, cuit) {
+    const normalized = (cliente || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toUpperCase()
+        .replace(/[^A-Z]/g, '');
+    const prefix = normalized.slice(0, 2).padEnd(2, 'X');
+
+    let cuitPart;
+    if (cuit) {
+        const digits = cuit.replace(/\D/g, '');
+        cuitPart = digits.slice(-2).padStart(2, '0');
+    } else {
+        cuitPart = randomChars(2);
+    }
+
+    const suffix = randomChars(2);
+    return prefix + cuitPart + suffix;
+}
+
 class CustomersService {
 
     /**
@@ -94,16 +124,29 @@ class CustomersService {
             throw error;
         }
 
-        try {
-            const customer = await Customer.create(fields);
-            return customer.toObject();
-        } catch (err) {
-            if (err.code === 11000) {
-                const dupError = new Error('Ya existe un cliente con ese CUIT o email');
-                dupError.statusCode = 409;
-                throw dupError;
+        const MAX_ATTEMPTS = 5;
+        for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+            const customerCode = generateCustomerCode(fields.cliente, fields.cuit);
+            const customer = new Customer({ ...fields, customerCode });
+            try {
+                await customer.save();
+                return customer.toObject();
+            } catch (err) {
+                if (err.code === 11000) {
+                    if ((err.keyPattern || {}).customerCode) {
+                        if (attempt === MAX_ATTEMPTS - 1) {
+                            const genError = new Error('No se pudo generar un código único para el cliente');
+                            genError.statusCode = 500;
+                            throw genError;
+                        }
+                        continue;
+                    }
+                    const dupError = new Error('Ya existe un cliente con ese CUIT o email');
+                    dupError.statusCode = 409;
+                    throw dupError;
+                }
+                throw err;
             }
-            throw err;
         }
     }
 
@@ -111,6 +154,7 @@ class CustomersService {
      * Actualiza un cliente por su _id de MongoDB.
      */
     static async updateCustomer(id, data) {
+        delete data.customerCode;
         const fields = this._buildCustomerFields(data);
 
         try {
@@ -128,6 +172,35 @@ class CustomersService {
                 throw dupError;
             }
             throw err;
+        }
+    }
+
+    /**
+     * Regenera el customerCode de un cliente existente.
+     * Devuelve el nuevo código o null si el cliente no existe.
+     */
+    static async regenerateCode(id) {
+        const customer = await Customer.findById(id);
+        if (!customer) return null;
+
+        const MAX_ATTEMPTS = 5;
+        for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+            const customerCode = generateCustomerCode(customer.cliente, customer.cuit);
+            customer.customerCode = customerCode;
+            try {
+                await customer.save();
+                return customerCode;
+            } catch (err) {
+                if (err.code === 11000 && (err.keyPattern || {}).customerCode) {
+                    if (attempt === MAX_ATTEMPTS - 1) {
+                        const genError = new Error('No se pudo generar un código único para el cliente');
+                        genError.statusCode = 500;
+                        throw genError;
+                    }
+                    continue;
+                }
+                throw err;
+            }
         }
     }
 

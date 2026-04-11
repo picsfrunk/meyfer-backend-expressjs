@@ -60,6 +60,19 @@ class CustomersController {
             res.status(500).json({ status: 'error', message: err.message });
         }
     }
+
+    static async regenerateCode(req, res) {
+        try {
+            const customerCode = await CustomersService.regenerateCode(req.params.id);
+            if (customerCode === null) {
+                return res.status(404).json({ message: 'Cliente no encontrado' });
+            }
+            res.status(200).json({ status: 'success', customerCode });
+        } catch (err) {
+            console.error('[customers] Error regenerando código:', err);
+            res.status(err.statusCode || 500).json({ status: 'error', message: err.message });
+        }
+    }
 }
 
 module.exports = CustomersController;
