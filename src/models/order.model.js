@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const DireccionSchema = require('./schemas/direccion.schema');
 
 const OrderItemSchema = new mongoose.Schema({
     product_id: {
@@ -17,6 +18,16 @@ const OrderItemSchema = new mongoose.Schema({
     }
 }, { _id: false });
 
+const CustomerSnapshotSchema = new mongoose.Schema({
+    customerCode: { type: String, required: true },
+    cliente:      { type: String, default: '' },
+    razonSocial:  { type: String, default: '' },
+    cuit:         { type: String, default: '' },
+    contacto:     { type: String, default: '' },
+    email:        { type: String, default: '' },
+    telefono1:    { type: String, default: '' }
+}, { _id: false });
+
 const OrderSchema = new mongoose.Schema({
     orderId: {
         type: String,
@@ -30,8 +41,12 @@ const OrderSchema = new mongoose.Schema({
         default: null
     },
     customerInfo: {
-        type: Object,
+        type: CustomerSnapshotSchema,
         required: true
+    },
+    deliveryAddress: {
+        type: DireccionSchema,
+        default: () => ({})
     },
     items: {
         type: [OrderItemSchema],
@@ -69,3 +84,4 @@ const OrderSchema = new mongoose.Schema({
 OrderSchema.index({ status: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Order', OrderSchema);
+

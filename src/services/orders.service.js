@@ -1,7 +1,7 @@
 const { generateOrderId } = require("../utils/generateOrderId");
 const OrderModel = require('../models/order.model');
 const ScrapedProduct = require('../models/products.model');
-const CustomersService = require('./customers.service');
+const Customer = require('../models/customer.model');
 const {
     sendOrderNotificationToAdmins,
     sendOrderConfirmationToCustomer
@@ -120,20 +120,49 @@ class OrdersService {
         const normalizedItems = this.transformCartItemsToOrderItems(orderData.cartItems);
         const totals = this.calculateOrderTotals(normalizedItems, orderData.extraCharge);
 
-        // Upsert del cliente y vinculación con el pedido
-        const customer = await CustomersService.upsertFromOrderInfo(orderData.customerInfo).catch(err => {
-            console.warn('[orders] No se pudo upsert customer:', err.message);
-            return null;
-        });
+        // Validar y buscar cliente por customerCode
+        const rawCustomerCode = orderData.customerInfo?.customerCode;
+        const customerCode = rawCustomerCode != null ? String(rawCustomerCode).trim() : '';
+        if (!customerCode) {
+            const error = new Error('El código de cliente es requerido');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const customer = await Customer.findOne({ customerCode });
+        if (!customer) {
+            const error = new Error('Cliente no encontrado');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        // Construir snapshot inmutable desde la DB (nunca desde el body)
+        const customerInfo = {
+            customerCode: customer.customerCode,
+            cliente:      customer.cliente,
+            razonSocial:  customer.razonSocial,
+            cuit:         customer.cuit,
+            contacto:     customer.contacto,
+            email:        customer.email,
+            telefono1:    customer.telefono1
+        };
+
+        // Resolver dirección de entrega: payload si tiene datos, sino la del cliente
+        const payloadAddress = orderData.deliveryAddress;
+        const hasPayloadAddress = payloadAddress !== null &&
+            typeof payloadAddress === 'object' &&
+            Object.values(payloadAddress).some(v => v !== undefined && v !== null && String(v).trim() !== '');
+        const deliveryAddress = hasPayloadAddress ? payloadAddress : (customer.direccion || {});
 
         const orderDoc = await OrderModel.create({
-            customerInfo: orderData.customerInfo,
-            customerId: customer?._id ?? null,
+            customerInfo,
+            customerId: customer._id,
+            deliveryAddress,
             items: normalizedItems,
             total: totals.total,
             totalItems: totals.totalItems,
             extraCharge: totals.extraCharge,
-            orderId: await generateOrderId(orderData.customerInfo?.cliente)
+            orderId: await generateOrderId(customer.cliente)
         });
 
         // Notificaciones asíncronas

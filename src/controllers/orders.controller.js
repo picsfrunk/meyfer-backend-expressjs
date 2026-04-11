@@ -13,6 +13,20 @@ class OrdersController {
             });
         } catch (err) {
             console.error('Error creando pedido:', err);
+            if (err.statusCode === 404) {
+                return res.status(404).json({
+                    status: 'error',
+                    code: 'CUSTOMER_NOT_FOUND',
+                    message: err.message
+                });
+            }
+            if (err.statusCode === 400) {
+                return res.status(400).json({
+                    status: 'error',
+                    code: 'MISSING_CUSTOMER_CODE',
+                    message: err.message
+                });
+            }
             res.status(500).json({
                 status: 'error',
                 message: err.message
