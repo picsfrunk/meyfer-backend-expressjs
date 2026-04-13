@@ -13,6 +13,16 @@ class OrdersController {
             });
         } catch (err) {
             console.error('Error creando pedido:', err);
+            if (err.statusCode === 404) {
+                const response = { status: 'error', message: err.message };
+                if (err.code) response.code = err.code;
+                return res.status(404).json(response);
+            }
+            if (err.statusCode === 400) {
+                const response = { status: 'error', message: err.message };
+                if (err.code) response.code = err.code;
+                return res.status(400).json(response);
+            }
             res.status(500).json({
                 status: 'error',
                 message: err.message

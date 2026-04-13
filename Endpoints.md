@@ -35,13 +35,52 @@ Lista de categorías con conteo de productos.
 ## 📦 Pedidos (Orders)
 ### `POST /orders/new` (Pública)
 Registra un nuevo pedido y dispara notificaciones por email.
-- **Body:** `{ "customerInfo": {...}, "cartItems": [...] }`
+
+El cliente **debe existir** en la base de datos y se referencia únicamente por su `customerCode`. El snapshot de datos del cliente (nombre, CUIT, email, etc.) se construye siempre desde la DB, no desde el body. La dirección de entrega es opcional: si se envía con al menos un campo no vacío se usa; de lo contrario se usa la dirección registrada del cliente.
+
+- **Body:**
+```json
+{
+  "customerInfo": {
+    "customerCode": "FE78X3"
+  },
+  "deliveryAddress": {
+    "calle": "Av. Corrientes",
+    "numero": "1234",
+    "localidad": "CABA"
+  },
+  "cartItems": [
+    {
+      "productCartItem": { "product_id": "1528" },
+      "qty": 2,
+      "priceAtPurchase": 1500
+    }
+  ],
+  "extraCharge": 500
+}
+```
 - **Response 201:**
 ```json
 {
   "orderId": "MF-001",
   "status": "success",
   "message": "Pedido recibido correctamente"
+}
+```
+- **Response 400 — customerCode ausente:**
+```json
+{
+  "status": "error",
+  "code": "MISSING_CUSTOMER_CODE",
+  "message": "El código de cliente es requerido"
+}
+```
+- **Response 404 — cliente no encontrado:**
+```json
+{
+  "status": "error",
+  "code": "CUSTOMER_NOT_FOUND",
+  "message": "Cliente no encontrado"
 }
 ```
 
@@ -188,7 +227,7 @@ Lista todos los clientes ordenados por fecha de creación descendente.
 Detalle de un cliente por su `_id` de MongoDB.
 
 ### `POST /admin/customers`
-Crea un cliente manualmente.
+Crea un cliente manualmente. El campo `customerCode` se genera automáticamente (no se acepta en el body).
 - **Body:**
 ```json
 {
@@ -211,7 +250,7 @@ Crea un cliente manualmente.
   "notas": "Llamar antes de entregar"
 }
 ```
-- **Response 201:** `{ "status": "success", "customer": {...} }`
+- **Response 201:** `{ "status": "success", "customer": { "customerCode": "FE78X3", ... } }`
 - **Response 409:** `{ "status": "error", "message": "Ya existe un cliente con ese CUIT o email" }`
 
 ### `PUT /admin/customers/:id`
@@ -219,14 +258,21 @@ Actualiza los datos de un cliente existente.
 - **Body:** mismos campos que POST (parcial o completo).
 - **Response 200:** `{ "status": "success", "customer": {...} }`
 
+### `POST /admin/customers/:id/regenerate-code` (Admin)
+Regenera el `customerCode` de un cliente existente (útil si el código generado automáticamente no es conveniente).
+- **Body:** vacío
+- **Response 200:** `{ "status": "success", "customerCode": "AB12CD" }`
+- **Response 404:** `{ "status": "error", "message": "Cliente no encontrado" }`
+
 ### `DELETE /admin/customers/:id`
 Elimina definitivamente un cliente.
 - **Response 200:** `{ "status": "success", "message": "Cliente eliminado" }`
 
-> **Vinculación automática con pedidos:** al recibir un pedido (`POST /orders/new`), el backend
-> hace un *upsert* del cliente (por CUIT → email → nuevo registro) y guarda el `customerId`
-> resultante en el documento del pedido. El campo `customerInfo` se conserva como snapshot
-> denormalizado para compatibilidad con el historial existente.
+> **Vinculación con pedidos:** al recibir un pedido (`POST /orders/new`), el backend busca al cliente
+> por su `customerCode`. Si no existe o no se proporciona el código, el pedido es rechazado (400/404).
+> El campo `customerInfo` del pedido se guarda como snapshot tipado (`CustomerSnapshotSchema`) con los
+> datos actuales de la DB (nunca del body). El campo `deliveryAddress` almacena la dirección de entrega
+> efectiva (del payload si viene, sino la del cliente).
 
 ---
 
