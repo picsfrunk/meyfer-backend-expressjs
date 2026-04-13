@@ -11,15 +11,16 @@ const DireccionSchema = new mongoose.Schema({
 }, { _id: false });
 
 const CustomerSchema = new mongoose.Schema({
-    cliente:     { type: String, required: true, trim: true },
-    razonSocial: { type: String, trim: true, default: '' },
-    cuit:        { type: String, trim: true, default: '', index: true },
-    contacto:    { type: String, trim: true, default: '' },
-    email:       { type: String, trim: true, lowercase: true, default: '' },
-    telefono1:   { type: String, trim: true, default: '' },
-    direccion:   { type: DireccionSchema, default: () => ({}) },
-    horarios:    { type: String, default: '' },
-    notas:       { type: String, default: '' }
+    cliente:      { type: String, required: true, trim: true },
+    razonSocial:  { type: String, trim: true, default: '' },
+    cuit:         { type: String, trim: true, default: '', index: true },
+    contacto:     { type: String, trim: true, default: '' },
+    email:        { type: String, trim: true, lowercase: true, default: '' },
+    telefono1:    { type: String, trim: true, default: '' },
+    direccion:    { type: DireccionSchema, default: () => ({}) },
+    horarios:     { type: String, default: '' },
+    notas:        { type: String, default: '' },
+    customerCode: { type: String, trim: true, default: '' }
 }, {
     collection: 'customers',
     timestamps: true
@@ -35,6 +36,10 @@ CustomerSchema.index(
 CustomerSchema.index(
     { cuit: 1 },
     { unique: true, sparse: true, partialFilterExpression: { cuit: { $gt: '' } } }
+);
+CustomerSchema.index(
+    { customerCode: 1 },
+    { unique: true, sparse: true, partialFilterExpression: { customerCode: { $gt: '' } } }
 );
 
 module.exports = mongoose.model('Customer', CustomerSchema);

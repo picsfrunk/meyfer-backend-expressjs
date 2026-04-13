@@ -14,6 +14,9 @@ router.post('/', CustomersController.createCustomer);
 // PUT  /admin/customers/:id
 router.put('/:id', CustomersController.updateCustomer);
 
+// POST /admin/customers/:id/regenerate-code
+router.post('/:id/regenerate-code', CustomersController.regenerateCode);
+
 // DELETE /admin/customers/:id
 router.delete('/:id', CustomersController.deleteCustomer);
 
