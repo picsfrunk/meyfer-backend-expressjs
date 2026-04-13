@@ -1,7 +1,7 @@
 
 # Meyfer Backend (Express.js)
 
-Este es el backend del proyecto **Meyfer**, construido con Node.js, Express.js y MongoDB. Su propósito principal es procesar y almacenar datos provenientes de un archivo Excel remoto, organizando los productos en secciones y ofreciendo endpoints para consultarlos.
+Este es el backend del proyecto **Meyfer**, construido con Node.js, Express.js y MongoDB. Centraliza tres responsabilidades principales: parsear y servir el catálogo de productos desde un Excel remoto, orquestar scrapers y monitores de precios externos, y gestionar pedidos con notificaciones por email a admins y clientes.
 
 ## 🧰 Tecnologías utilizadas
 
@@ -10,7 +10,9 @@ Este es el backend del proyecto **Meyfer**, construido con Node.js, Express.js y
 - Docker + Docker Compose
 - Railway (para despliegue en producción)
 - XLSX (para procesar archivos Excel)
-- Axios, dotenv, morgan, cors
+- Cloudinary (almacenamiento de imágenes de productos)
+- Mailjet (envío de emails transaccionales)
+- Axios, dotenv, morgan, cors, express-rate-limit, jsonwebtoken, multer
 
 ## 📁 Estructura del proyecto
 
@@ -20,41 +22,77 @@ meyfer-backend-expressjs/
 │   ├── controllers/       # Controladores de las rutas
 │   ├── models/            # Esquemas de MongoDB con Mongoose
 │   ├── routes/            # Definición de rutas
-│   ├── services/          # Lógica de negocio (parseo de Excel, conexión DB)
-│   ├── app.js             # App Express
-│   └── index.js           # Punto de entrada del servidor
+│   ├── services/          # Lógica de negocio
+│   ├── middlewares/       # Auth, upload, etc.
+│   ├── utils/             # Helpers y constantes
+│   └── app.js             # App Express
+├── index.js               # Punto de entrada del servidor
 ├── docker-compose.yml     # Configuración para entorno local con Docker
-├── .env                   # Variables de entorno
+├── .env                   # Variables de entorno (no commitear)
+├── Endpoints.md           # Documentación de endpoints
 ├── package.json           # Dependencias y scripts
 └── README.md              # Este archivo
 ```
 
 ## ⚙️ Variables de entorno
 
-Crea un archivo `.env` con el siguiente contenido para desarrollo:
+Crea un archivo `.env` con el siguiente contenido para desarrollo local:
 
-```
+```env
+# Entorno
 NODE_ENV=development
 PORT=3000
-MONGO_URI=mongodb://mongo:27017/meyferdb
+
+# Base de datos
+MONGODB_URI_DEV=mongodb://localhost:27018/meyfer-catalog
+MONGODB_URI_PROD=mongodb+srv://<usuario>:<password>@<cluster>.mongodb.net
+DB_NAME=meyfer-catalog
+
+# Autenticación admin
+ADMIN_USER=admin
+ADMIN_PASS=admin
+JWT_SECRET=cambia_este_secreto
+# JWT_EXPIRES_IN=1h   # opcional, default: 1h
+
+# Cloudinary (gestión de imágenes de productos)
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+
+# Mailjet (emails transaccionales)
+MJ_APIKEY_PUBLIC=
+MJ_APIKEY_PRIVATE=
+MJ_SENDER_EMAIL=noreply@tudominio.com
+MJ_SENDER_NAME=MeyFer
+
+# Scrapers externos (URLs de los microservicios)
+CATEGORY_SCRAPER_URL=http://localhost:3001/api/scraper/category
+SITEMAP_SCRAPER_URL=http://localhost:3001/api/scraper/sitemap
+SITEMAP_ANALYSIS_URL=http://localhost:3001/api/scraper/analyze
+PRICE_CHECK_URL=http://localhost:3001/api/scraper/check-prices
+SCRAPER_STATUS_URL=http://localhost:3001/api/scraper/status
+
+# Webhooks (URL base del backend para que los scrapers devuelvan resultados)
+WEBHOOK_URL=http://localhost:3000/api/webhook/scraper/result
+WEBHOOK_PRICE_CHECK_URL=http://localhost:3000/api/webhook/price-check/result
 ```
 
-Para producción en Railway, la variable `MONGO_URI` debe apuntar a la base Mongo remota.
+> **Nota:** `MONGODB_URI_DEV` se usa cuando `NODE_ENV=development`; `MONGODB_URI_PROD` cuando `NODE_ENV=production`. El README anterior mencionaba `MONGO_URI`, que ya **no existe** en el código.
 
 ## 🚀 Scripts disponibles
 
 ```bash
-# Iniciar el servidor (modo producción)
+# Iniciar el servidor en modo producción
 npm start
 
-# Iniciar con nodemon en desarrollo (si instalas nodemon global)
-nodemon src/index.js
+# Iniciar con nodemon en modo desarrollo
+npm run dev
 ```
 
-## 🐳 Uso con Docker
+## 🐳 Uso con Docker (desarrollo local)
 
 ```bash
-# Construir y levantar los servicios
+# Levantar MongoDB local (puerto 27018) y mongo-express (puerto 8081)
 docker-compose up -d
 
 # Ver logs
@@ -64,80 +102,22 @@ docker-compose logs -f
 docker-compose down
 ```
 
-Incluye los servicios:
+Accede a **mongo-express** en: `http://localhost:8081`
 
-- MongoDB (con autenticación y volumen persistente)
-- mongo-express para inspeccionar la base de datos vía navegador
-
-Accede a mongo-express en: `http://localhost:8081`
-# Documentación de Endpoints - MeyFer Backend
-
-## Productos (`src/routes/products.route.js`)
-- `GET /api/products/parsed`  
-  Devuelve los productos parseados desde el Excel remoto.
-- `POST /api/products/parsed`  
-  Actualiza el catálogo parseando el Excel y guardando en MongoDB.
-- `POST /api/products/scrape`  
-  Dispara el microservicio de scraping (categoryScraper/sitemapScraper).
-- `GET /api/products/scraped`  
-  Obtiene productos scrapeados (paginados, filtrados).
-- `GET /api/products/scraped/:id`  
-  Consulta producto scrapeado por ID.
-
-## Órdenes (`src/routes/orders.route.js`)
-- `POST /api/orders`  
-  Crea un nuevo pedido.
-- `GET /api/orders` *(comentado en el código, posible endpoint)*  
-  Lista todos los pedidos.
-- `GET /api/orders/:id` *(comentado en el código, posible endpoint)*  
-  Detalle de pedido por ID.
-
-## Categorías (`src/routes/category.route.js`)
-- `GET /api/categories`  
-  Lista todas las categorías con cantidad de productos por cada una.
-
-## Configuración (`controllers/config.controller.js`)
-- `GET /api/config/profit`  
-  Devuelve el margen de ganancia.
-- `PUT /api/config/profit`  
-  Actualiza el margen de ganancia.
-- `GET /api/config/last-update`  
-  Fecha de última actualización del catálogo.
-
-## Otros endpoints relevantes
-- `GET /api/products`  
-  Lista de secciones y productos desde MongoDB.
-- `POST /api/products`  
-  Descarga el XLS remoto, lo parsea y actualiza MongoDB.
-
-## Notas
-- Todos los endpoints siguen la arquitectura controlador-servicio-helper.
-- El endpoint `/api/products/scrape` se comunica con un microservicio externo y centraliza la lógica de scraping y notificaciones vía webhook.
-- El endpoint de categorías entrega la cantidad de productos por categoría y el total general.
-- Puedes encontrar detalles específicos de cada endpoint en los archivos de rutas y controladores correspondientes.
-
----
-
-> Si necesitas ejemplos de request/response o detalles de middlewares (como autenticación), revisa los archivos en `src/middlewares/` y la colección Postman incluida en el repo.
 ## ☁️ Despliegue en Railway
 
 1. Subir el proyecto a un repositorio GitHub.
-2. Conectar el repo a Railway y configurar las variables de entorno:
-   - `NODE_ENV=production`
-   - `PORT=3000`
-   - `MONGO_URI=<tu Mongo en Railway o Atlas>`
-3. Railway construirá e iniciará el servidor automáticamente.
+2. Conectar el repo a Railway y configurar las variables de entorno listadas arriba.
+3. Establecer `NODE_ENV=production` y `MONGODB_URI_PROD=<tu Mongo en Railway o Atlas>`.
+4. Railway construirá e iniciará el servidor automáticamente.
+
+## 📖 Documentación de Endpoints
+
+Ver [`Endpoints.md`](./Endpoints.md) para la documentación completa de todos los endpoints, incluyendo payloads, respuestas y códigos de error.
+
+También se incluye la colección de Postman `MeyFer.postman_collection.json` lista para importar.
 
 ---
-
-
-### Commit [`d17c32f`](https://github.com/picsfrunk/meyfer-backend-expressjs/commit/d17c32fa556a603270a686399bfbe7a853e2298c)
-**feat: endpoint para disparar scraper de productos**
-
-- Se agregó un endpoint POST `/api/products/scrape` que permite iniciar, desde el backend, el proceso de scraping en el microservicio scraper.
-- El endpoint recibe los parámetros necesarios para el tipo de scrapeo (`categoryScraper` o `sitemapScraper`) y los reenvía al microservicio, agregando automáticamente la URL de webhook.
-- El backend ahora se encarga de orquestar la comunicación entre el frontend y el scraper, centralizando la lógica y facilitando el manejo de notificaciones a través del webhook.
-- Mejoras en la estructura del service y controller para robustecer la comunicación y manejo de errores al disparar el proceso de scraping.
 
 Desarrollado por Alejandro Daniel Nava
 [alejannava@gmail.com](mailto:alejannava@gmail.com)
