@@ -38,6 +38,8 @@ Registra un nuevo pedido y dispara notificaciones por email.
 
 El cliente **debe existir** en la base de datos y se referencia únicamente por su `customerCode`. El snapshot de datos del cliente (nombre, CUIT, email, etc.) se construye siempre desde la DB, no desde el body. La dirección de entrega es opcional: si se envía con al menos un campo no vacío se usa; de lo contrario se usa la dirección registrada del cliente.
 
+> **Nota:** el `customerCode` se normaliza automáticamente a mayúsculas en el backend. Se recomienda enviarlo en mayúsculas para mayor claridad (ej. `"FE78X3"` en lugar de `"fe78x3"`).
+
 - **Body:**
 ```json
 {
@@ -75,6 +77,25 @@ El cliente **debe existir** en la base de datos y se referencia únicamente por 
   "message": "El código de cliente es requerido"
 }
 ```
+- **Response 400 — cartItems inválido (varios casos posibles):**
+```json
+{ "status": "error", "message": "cartItems debe ser un array" }
+```
+```json
+{ "status": "error", "message": "El pedido debe tener al menos un producto" }
+```
+```json
+{ "status": "error", "message": "Cada item debe incluir product_id" }
+```
+```json
+{ "status": "error", "message": "La cantidad de cada item debe ser un entero mayor o igual a 1" }
+```
+```json
+{ "status": "error", "message": "El precio por item debe ser un número mayor o igual a 0" }
+```
+```json
+{ "status": "error", "message": "El recargo extra debe ser un número mayor o igual a 0" }
+```
 - **Response 404 — cliente no encontrado:**
 ```json
 {
@@ -86,15 +107,15 @@ El cliente **debe existir** en la base de datos y se referencia únicamente por 
 
 ### `GET /orders` (Admin)
 Lista de pedidos con filtros.
-- **Query Params:** `status` (uno o varios separados por coma, ej. `Pendiente,Procesado`), `populate` (true/false).
+- **Query Params:** `status` (uno o varios separados por coma, ej. `pending,confirmed`), `populate` (true/false).
 
 ### `GET /orders/statuses` (Admin)
 Devuelve los estados de pedido válidos definidos en el modelo.
 - **Response 200:**
 ```json
 {
-  "statuses": ["Pendiente", "Procesado", "Enviado", "Entregado", "Cancelado", "Eliminado"],
-  "defaultStatus": "Pendiente"
+  "statuses": ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled", "deleted"],
+  "defaultStatus": "pending"
 }
 ```
 
@@ -102,8 +123,10 @@ Devuelve los estados de pedido válidos definidos en el modelo.
 Detalle de un pedido por ID.
 
 ### `PUT /orders/:id` (Admin)
-Actualización de pedido (permite editar `customerInfo`, dirección de entrega, ítems y precios).
-- Si se envía `customerInfo` o `customerInfo.direccion`, se mergea con los datos actuales.
+Actualización de pedido (permite editar `customerInfo`, `deliveryAddress`, ítems y precios).
+- Campos actualizables: `customerInfo`, `deliveryAddress`, `cartItems`/`items`, `extraCharge`, `status`.
+- Si se envía `customerInfo`, se mergea con los datos actuales (solo se sobreescriben los campos enviados). **Nota:** `customerInfo` NO tiene campo `direccion`; la dirección de entrega se gestiona con `deliveryAddress` en el nivel raíz del pedido.
+- Si se envía `deliveryAddress`, se mergea campo a campo con la dirección actual.
 - Si se envía `cartItems`/`items` y/o `extraCharge`, el backend recalcula `total` y `totalItems`.
 
 ### `PATCH /orders/:id/pricing` (Admin)
@@ -126,14 +149,14 @@ Actualiza precios/cantidades de un pedido y recargo extra (ej. flete) recalculan
 Cambiar el estado de un pedido. Solo acepta valores del enum del modelo.
 - **Body:**
 ```json
-{ "status": "Enviado" }
+{ "status": "shipped" }
 ```
 - **Response 200:**
 ```json
 {
   "status": "success",
   "message": "Estado del pedido actualizado",
-  "order": { "orderId": "MF-001", "status": "Enviado", "..." }
+  "order": { "orderId": "MF-001", "status": "shipped", "..." }
 }
 ```
 - **Response 400 — estado ausente:**
@@ -144,7 +167,7 @@ Cambiar el estado de un pedido. Solo acepta valores del enum del modelo.
 ```json
 {
   "message": "Estado de pedido no válido",
-  "allowedStatuses": ["Pendiente", "Procesado", "Enviado", "Entregado", "Cancelado", "Eliminado"]
+  "allowedStatuses": ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled", "deleted"]
 }
 ```
 - **Response 404:**
@@ -153,7 +176,7 @@ Cambiar el estado de un pedido. Solo acepta valores del enum del modelo.
 ```
 
 ### `DELETE /orders/:id` (Admin)
-Soft delete (cambia estado a `deleted`).
+Soft delete (cambia estado a `"deleted"`).
 
 ### `POST /orders/:orderId/resend-emails` (Admin)
 Reenvío manual de correos de confirmación.
