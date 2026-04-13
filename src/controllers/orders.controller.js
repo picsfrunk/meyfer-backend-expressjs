@@ -14,18 +14,14 @@ class OrdersController {
         } catch (err) {
             console.error('Error creando pedido:', err);
             if (err.statusCode === 404) {
-                return res.status(404).json({
-                    status: 'error',
-                    code: 'CUSTOMER_NOT_FOUND',
-                    message: err.message
-                });
+                const response = { status: 'error', message: err.message };
+                if (err.code) response.code = err.code;
+                return res.status(404).json(response);
             }
             if (err.statusCode === 400) {
-                return res.status(400).json({
-                    status: 'error',
-                    code: 'MISSING_CUSTOMER_CODE',
-                    message: err.message
-                });
+                const response = { status: 'error', message: err.message };
+                if (err.code) response.code = err.code;
+                return res.status(400).json(response);
             }
             res.status(500).json({
                 status: 'error',

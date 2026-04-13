@@ -122,10 +122,11 @@ class OrdersService {
 
         // Validar y buscar cliente por customerCode
         const rawCustomerCode = orderData.customerInfo?.customerCode;
-        const customerCode = rawCustomerCode != null ? String(rawCustomerCode).trim() : '';
+        const customerCode = rawCustomerCode != null ? String(rawCustomerCode).trim().toUpperCase() : '';
         if (!customerCode) {
             const error = new Error('El código de cliente es requerido');
             error.statusCode = 400;
+            error.code = 'MISSING_CUSTOMER_CODE';
             throw error;
         }
 
@@ -133,6 +134,7 @@ class OrdersService {
         if (!customer) {
             const error = new Error('Cliente no encontrado');
             error.statusCode = 404;
+            error.code = 'CUSTOMER_NOT_FOUND';
             throw error;
         }
 
@@ -148,11 +150,14 @@ class OrdersService {
         };
 
         // Resolver dirección de entrega: payload si tiene datos, sino la del cliente
+        const DIRECCION_KEYS = ['calle', 'numero', 'piso', 'timbre', 'entreCalles', 'localidad', 'partido'];
         const payloadAddress = orderData.deliveryAddress;
         const hasPayloadAddress = payloadAddress !== null &&
             typeof payloadAddress === 'object' &&
-            Object.values(payloadAddress).some(v => v !== undefined && v !== null && String(v).trim() !== '');
-        const deliveryAddress = hasPayloadAddress ? payloadAddress : (customer.direccion || {});
+            DIRECCION_KEYS.some(k => payloadAddress[k] !== undefined && payloadAddress[k] !== null && String(payloadAddress[k]).trim() !== '');
+        const deliveryAddress = hasPayloadAddress
+            ? Object.fromEntries(DIRECCION_KEYS.map(k => [k, payloadAddress[k] ?? '']))
+            : (customer.direccion || {});
 
         const orderDoc = await OrderModel.create({
             customerInfo,
@@ -262,12 +267,17 @@ class OrdersService {
             const currentCustomerInfo = currentOrder.customerInfo || {};
             updatePayload.customerInfo = {
                 ...currentCustomerInfo,
-                ...updatePayload.customerInfo,
-                direccion: {
-                    ...(currentCustomerInfo.direccion || {}),
-                    ...(updatePayload.customerInfo.direccion || {})
-                }
+                ...updatePayload.customerInfo
             };
+        }
+
+        if (updatePayload.deliveryAddress) {
+            const DIRECCION_KEYS = ['calle', 'numero', 'piso', 'timbre', 'entreCalles', 'localidad', 'partido'];
+            const currentDelivery = currentOrder.deliveryAddress || {};
+            const incoming = updatePayload.deliveryAddress;
+            updatePayload.deliveryAddress = Object.fromEntries(
+                DIRECCION_KEYS.map(k => [k, incoming[k] !== undefined ? incoming[k] : (currentDelivery[k] ?? '')])
+            );
         }
 
         if (updatePayload.cartItems) {
@@ -293,7 +303,7 @@ class OrdersService {
             updatePayload.extraCharge = totals.extraCharge;
         }
 
-        const allowedFields = ['customerInfo', 'items', 'total', 'totalItems', 'status', 'extraCharge'];
+        const allowedFields = ['customerInfo', 'deliveryAddress', 'items', 'total', 'totalItems', 'status', 'extraCharge'];
         const updateSet = {};
         for (const field of allowedFields) {
             if (field in updatePayload) {
