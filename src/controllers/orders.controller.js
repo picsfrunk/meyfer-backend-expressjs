@@ -32,10 +32,10 @@ class OrdersController {
 
     static async getAllOrders(req, res) {
         try {
-            const { status, populate = 'true' } = req.query;
+            const { status, populate = 'true', customerCode } = req.query;
             const shouldPopulate = populate === 'true';
 
-            const orders = await OrdersService.getAllOrders(status, shouldPopulate);
+            const orders = await OrdersService.getAllOrders(status, shouldPopulate, customerCode || null);
             res.status(200).json(orders);
         } catch (err) {
             console.error('Error obteniendo pedidos:', err);

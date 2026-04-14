@@ -196,7 +196,7 @@ class OrdersService {
     /**
      * Obtiene todos los pedidos con productos poblados
      */
-    static async getAllOrders(status, populate = true) {
+    static async getAllOrders(status, populate = true, customerCode = null) {
         const filter = {};
         if (status) {
             if (status.includes(',')) {
@@ -204,6 +204,9 @@ class OrdersService {
             } else {
                 filter.status = status;
             }
+        }
+        if (customerCode) {
+            filter['customerInfo.customerCode'] = customerCode.trim().toUpperCase();
         }
 
         // ✨ .lean() convierte documentos Mongoose a objetos JavaScript planos
