@@ -24,7 +24,7 @@ const scraperJobSchema = new mongoose.Schema({
     // Estado actual del job
     status: {
         type: String,
-        enum: ['enqueued', 'running', 'completed', 'failed'],
+        enum: ['enqueued', 'running', 'completed', 'failed', 'canceled'],
         default: 'enqueued',
         index: true,
     },

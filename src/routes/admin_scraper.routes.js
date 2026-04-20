@@ -37,4 +37,7 @@ router.post('/trigger', scraperMonitorController.triggerScraper);
 // POST /admin/scraper/analyze
 router.post('/analyze', scraperMonitorController.triggerAnalysis);
 
+router.delete('/jobs/all', scraperMonitorController.cancelAllPendingJobs);
+router.delete('/jobs/:jobId', scraperMonitorController.cancelJobById);
+
 module.exports = router;
