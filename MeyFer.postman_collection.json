@@ -1,6 +1,6 @@
 {
   "info": {
-    "_postman_id": "fa3e0004-1f2e-44f1-a774-fc16e5ea024c",
+    "_postman_id": "9afea529-6ee9-4ba7-9209-a6d725db283b",
     "name": "MeyFer",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "46281585"
@@ -22,7 +22,7 @@
                     "header": [],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"customerInfo\": {\n    \"cliente\": \"Tubos Pepito\",\n    \"razonSocial\": \"ACME Corp.\",\n    \"cuit\": \"20-12345678-9\",\n    \"telefono1\": \"+1155551234\",\n    \"email\": \"picsfrunk@gmail.com\",\n    \"direccion\": {\n      \"calle\": \"Main Street\",\n      \"numero\": \"123\",\n      \"piso\": \"Floor 4\",\n      \"timbre\": \"Apto. 4B\",\n      \"entreCalles\": \"Pine & Oak\",\n      \"localidad\": \"Springfield\",\n      \"partido\": \"Simpsonsville\"\n    },\n    \"contacto\": \"Jane Smith\",\n    \"horarios\": \"9 AM - 5 PM\",\n    \"notas\": \"Please leave the package at the front door.\"\n  },\n  \"cartItems\": [\n    {\n      \"productCartItem\": {\n        \"_id\": \"6897e1621e07665743f851c7\",\n        \"product_id\": 1528,\n        \"base_unit_name\": \"Un\",\n        \"brand\": \"DUKE\",\n        \"category_id\": 8,\n        \"category_name\": \"Químicos\",\n        \"display_name\": \"ADHESIVO PARA PVC 50 cc \\\"DUKE\\\"\",\n        \"image_url\": \"https://rhcomercial.com.ar/web/image/product.product/1528/image_1024/%5B0938%5D%20ADHESIVO%20PARA%20PVC%2050%20cc%20%22DUKE%22?unique=7ed1c27\",\n        \"list_price\": 2241.3,\n        \"product_type\": \"consu\"\n      },\n      \"qty\": 3\n    },\n    {\n      \"productCartItem\": {\n        \"_id\": \"6897e1611e07665743f851c4\",\n        \"product_id\": 1527,\n        \"base_unit_name\": \"Un\",\n        \"brand\": \"DUKE\",\n        \"category_id\": 8,\n        \"category_name\": \"Químicos\",\n        \"display_name\": \"ADHESIVO PARA PVC 250 cc \\\"DUKE\\\"\",\n        \"image_url\": \"https://rhcomercial.com.ar/web/image/product.product/1527/image_1024/%5B0940%5D%20ADHESIVO%20PARA%20PVC%20250%20cc%20%22DUKE%22?unique=7ed1c27\",\n        \"list_price\": 7077.4,\n        \"product_type\": \"consu\"\n      },\n      \"qty\": 2\n    }\n  ],\n  \"total\": 20878.7,\n  \"totalItems\": 5\n}",
+                      "raw": "{\n  \"customerInfo\": { \"customerCode\": \"FE89ZN\" },\n  \"deliveryAddress\": { \"calle\": \"San Martín\", \"numero\": \"500\", \"localidad\": \"Quilmes\" },\n  \"cartItems\": [{ \"productCartItem\": { \"product_id\": \"2378\" }, \"qty\": 2, \"priceAtPurchase\": 1500 }],\n  \"extraCharge\": 500\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -151,7 +151,7 @@
                       }
                     },
                     "url": {
-                      "raw": "http://localhost:3000/api/orders/00009-JOH-20250831-0945",
+                      "raw": "http://localhost:3000/api/orders/00006-TAT-20260407-0657",
                       "protocol": "http",
                       "host": [
                         "localhost"
@@ -160,7 +160,7 @@
                       "path": [
                         "api",
                         "orders",
-                        "00009-JOH-20250831-0945"
+                        "00006-TAT-20260407-0657"
                       ]
                     }
                   },
@@ -867,6 +867,148 @@
                         "admin",
                         "scraper",
                         "analyze"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Customers",
+              "item": [
+                {
+                  "name": "Customers",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:3000/api/admin/customers",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "admin",
+                        "customers"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "One Customer",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:3000/api/admin/customers/69d995bc2170394b2bbe9d79",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "admin",
+                        "customers",
+                        "69d995bc2170394b2bbe9d79"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "New Customer",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"cliente\": \"Ferretería Gonzalez\",\n  \"cuit\": \"20-12345678-9\",\n  \"email\": \"alejannava@gmail.com\",\n  \"direccion\": { \"calle\": \"Av. Corrientes\", \"numero\": \"999\", \"localidad\": \"CABA\" }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/admin/customers/",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "admin",
+                        "customers",
+                        ""
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Regenerate Customer Code",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"cliente\": \"Ferretería Gonzalez\",\n  \"cuit\": \"20-12345678-9\",\n  \"email\": \"alejannava@gmail.com\",\n  \"direccion\": { \"calle\": \"Av. Corrientes\", \"numero\": \"999\", \"localidad\": \"CABA\" }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/admin/customers/69dc376bc0579b7456ef9848/regenerate-code",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "admin",
+                        "customers",
+                        "69dc376bc0579b7456ef9848",
+                        "regenerate-code"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Update One Customer",
+                  "request": {
+                    "method": "PUT",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n        \"cliente\": \"Ferretería Gonzalez\",\n        \"razonSocial\": \"\",\n        \"cuit\": \"20-12345678-9\",\n        \"contacto\": \"\",\n        \"email\": \"alejannava@gmail.com\",\n        \"telefono1\": \"\",\n        \"direccion\": {\n            \"calle\": \"Av. Corrientes\",\n            \"numero\": \"999\",\n            \"piso\": \"\",\n            \"timbre\": \"\",\n            \"entreCalles\": \"\",\n            \"localidad\": \"CABA\",\n            \"partido\": \"\"\n        },\n        \"horarios\": \"\",\n        \"notas\": \"Entregar y volar\"\n    }",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/admin/customers/69dc376bc0579b7456ef9848",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "admin",
+                        "customers",
+                        "69dc376bc0579b7456ef9848"
                       ]
                     }
                   },

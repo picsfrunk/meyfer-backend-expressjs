@@ -1,7 +1,7 @@
 const { generateOrderId } = require("../utils/generateOrderId");
 const OrderModel = require('../models/order.model');
 const ScrapedProduct = require('../models/products.model');
-const CustomersService = require('./customers.service');
+const Customer = require('../models/customer.model');
 const {
     sendOrderNotificationToAdmins,
     sendOrderConfirmationToCustomer
@@ -120,20 +120,54 @@ class OrdersService {
         const normalizedItems = this.transformCartItemsToOrderItems(orderData.cartItems);
         const totals = this.calculateOrderTotals(normalizedItems, orderData.extraCharge);
 
-        // Upsert del cliente y vinculación con el pedido
-        const customer = await CustomersService.upsertFromOrderInfo(orderData.customerInfo).catch(err => {
-            console.warn('[orders] No se pudo upsert customer:', err.message);
-            return null;
-        });
+        // Validar y buscar cliente por customerCode
+        const rawCustomerCode = orderData.customerInfo?.customerCode;
+        const customerCode = rawCustomerCode != null ? String(rawCustomerCode).trim().toUpperCase() : '';
+        if (!customerCode) {
+            const error = new Error('El código de cliente es requerido');
+            error.statusCode = 400;
+            error.code = 'MISSING_CUSTOMER_CODE';
+            throw error;
+        }
+
+        const customer = await Customer.findOne({ customerCode });
+        if (!customer) {
+            const error = new Error('Cliente no encontrado');
+            error.statusCode = 404;
+            error.code = 'CUSTOMER_NOT_FOUND';
+            throw error;
+        }
+
+        // Construir snapshot inmutable desde la DB (nunca desde el body)
+        const customerInfo = {
+            customerCode: customer.customerCode,
+            cliente:      customer.cliente,
+            razonSocial:  customer.razonSocial,
+            cuit:         customer.cuit,
+            contacto:     customer.contacto,
+            email:        customer.email,
+            telefono1:    customer.telefono1
+        };
+
+        // Resolver dirección de entrega: payload si tiene datos, sino la del cliente
+        const DIRECCION_KEYS = ['calle', 'numero', 'piso', 'timbre', 'entreCalles', 'localidad', 'partido'];
+        const payloadAddress = orderData.deliveryAddress;
+        const hasPayloadAddress = payloadAddress !== null &&
+            typeof payloadAddress === 'object' &&
+            DIRECCION_KEYS.some(k => payloadAddress[k] !== undefined && payloadAddress[k] !== null && String(payloadAddress[k]).trim() !== '');
+        const deliveryAddress = hasPayloadAddress
+            ? Object.fromEntries(DIRECCION_KEYS.map(k => [k, payloadAddress[k] ?? '']))
+            : (customer.direccion || {});
 
         const orderDoc = await OrderModel.create({
-            customerInfo: orderData.customerInfo,
-            customerId: customer?._id ?? null,
+            customerInfo,
+            customerId: customer._id,
+            deliveryAddress,
             items: normalizedItems,
             total: totals.total,
             totalItems: totals.totalItems,
             extraCharge: totals.extraCharge,
-            orderId: await generateOrderId(orderData.customerInfo?.cliente)
+            orderId: await generateOrderId(customer.cliente)
         });
 
         // Notificaciones asíncronas
@@ -162,7 +196,7 @@ class OrdersService {
     /**
      * Obtiene todos los pedidos con productos poblados
      */
-    static async getAllOrders(status, populate = true) {
+    static async getAllOrders(status, populate = true, customerCode = null) {
         const filter = {};
         if (status) {
             if (status.includes(',')) {
@@ -170,6 +204,9 @@ class OrdersService {
             } else {
                 filter.status = status;
             }
+        }
+        if (customerCode) {
+            filter['customerInfo.customerCode'] = customerCode.trim().toUpperCase();
         }
 
         // ✨ .lean() convierte documentos Mongoose a objetos JavaScript planos
@@ -233,12 +270,17 @@ class OrdersService {
             const currentCustomerInfo = currentOrder.customerInfo || {};
             updatePayload.customerInfo = {
                 ...currentCustomerInfo,
-                ...updatePayload.customerInfo,
-                direccion: {
-                    ...(currentCustomerInfo.direccion || {}),
-                    ...(updatePayload.customerInfo.direccion || {})
-                }
+                ...updatePayload.customerInfo
             };
+        }
+
+        if (updatePayload.deliveryAddress) {
+            const DIRECCION_KEYS = ['calle', 'numero', 'piso', 'timbre', 'entreCalles', 'localidad', 'partido'];
+            const currentDelivery = currentOrder.deliveryAddress || {};
+            const incoming = updatePayload.deliveryAddress;
+            updatePayload.deliveryAddress = Object.fromEntries(
+                DIRECCION_KEYS.map(k => [k, incoming[k] !== undefined ? incoming[k] : (currentDelivery[k] ?? '')])
+            );
         }
 
         if (updatePayload.cartItems) {
@@ -264,7 +306,7 @@ class OrdersService {
             updatePayload.extraCharge = totals.extraCharge;
         }
 
-        const allowedFields = ['customerInfo', 'items', 'total', 'totalItems', 'status', 'extraCharge'];
+        const allowedFields = ['customerInfo', 'deliveryAddress', 'items', 'total', 'totalItems', 'status', 'extraCharge'];
         const updateSet = {};
         for (const field of allowedFields) {
             if (field in updatePayload) {

@@ -35,7 +35,32 @@ Lista de categorías con conteo de productos.
 ## 📦 Pedidos (Orders)
 ### `POST /orders/new` (Pública)
 Registra un nuevo pedido y dispara notificaciones por email.
-- **Body:** `{ "customerInfo": {...}, "cartItems": [...] }`
+
+El cliente **debe existir** en la base de datos y se referencia únicamente por su `customerCode`. El snapshot de datos del cliente (nombre, CUIT, email, etc.) se construye siempre desde la DB, no desde el body. La dirección de entrega es opcional: si se envía con al menos un campo no vacío se usa; de lo contrario se usa la dirección registrada del cliente.
+
+> **Nota:** el `customerCode` se normaliza automáticamente a mayúsculas en el backend. Se recomienda enviarlo en mayúsculas para mayor claridad (ej. `"FE78X3"` en lugar de `"fe78x3"`).
+
+- **Body:**
+```json
+{
+  "customerInfo": {
+    "customerCode": "FE78X3"
+  },
+  "deliveryAddress": {
+    "calle": "Av. Corrientes",
+    "numero": "1234",
+    "localidad": "CABA"
+  },
+  "cartItems": [
+    {
+      "productCartItem": { "product_id": "1528" },
+      "qty": 2,
+      "priceAtPurchase": 1500
+    }
+  ],
+  "extraCharge": 500
+}
+```
 - **Response 201:**
 ```json
 {
@@ -44,18 +69,53 @@ Registra un nuevo pedido y dispara notificaciones por email.
   "message": "Pedido recibido correctamente"
 }
 ```
+- **Response 400 — customerCode ausente:**
+```json
+{
+  "status": "error",
+  "code": "MISSING_CUSTOMER_CODE",
+  "message": "El código de cliente es requerido"
+}
+```
+- **Response 400 — cartItems inválido (varios casos posibles):**
+```json
+{ "status": "error", "message": "cartItems debe ser un array" }
+```
+```json
+{ "status": "error", "message": "El pedido debe tener al menos un producto" }
+```
+```json
+{ "status": "error", "message": "Cada item debe incluir product_id" }
+```
+```json
+{ "status": "error", "message": "La cantidad de cada item debe ser un entero mayor o igual a 1" }
+```
+```json
+{ "status": "error", "message": "El precio por item debe ser un número mayor o igual a 0" }
+```
+```json
+{ "status": "error", "message": "El recargo extra debe ser un número mayor o igual a 0" }
+```
+- **Response 404 — cliente no encontrado:**
+```json
+{
+  "status": "error",
+  "code": "CUSTOMER_NOT_FOUND",
+  "message": "Cliente no encontrado"
+}
+```
 
 ### `GET /orders` (Admin)
 Lista de pedidos con filtros.
-- **Query Params:** `status` (uno o varios separados por coma, ej. `Pendiente,Procesado`), `populate` (true/false).
+- **Query Params:** `status` (uno o varios separados por coma, ej. `pending,confirmed`), `populate` (true/false).
 
 ### `GET /orders/statuses` (Admin)
 Devuelve los estados de pedido válidos definidos en el modelo.
 - **Response 200:**
 ```json
 {
-  "statuses": ["Pendiente", "Procesado", "Enviado", "Entregado", "Cancelado", "Eliminado"],
-  "defaultStatus": "Pendiente"
+  "statuses": ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled", "deleted"],
+  "defaultStatus": "pending"
 }
 ```
 
@@ -63,8 +123,10 @@ Devuelve los estados de pedido válidos definidos en el modelo.
 Detalle de un pedido por ID.
 
 ### `PUT /orders/:id` (Admin)
-Actualización de pedido (permite editar `customerInfo`, dirección de entrega, ítems y precios).
-- Si se envía `customerInfo` o `customerInfo.direccion`, se mergea con los datos actuales.
+Actualización de pedido (permite editar `customerInfo`, `deliveryAddress`, ítems y precios).
+- Campos actualizables: `customerInfo`, `deliveryAddress`, `cartItems`/`items`, `extraCharge`, `status`.
+- Si se envía `customerInfo`, se mergea con los datos actuales (solo se sobreescriben los campos enviados). **Nota:** `customerInfo` NO tiene campo `direccion`; la dirección de entrega se gestiona con `deliveryAddress` en el nivel raíz del pedido.
+- Si se envía `deliveryAddress`, se mergea campo a campo con la dirección actual.
 - Si se envía `cartItems`/`items` y/o `extraCharge`, el backend recalcula `total` y `totalItems`.
 
 ### `PATCH /orders/:id/pricing` (Admin)
@@ -87,14 +149,14 @@ Actualiza precios/cantidades de un pedido y recargo extra (ej. flete) recalculan
 Cambiar el estado de un pedido. Solo acepta valores del enum del modelo.
 - **Body:**
 ```json
-{ "status": "Enviado" }
+{ "status": "shipped" }
 ```
 - **Response 200:**
 ```json
 {
   "status": "success",
   "message": "Estado del pedido actualizado",
-  "order": { "orderId": "MF-001", "status": "Enviado", "..." }
+  "order": { "orderId": "MF-001", "status": "shipped", "..." }
 }
 ```
 - **Response 400 — estado ausente:**
@@ -105,7 +167,7 @@ Cambiar el estado de un pedido. Solo acepta valores del enum del modelo.
 ```json
 {
   "message": "Estado de pedido no válido",
-  "allowedStatuses": ["Pendiente", "Procesado", "Enviado", "Entregado", "Cancelado", "Eliminado"]
+  "allowedStatuses": ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled", "deleted"]
 }
 ```
 - **Response 404:**
@@ -114,7 +176,7 @@ Cambiar el estado de un pedido. Solo acepta valores del enum del modelo.
 ```
 
 ### `DELETE /orders/:id` (Admin)
-Soft delete (cambia estado a `deleted`).
+Soft delete (cambia estado a `"deleted"`).
 
 ### `POST /orders/:orderId/resend-emails` (Admin)
 Reenvío manual de correos de confirmación.
@@ -188,7 +250,7 @@ Lista todos los clientes ordenados por fecha de creación descendente.
 Detalle de un cliente por su `_id` de MongoDB.
 
 ### `POST /admin/customers`
-Crea un cliente manualmente.
+Crea un cliente manualmente. El campo `customerCode` se genera automáticamente (no se acepta en el body).
 - **Body:**
 ```json
 {
@@ -211,7 +273,7 @@ Crea un cliente manualmente.
   "notas": "Llamar antes de entregar"
 }
 ```
-- **Response 201:** `{ "status": "success", "customer": {...} }`
+- **Response 201:** `{ "status": "success", "customer": { "customerCode": "FE78X3", ... } }`
 - **Response 409:** `{ "status": "error", "message": "Ya existe un cliente con ese CUIT o email" }`
 
 ### `PUT /admin/customers/:id`
@@ -219,14 +281,21 @@ Actualiza los datos de un cliente existente.
 - **Body:** mismos campos que POST (parcial o completo).
 - **Response 200:** `{ "status": "success", "customer": {...} }`
 
+### `POST /admin/customers/:id/regenerate-code` (Admin)
+Regenera el `customerCode` de un cliente existente (útil si el código generado automáticamente no es conveniente).
+- **Body:** vacío
+- **Response 200:** `{ "status": "success", "customerCode": "AB12CD" }`
+- **Response 404:** `{ "status": "error", "message": "Cliente no encontrado" }`
+
 ### `DELETE /admin/customers/:id`
 Elimina definitivamente un cliente.
 - **Response 200:** `{ "status": "success", "message": "Cliente eliminado" }`
 
-> **Vinculación automática con pedidos:** al recibir un pedido (`POST /orders/new`), el backend
-> hace un *upsert* del cliente (por CUIT → email → nuevo registro) y guarda el `customerId`
-> resultante en el documento del pedido. El campo `customerInfo` se conserva como snapshot
-> denormalizado para compatibilidad con el historial existente.
+> **Vinculación con pedidos:** al recibir un pedido (`POST /orders/new`), el backend busca al cliente
+> por su `customerCode`. Si no existe o no se proporciona el código, el pedido es rechazado (400/404).
+> El campo `customerInfo` del pedido se guarda como snapshot tipado (`CustomerSnapshotSchema`) con los
+> datos actuales de la DB (nunca del body). El campo `deliveryAddress` almacena la dirección de entrega
+> efectiva (del payload si viene, sino la del cliente).
 
 ---
 
