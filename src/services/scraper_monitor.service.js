@@ -241,6 +241,37 @@ async function getDashboardStats() {
     };
 }
 
+const cancelJobById = async (jobId) => {
+    try {
+        const response = await axios.delete(
+            `${process.env.SCRAPER_URL}/jobs/${jobId}`
+        );
+
+        return {
+            ...response.data,
+            httpStatus: response.status
+        };
+    } catch (error) {
+        if (error.response) {
+            return {
+                ...error.response.data,
+                httpStatus: error.response.status
+            };
+        }
+
+        throw error;
+    }
+};
+
+// NUEVO
+const cancelAllPendingJobs = async () => {
+    const response = await axios.delete(
+        `${process.env.SCRAPER_URL}/jobs/all`
+    );
+
+    return response.data;
+};
+
 module.exports = {
     // Webhook handlers
     handleJobEnqueued,
@@ -251,4 +282,7 @@ module.exports = {
     getJobHistory,
     getJobById,
     getDashboardStats,
+    // Jobs Manager
+    cancelJobById,
+    cancelAllPendingJobs
 };

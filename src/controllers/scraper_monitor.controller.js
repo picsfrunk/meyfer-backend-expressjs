@@ -108,3 +108,25 @@ exports.triggerAnalysis = async (req, res) => {
         });
     }
 };
+
+exports.cancelJobById = async (req, res, next) => {
+    try {
+        const { jobId } = req.params;
+
+        const result = await ScraperMonitor.cancelJobById(jobId);
+
+        return res.status(result.httpStatus || 200).json(result);
+    } catch (error) {
+        next(error);
+    }
+};
+
+exports.cancelAllPendingJobs = async (req, res, next) => {
+    try {
+        const result = await ScraperMonitor.cancelAllPendingJobs();
+
+        return res.status(200).json(result);
+    } catch (error) {
+        next(error);
+    }
+};
