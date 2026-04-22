@@ -211,6 +211,66 @@ Estado en tiempo real de la cola de procesamiento.
 ### `GET /admin/scraper/stats`
 Métricas de rendimiento (Jobs completados, fallidos, duración media).
 
+### `DELETE /admin/scraper/jobs/:jobId`
+Cancela un job específico por su ID.
+
+- Si el job está **en espera**: se elimina de la cola inmediatamente.
+- Si el job está **en ejecución**: se marca para cancelación graceful.
+- Si el job ya **terminó**: retorna `400`.
+- Si el ID **no existe**: retorna `404`.
+
+#### Response 200 — job en cola
+```json
+{
+  "status": "cancelled",
+  "jobId": "priceCheck-1718000000000-4",
+  "message": "Job eliminado de la cola",
+  "cancelled": true,
+  "wasQueued": true
+}
+```
+#### Response 200 — job en ejecución
+```json
+{
+  "status": "cancelling",
+  "jobId": "priceCheck-1718000000000-4",
+  "message": "Job marcado para cancelación. Se detendrá lo antes posible.",
+  "cancelled": true,
+  "wasQueued": false
+}
+```
+#### Response 400 — job ya terminó
+```json
+{
+  "status": "error",
+  "message": "No se puede cancelar un job que ya terminó",
+  "cancelled": false
+}
+```
+#### Response 404 — job no encontrado
+```json
+{
+  "status": "error",
+  "message": "Job no encontrado",
+  "cancelled": false
+}
+```
+
+### `DELETE /admin/scraper/jobs/all`
+
+Elimina todos los jobs pendientes de la cola.
+
+Solo afecta jobs en estado enqueued
+No interrumpe el job en ejecución
+#### Response 200
+```json
+{
+  "status": "purged",
+  "message": "3 job(s) pendiente(s) eliminado(s) de la cola.",
+  "cancelledCount": 0
+}
+```
+
 ### `GET /admin/scraper/history`
 Historial paginado de ejecuciones.
 
