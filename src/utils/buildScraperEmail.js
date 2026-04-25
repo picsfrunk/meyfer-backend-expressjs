@@ -22,6 +22,7 @@ function buildScraperEmail(payload = {}) {
         stats = {},
         timestamp,
         queueInfo = null,
+        error     = null,
     } = payload;
 
     const {
@@ -141,6 +142,70 @@ function buildScraperEmail(payload = {}) {
         ? `<span style="background:#fdebd0;color:#d35400;padding:2px 10px;border-radius:12px;font-weight:700;">${orphansDeleted} eliminados</span>`
         : `<span style="color:#95a5a6;">0</span>`;
 
+    // ── Cuerpo de la tabla según estado ─────────────────────────────────────
+    const isTerminal = ['success', 'error', 'canceled'].includes(status);
+    const isRunning  = status === 'running';
+    const isEnqueued = status === 'enqueued';
+    const isError    = status === 'error';
+    const isCanceled = status === 'canceled';
+
+    // Sección de error destacada (solo para status === 'error')
+    const errorSection = (isError && payload.error) ? `
+        <div style="margin-bottom:20px;padding:14px 18px;background:#fdedec;border:1px solid #f1948a;border-radius:6px;">
+            <div style="font-size:12px;font-weight:700;color:#a93226;letter-spacing:0.5px;margin-bottom:6px;">❌ MOTIVO DEL ERROR</div>
+            <div style="font-size:13px;color:#922b21;font-family:monospace;word-break:break-word;">${error}</div>
+        </div>
+    ` : '';
+
+    // Sección de cancelación (solo para status === 'canceled')
+    const canceledSection = isCanceled ? `
+        <div style="margin-bottom:20px;padding:14px 18px;background:#f2f3f4;border:1px solid #d5dbdb;border-radius:6px;">
+            <div style="font-size:13px;color:#566573;">🚫 El job fue cancelado antes de completarse.</div>
+        </div>
+    ` : '';
+
+    // Filas de stats: varían según el estado del job
+    const jobIdRow = jobId
+        ? row('Job ID', '<code style="font-family:monospace;font-size:12px;background:#f4f6f7;padding:2px 6px;border-radius:4px;color:#555;">' + jobId + '</code>', { bg: '#f8f9fa' })
+        : '';
+
+    let statsRows = '';
+    if (status === 'success') {
+        statsRows = [
+            jobIdRow,
+            row('Productos procesados', processed.toLocaleString('es-AR'), { bold: true }),
+            row('Precios actualizados', updatedPrices.toLocaleString('es-AR'), { bg: '#f8f9fa', valueColor: '#1a5276', bold: true }),
+            row('Productos eliminados (huérfanos)', orphansValue),
+            row('Duración total', formatMs(durationMs), { bg: '#f8f9fa' }),
+            row('Errores detectados', errorsValue),
+            row('Finalizado el', formatDate(timestamp)),
+            queueSection,
+        ].join('');
+    } else if (status === 'error') {
+        statsRows = [
+            jobIdRow,
+            durationMs ? row('Duración hasta el error', formatMs(durationMs), { bg: '#f8f9fa' }) : '',
+            row('Momento del fallo', formatDate(timestamp)),
+        ].join('');
+    } else if (status === 'running') {
+        statsRows = [
+            jobIdRow,
+            row('Inicio', formatDate(timestamp)),
+        ].join('');
+    } else if (status === 'enqueued') {
+        statsRows = [
+            jobIdRow,
+            row('Encolado el', formatDate(timestamp)),
+            queueSection,
+        ].join('');
+    } else if (status === 'canceled') {
+        statsRows = [
+            jobIdRow,
+            durationMs ? row('Tiempo ejecutado antes de cancelar', formatMs(durationMs), { bg: '#f8f9fa' }) : '',
+            row('Cancelado el', formatDate(timestamp)),
+        ].join('');
+    }
+
     // ── HTML final ───────────────────────────────────────────────────────
     const html = `
 <!DOCTYPE html>
@@ -176,24 +241,20 @@ function buildScraperEmail(payload = {}) {
     <tr>
       <td style="padding:24px 28px;">
 
+        ${errorSection}
+        ${canceledSection}
+
         <!-- Stats table -->
         <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:20px;">
           <thead>
             <tr style="background:#f8f9fa;">
               <td colspan="2" style="padding:10px 14px;border:1px solid #e5e8e8;font-size:11px;font-weight:700;color:#95a5a6;letter-spacing:0.8px;">
-                📊 ESTADÍSTICAS DEL RUN
+                📊 INFORMACIÓN DEL JOB
               </td>
             </tr>
           </thead>
           <tbody>
-            ${jobId ? row('Job ID', `<code style="font-family:monospace;font-size:12px;background:#f4f6f7;padding:2px 6px;border-radius:4px;color:#555;">${jobId}</code>`, { bg: '#f8f9fa' }) : ''}
-            ${row('Productos procesados', processed.toLocaleString('es-AR'), { bold: true })}
-            ${row('Precios actualizados', updatedPrices.toLocaleString('es-AR'), { bg: '#f8f9fa', valueColor: '#1a5276', bold: true })}
-            ${row('Productos eliminados (huérfanos)', orphansValue)}
-            ${row('Duración total', formatMs(durationMs), { bg: '#f8f9fa' })}
-            ${row('Errores detectados', errorsValue)}
-            ${row('Finalizado el', formatDate(timestamp), { bg: '#f8f9fa' })}
-            ${queueSection}
+            ${statsRows}
           </tbody>
         </table>
 
