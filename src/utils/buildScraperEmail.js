@@ -6,7 +6,7 @@
  *
  * @param {object} payload
  * @param {string}  payload.source        - Tipo de scraper (sitemapScraper, categoryScraper, etc.)
- * @param {string}  payload.status        - 'success' | 'error' | 'enqueued' | 'running'
+ * @param {string}  payload.status        - 'success' | 'error' | 'enqueued' | 'running' | 'canceled'
  * @param {number}  payload.processed     - Cantidad de productos procesados
  * @param {object}  payload.stats         - Estadísticas del run
  * @param {string}  payload.timestamp     - ISO timestamp de finalización
@@ -68,6 +68,15 @@ function buildScraperEmail(payload = {}) {
             badgeBg:     '#d6eaf8',
             badgeColor:  '#1a5276',
             badgeBorder: '#85c1e9',
+        },
+        canceled: {
+            emoji:       '🚫',
+            label:       'Cancelado',
+            headerColor: '#566573',
+            headerBg:    '#f2f3f4',
+            badgeBg:     '#ebedef',
+            badgeColor:  '#566573',
+            badgeBorder: '#d5dbdb',
         },
     };
 
