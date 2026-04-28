@@ -103,7 +103,9 @@ function buildScraperEmail(payload = {}) {
         sitemapScraper:  'Scraper por Sitemap',
         categoryScraper: 'Scraper por Categoría',
         sitemapAnalysis: 'Análisis de Sitemap',
-    }[source] ?? source ?? 'Scraper';
+        priceCheck:      'Verificación de Precios',
+        scraperQueue:    'Cola de Scraper',   // fallback si llega source legado
+    }[source] ?? (source ? source : 'Scraper');
 
     // ── Fila de tabla helper ─────────────────────────────────────────────
     const row = (label, value, opts = {}) => {
@@ -123,13 +125,13 @@ function buildScraperEmail(payload = {}) {
             </td>
         </tr>
         ${row(
-            'Jobs pendientes tras finalizar',
-            `<span style="background:${queueInfo.pendingAfter > 0 ? '#fdebd0' : '#eafaf1'};
+        'Jobs pendientes tras finalizar',
+        `<span style="background:${queueInfo.pendingAfter > 0 ? '#fdebd0' : '#eafaf1'};
                 color:${queueInfo.pendingAfter > 0 ? '#d35400' : '#1a7f4b'};
                 padding:2px 10px;border-radius:12px;font-weight:700;">
                 ${queueInfo.pendingAfter > 0 ? `${queueInfo.pendingAfter} en espera` : 'Cola vacía'}
             </span>`,
-        )}
+    )}
         ${queueInfo.waitTimeMs != null ? row('Tiempo esperando en cola', formatMs(queueInfo.waitTimeMs), { bg: '#f8f9fa' }) : ''}
     ` : '';
 
