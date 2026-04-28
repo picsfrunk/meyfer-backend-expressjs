@@ -81,6 +81,44 @@ async function handleJobStarted({ job, queueSnapshot }) {
 }
 
 /**
+ * Job cancelado (desde la API o por señal graceful).
+ */
+async function handleJobCanceled({ job, queueSnapshot }) {
+    updateLiveSnapshot(queueSnapshot);
+
+    const now = new Date();
+
+    const existing = await ScraperJob.findOne({ jobId: job.id });
+    const startedAt  = existing?.startedAt  ?? null;
+    const enqueuedAt = existing?.enqueuedAt ?? now;
+
+    const durationMs = startedAt ? (now - startedAt) : null;
+    const waitTimeMs = startedAt ? (startedAt - enqueuedAt) : null;
+
+    await ScraperJob.findOneAndUpdate(
+        { jobId: job.id },
+        {
+            $set: {
+                status: 'canceled',
+                finishedAt: now,
+                ...(durationMs != null && { durationMs }),
+                ...(waitTimeMs != null && { waitTimeMs }),
+                lastQueueSnapshot: queueSnapshot,
+            },
+            $setOnInsert: {
+                jobId: job.id,
+                type: job.type,
+                enqueuedAt: now,
+                queuePosition: 0,
+                pendingAtEnqueue: 0,
+                params: job.params ?? null,
+            }
+        },
+        { upsert: true, new: true }
+    );
+}
+
+/**
  * Job completado o fallido.
  */
 async function handleJobFinished({ job, status, result, queueSnapshot }) {
@@ -277,6 +315,7 @@ module.exports = {
     handleJobEnqueued,
     handleJobStarted,
     handleJobFinished,
+    handleJobCanceled,
     // Queries
     getLiveStatus,
     getJobHistory,

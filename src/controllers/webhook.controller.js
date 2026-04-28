@@ -107,8 +107,31 @@ async function _handleScraperEvent(body) {
                     jobId:  job?.id,
                     source: job?.type || source || 'scraper',
                     status: 'error',
+                    processed: result?.processed || 0,
+                    stats: {
+                        totalErrors: result?.errors || 1,
+                        durationMs:  result?.durationMs || 0,
+                    },
+                    error:     result?.error ?? null,
+                    timestamp: new Date().toISOString(),
+                });
+            }
+            break;
+
+        case 'canceled':
+            await ScraperMonitor.handleJobCanceled({ job, queueSnapshot });
+
+            if (job?.type === 'priceCheck') {
+                await notifyPriceCheck({
+                    status: 'canceled',
+                });
+            } else {
+                await notifyScraper({
+                    jobId:  job?.id,
+                    source: job?.type || 'scraper',
+                    status: 'canceled',
                     processed: 0,
-                    stats: { totalErrors: 1, durationMs: result?.durationMs || 0 },
+                    stats:  {},
                     timestamp: new Date().toISOString(),
                 });
             }

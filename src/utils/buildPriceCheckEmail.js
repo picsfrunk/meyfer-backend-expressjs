@@ -6,7 +6,7 @@
  * @param {object} payload
  * @param {object}  payload.summary   - { changed, new, removed, total_odoo, total_db, failed, checkedAt, durationMs }
  * @param {Array}   payload.changed   - [{ product_id, display_name, old_price, new_price, diff, diff_percent }]
- * @param {string}  payload.status    - 'success' | 'error'
+ * @param {string}  payload.status    - 'success' | 'error' | 'canceled'
  * @param {string}  [payload.error]   - mensaje de error si falló
  * @returns {{ subject: string, html: string }}
  */
@@ -29,9 +29,9 @@ function buildPriceCheckEmail({ summary = {}, changed = [], status = 'success', 
         n != null ? `$${Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—';
 
     // ── Colores ──────────────────────────────────────────────────────────────
-    const headerColor = isSuccess ? '#1a5276' : '#a93226';
-    const headerBg    = isSuccess ? '#eaf4fb' : '#fdedec';
-    const headerBorder= isSuccess ? '#85c1e9' : '#f1948a';
+    const headerColor = isSuccess ? '#1a5276' : (status === 'canceled' ? '#566573' : '#a93226');
+    const headerBg    = isSuccess ? '#eaf4fb' : (status === 'canceled' ? '#f2f3f4' : '#fdedec');
+    const headerBorder= isSuccess ? '#85c1e9' : (status === 'canceled' ? '#d5dbdb' : '#f1948a');
 
     // ── Tabla de resumen ─────────────────────────────────────────────────────
     const row = (label, value, bg = 'transparent') => `
@@ -64,9 +64,11 @@ function buildPriceCheckEmail({ summary = {}, changed = [], status = 'success', 
         ${summary.failed > 0 ? row('Sin respuesta de Odoo', badge(summary.failed, '#7d6608', '#fef9e7'), '#f8f9fa') : ''}
         ${row('Duración', formatMs(summary.durationMs), summary.failed > 0 ? 'transparent' : '#f8f9fa')}
         ${row('Ejecutado el', formatDate(summary.checkedAt))}
+    ` : (status === 'canceled' ? `
+        ${row('Estado', `<span style="color:#566573;">Cancelado</span>`)}
     ` : `
         ${row('Error', `<span style="color:#a93226;">${error ?? 'Error desconocido'}</span>`)}
-    `;
+    `);
 
     // ── Tabla de productos con precios cambiados ──────────────────────────────
     const changedTable = (isSuccess && changed.length > 0) ? `
@@ -119,10 +121,10 @@ function buildPriceCheckEmail({ summary = {}, changed = [], status = 'success', 
     ` : '');
 
     // ── Asunto ───────────────────────────────────────────────────────────────
-    const emoji   = isSuccess ? (summary.changed > 0 ? '💰' : '✅') : '❌';
+    const emoji   = isSuccess ? (summary.changed > 0 ? '💰' : '✅') : (status === 'canceled' ? '🚫' : '❌');
     const subject = isSuccess
         ? `${emoji} Verificación de precios — ${summary.changed} cambio${summary.changed !== 1 ? 's' : ''} detectado${summary.changed !== 1 ? 's' : ''}`
-        : `❌ Verificación de precios — Error`;
+        : (status === 'canceled' ? `🚫 Verificación de precios — Cancelado` : `❌ Verificación de precios — Error`);
 
     const html = `
 <!DOCTYPE html>
@@ -147,10 +149,10 @@ function buildPriceCheckEmail({ summary = {}, changed = [], status = 'success', 
             </div>
           </td>
           <td align="right" valign="top">
-            <span style="display:inline-block;background:${isSuccess ? '#d6eaf8' : '#fadbd8'};
+            <span style="display:inline-block;background:${isSuccess ? '#d6eaf8' : (status === 'canceled' ? '#ebedef' : '#fadbd8')};
                          color:${headerColor};border:1px solid ${headerBorder};
                          padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;">
-              ${isSuccess ? 'COMPLETADO' : 'ERROR'}
+              ${isSuccess ? 'COMPLETADO' : (status === 'canceled' ? 'CANCELADO' : 'ERROR')}
             </span>
           </td>
         </tr></table>
