@@ -175,6 +175,42 @@ Cambiar el estado de un pedido. Solo acepta valores del enum del modelo.
 { "message": "Pedido no encontrado" }
 ```
 
+### `PATCH /orders/:id/delivery` (Admin)
+Cambiar los datos de entrega de un pedido.
+- **Body:**
+```json
+{
+  "delivery": {
+    "address": {
+      "calle": "Av. Siempre Viva",
+      "numero": "742",
+      "piso": "",
+      "timbre": "",
+      "entreCalles": "Primera y Segunda",
+      "localidad": "Springfield",
+      "partido": "Springfield"
+    },
+    "contactName": "Homero Simpson",
+    "contactPhone": "",
+    "schedule": "Lunes a viernes de 9 a 13"
+  }
+}
+```
+- **Response 200:**
+```json
+{
+  "status": "success",
+  "message": "Delivery actualizado",
+  "order": {
+    
+  }
+}
+```
+- **Response 404:**
+```json
+{ "message": "Pedido no encontrado" }
+```
+
 ### `DELETE /orders/:id` (Admin)
 Soft delete (cambia estado a `"deleted"`).
 

@@ -23,9 +23,28 @@ const CustomerSnapshotSchema = new mongoose.Schema({
     cliente:      { type: String, default: '' },
     razonSocial:  { type: String, default: '' },
     cuit:         { type: String, default: '' },
-    contacto:     { type: String, default: '' },
+    contacto:     { type: String, default: '' },   // 👈 ahora es SOLO del cliente (no delivery)
     email:        { type: String, default: '' },
-    telefono1:    { type: String, default: '' }
+    telefono1:    { type: String, default: '' }    // 👈 idem
+}, { _id: false });
+
+const DeliverySchema = new mongoose.Schema({
+    address: {
+        type: DireccionSchema,
+        required: true
+    },
+    contactName: {
+        type: String,
+        default: ''
+    },
+    contactPhone: {
+        type: String,
+        default: ''
+    },
+    schedule: {
+        type: String,
+        default: ''
+    }
 }, { _id: false });
 
 const OrderSchema = new mongoose.Schema({
@@ -44,10 +63,12 @@ const OrderSchema = new mongoose.Schema({
         type: CustomerSnapshotSchema,
         required: true
     },
-    deliveryAddress: {
-        type: DireccionSchema,
-        default: () => ({})
+
+    delivery: {
+        type: DeliverySchema,
+        required: true
     },
+
     items: {
         type: [OrderItemSchema],
         required: true,
@@ -84,4 +105,3 @@ const OrderSchema = new mongoose.Schema({
 OrderSchema.index({ status: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Order', OrderSchema);
-

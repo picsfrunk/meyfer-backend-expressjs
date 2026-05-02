@@ -11,17 +11,20 @@ router.get('/', OrdersController.getAllOrders);
 // Obtener estados posibles de pedidos
 router.get('/statuses', OrdersController.getOrderStatuses);
 
-// Obtener pedido por ID
-router.get('/:id', OrdersController.getOrderById);
-
-// Actualizar pedido completo
-router.put('/:id', OrdersController.updateOrder);
+// Actualizar solo delivery
+router.patch('/:id/delivery', OrdersController.updateOrderDelivery);
 
 // Actualizar solo el estado
 router.patch('/:id/status', OrdersController.updateOrderStatus);
 
 // Actualizar precios/cantidades y recargo del pedido
 router.patch('/:id/pricing', OrdersController.updateOrderPricing);
+
+// Obtener pedido por ID
+router.get('/:id', OrdersController.getOrderById);
+
+// Actualizar pedido completo
+router.put('/:id', OrdersController.updateOrder);
 
 // Eliminar pedido (soft delete)
 router.delete('/:id', OrdersController.deleteOrder);
