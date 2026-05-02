@@ -4,6 +4,14 @@ class OrdersController {
     static async createOrder(req, res) {
         try {
             const orderData = req.body;
+
+            if (!orderData.delivery) {
+                return res.status(400).json({
+                    status: 'error',
+                    message: 'El campo delivery es requerido'
+                });
+            }
+
             const result = await OrdersService.handleNewOrder(orderData);
 
             res.status(201).json({
@@ -13,16 +21,19 @@ class OrdersController {
             });
         } catch (err) {
             console.error('Error creando pedido:', err);
+
             if (err.statusCode === 404) {
                 const response = { status: 'error', message: err.message };
                 if (err.code) response.code = err.code;
                 return res.status(404).json(response);
             }
+
             if (err.statusCode === 400) {
                 const response = { status: 'error', message: err.message };
                 if (err.code) response.code = err.code;
                 return res.status(400).json(response);
             }
+
             res.status(500).json({
                 status: 'error',
                 message: err.message
@@ -75,6 +86,14 @@ class OrdersController {
             const { id } = req.params;
             const updatedData = req.body;
 
+            // ✅ OPCIONAL PERO RECOMENDADO
+            if (updatedData.delivery && !updatedData.delivery.address) {
+                return res.status(400).json({
+                    status: 'error',
+                    message: 'delivery.address es requerido'
+                });
+            }
+
             const updatedOrder = await OrdersService.updateOrder(id, updatedData);
 
             if (!updatedOrder) {
@@ -97,10 +116,45 @@ class OrdersController {
         }
     }
 
+    static async updateOrderDelivery(req, res) {
+        try {
+            const { id } = req.params;
+            const { delivery } = req.body;
+
+            if (!delivery) {
+                return res.status(400).json({
+                    status: 'error',
+                    message: 'Delivery es requerido'
+                });
+            }
+
+            const updatedOrder = await OrdersService.updateOrderDelivery(id, delivery);
+
+            if (!updatedOrder) {
+                return res.status(404).json({
+                    message: 'Pedido no encontrado'
+                });
+            }
+
+            res.status(200).json({
+                status: 'success',
+                message: 'Delivery actualizado',
+                order: updatedOrder
+            });
+        } catch (err) {
+            console.error('Error actualizando delivery:', err);
+            res.status(500).json({
+                status: 'error',
+                message: err.message
+            });
+        }
+    }
+
     static async updateOrderPricing(req, res) {
         try {
             const { id } = req.params;
             const pricingData = req.body;
+
             const updatedOrder = await OrdersService.updateOrderPricing(id, pricingData);
 
             if (!updatedOrder) {

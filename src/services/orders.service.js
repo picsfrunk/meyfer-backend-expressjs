@@ -149,20 +149,37 @@ class OrdersService {
             telefono1:    customer.telefono1
         };
 
+
         // Resolver dirección de entrega: payload si tiene datos, sino la del cliente
         const DIRECCION_KEYS = ['calle', 'numero', 'piso', 'timbre', 'entreCalles', 'localidad', 'partido'];
-        const payloadAddress = orderData.deliveryAddress;
-        const hasPayloadAddress = payloadAddress !== null &&
+
+        const payloadDelivery = orderData.delivery || {};
+        const payloadAddress = payloadDelivery.address;
+
+        const hasPayloadAddress = payloadAddress &&
             typeof payloadAddress === 'object' &&
-            DIRECCION_KEYS.some(k => payloadAddress[k] !== undefined && payloadAddress[k] !== null && String(payloadAddress[k]).trim() !== '');
-        const deliveryAddress = hasPayloadAddress
+            DIRECCION_KEYS.some(k =>
+                payloadAddress[k] !== undefined &&
+                payloadAddress[k] !== null &&
+                String(payloadAddress[k]).trim() !== ''
+            );
+
+// fallback a dirección del cliente si no viene address
+        const address = hasPayloadAddress
             ? Object.fromEntries(DIRECCION_KEYS.map(k => [k, payloadAddress[k] ?? '']))
             : (customer.direccion || {});
 
+// 👇 NUEVO OBJETO DELIVERY
+        const delivery = {
+            address,
+            contactName: payloadDelivery.contactName || customer.contacto || '',
+            contactPhone: payloadDelivery.contactPhone || customer.telefono1 || '',
+            schedule: payloadDelivery.schedule || ''
+        };
         const orderDoc = await OrderModel.create({
             customerInfo,
             customerId: customer._id,
-            deliveryAddress,
+            delivery,
             items: normalizedItems,
             total: totals.total,
             totalItems: totals.totalItems,
@@ -274,13 +291,27 @@ class OrdersService {
             };
         }
 
-        if (updatePayload.deliveryAddress) {
+        if (updatePayload.delivery) {
             const DIRECCION_KEYS = ['calle', 'numero', 'piso', 'timbre', 'entreCalles', 'localidad', 'partido'];
-            const currentDelivery = currentOrder.deliveryAddress || {};
-            const incoming = updatePayload.deliveryAddress;
-            updatePayload.deliveryAddress = Object.fromEntries(
-                DIRECCION_KEYS.map(k => [k, incoming[k] !== undefined ? incoming[k] : (currentDelivery[k] ?? '')])
+
+            const currentDelivery = currentOrder.delivery || {};
+            const incoming = updatePayload.delivery;
+
+            const mergedAddress = Object.fromEntries(
+                DIRECCION_KEYS.map(k => [
+                    k,
+                    incoming.address?.[k] !== undefined
+                        ? incoming.address[k]
+                        : (currentDelivery.address?.[k] ?? '')
+                ])
             );
+
+            updatePayload.delivery = {
+                address: mergedAddress,
+                contactName: incoming.contactName ?? currentDelivery.contactName ?? '',
+                contactPhone: incoming.contactPhone ?? currentDelivery.contactPhone ?? '',
+                schedule: incoming.schedule ?? currentDelivery.schedule ?? ''
+            };
         }
 
         if (updatePayload.cartItems) {
@@ -306,7 +337,7 @@ class OrdersService {
             updatePayload.extraCharge = totals.extraCharge;
         }
 
-        const allowedFields = ['customerInfo', 'deliveryAddress', 'items', 'total', 'totalItems', 'status', 'extraCharge'];
+        const allowedFields = ['customerInfo', 'delivery', 'items', 'total', 'totalItems', 'status', 'extraCharge'];
         const updateSet = {};
         for (const field of allowedFields) {
             if (field in updatePayload) {
@@ -341,6 +372,43 @@ class OrdersService {
         }
 
         return updated;
+    }
+
+    static async updateOrderDelivery(orderId, delivery = {}) {
+        const currentOrder = await OrderModel.findOne({ orderId }).lean();
+
+        if (!currentOrder) {
+            return null;
+        }
+
+        const DIRECCION_KEYS = ['calle', 'numero', 'piso', 'timbre', 'entreCalles', 'localidad', 'partido'];
+
+        const currentDelivery = currentOrder.delivery || {};
+        const incomingAddress = delivery.address;
+
+        const address = incomingAddress
+            ? Object.fromEntries(
+                DIRECCION_KEYS.map(k => [
+                    k,
+                    incomingAddress[k] !== undefined
+                        ? incomingAddress[k]
+                        : (currentDelivery.address?.[k] ?? '')
+                ])
+            )
+            : (currentDelivery.address || {});
+
+        const normalizedDelivery = {
+            address,
+            contactName: delivery.contactName ?? currentDelivery.contactName ?? '',
+            contactPhone: delivery.contactPhone ?? currentDelivery.contactPhone ?? '',
+            schedule: delivery.schedule ?? currentDelivery.schedule ?? ''
+        };
+
+        return OrderModel.findOneAndUpdate(
+            { orderId },
+            { $set: { delivery: normalizedDelivery } },
+            { new: true, runValidators: true }
+        ).lean();
     }
 
     static async updateOrderPricing(orderId, pricingData = {}) {
