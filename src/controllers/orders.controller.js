@@ -17,7 +17,8 @@ class OrdersController {
             res.status(201).json({
                 orderId: result.orderId || 'id Error',
                 status: 'success',
-                message: 'Pedido recibido correctamente'
+                message: 'Pedido recibido correctamente',
+                order: result.order
             });
         } catch (err) {
             console.error('Error creando pedido:', err);

@@ -63,6 +63,10 @@ const OrderSchema = new mongoose.Schema({
         type: CustomerSnapshotSchema,
         required: true
     },
+    customerNote: {
+        type: String,
+        default: ''
+    },
 
     delivery: {
         type: DeliverySchema,

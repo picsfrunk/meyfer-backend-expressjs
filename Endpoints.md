@@ -38,6 +38,8 @@ Registra un nuevo pedido y dispara notificaciones por email.
 
 El cliente **debe existir** en la base de datos y se referencia únicamente por su `customerCode`. El snapshot de datos del cliente (nombre, CUIT, email, etc.) se construye siempre desde la DB, no desde el body. La dirección de entrega es opcional: si se envía con al menos un campo no vacío se usa; de lo contrario se usa la dirección registrada del cliente.
 
+`customerNote` es una observación libre opcional escrita por el cliente para ese pedido. Se guarda como string con `trim()`; si no se envía, queda `""`. Para compatibilidad temporal, el backend también acepta `notes`, `note`, `notas` o `customerInfo.notas`, pero siempre persiste el valor normalizado en `customerNote`. No guardar esta observación dentro de `customerInfo` ni `delivery`; `delivery.schedule` sigue siendo solo el horario o ventana de entrega.
+
 > **Nota:** el `customerCode` se normaliza automáticamente a mayúsculas en el backend. Se recomienda enviarlo en mayúsculas para mayor claridad (ej. `"FE78X3"` en lugar de `"fe78x3"`).
 
 - **Body:**
@@ -46,10 +48,14 @@ El cliente **debe existir** en la base de datos y se referencia únicamente por 
   "customerInfo": {
     "customerCode": "FE78X3"
   },
-  "deliveryAddress": {
-    "calle": "Av. Corrientes",
-    "numero": "1234",
-    "localidad": "CABA"
+  "customerNote": "Entregar después de las 15 hs, tocar timbre dos veces",
+  "delivery": {
+    "address": {
+      "calle": "Av. Corrientes",
+      "numero": "1234",
+      "localidad": "CABA"
+    },
+    "schedule": "Lunes a viernes de 15 a 18"
   },
   "cartItems": [
     {
@@ -66,7 +72,14 @@ El cliente **debe existir** en la base de datos y se referencia únicamente por 
 {
   "orderId": "MF-001",
   "status": "success",
-  "message": "Pedido recibido correctamente"
+  "message": "Pedido recibido correctamente",
+  "order": {
+    "orderId": "MF-001",
+    "customerNote": "Entregar después de las 15 hs, tocar timbre dos veces",
+    "customerInfo": { "customerCode": "FE78X3" },
+    "delivery": { "schedule": "Lunes a viernes de 15 a 18" },
+    "status": "pending"
+  }
 }
 ```
 - **Response 400 — customerCode ausente:**
@@ -108,6 +121,7 @@ El cliente **debe existir** en la base de datos y se referencia únicamente por 
 ### `GET /orders` (Admin)
 Lista de pedidos con filtros.
 - **Query Params:** `status` (uno o varios separados por coma, ej. `pending,confirmed`), `populate` (true/false).
+- Cada pedido incluye `customerNote`. En documentos antiguos sin el campo, se devuelve como `""`.
 
 ### `GET /orders/statuses` (Admin)
 Devuelve los estados de pedido válidos definidos en el modelo.
@@ -121,12 +135,14 @@ Devuelve los estados de pedido válidos definidos en el modelo.
 
 ### `GET /orders/:id` (Admin)
 Detalle de un pedido por ID.
+- La respuesta incluye `customerNote`. En documentos antiguos sin el campo, se devuelve como `""`.
 
 ### `PUT /orders/:id` (Admin)
-Actualización de pedido (permite editar `customerInfo`, `deliveryAddress`, ítems y precios).
-- Campos actualizables: `customerInfo`, `deliveryAddress`, `cartItems`/`items`, `extraCharge`, `status`.
-- Si se envía `customerInfo`, se mergea con los datos actuales (solo se sobreescriben los campos enviados). **Nota:** `customerInfo` NO tiene campo `direccion`; la dirección de entrega se gestiona con `deliveryAddress` en el nivel raíz del pedido.
-- Si se envía `deliveryAddress`, se mergea campo a campo con la dirección actual.
+Actualización de pedido (permite editar `customerInfo`, `customerNote`, `delivery`, ítems y precios).
+- Campos actualizables: `customerInfo`, `customerNote`, `delivery`, `cartItems`/`items`, `extraCharge`, `status`.
+- Si se envía `customerNote`, se normaliza a string con `trim()` antes de persistir.
+- Si se envía `customerInfo`, se mergea con los datos actuales (solo se sobreescriben los campos enviados). **Nota:** `customerInfo` NO tiene campo `direccion`; la dirección de entrega se gestiona con `delivery.address`.
+- Si se envía `delivery`, se mergea campo a campo con los datos de entrega actuales. `delivery.schedule` representa solo horario/ventana de entrega.
 - Si se envía `cartItems`/`items` y/o `extraCharge`, el backend recalcula `total` y `totalItems`.
 
 ### `PATCH /orders/:id/pricing` (Admin)
@@ -390,8 +406,9 @@ Elimina definitivamente un cliente.
 > **Vinculación con pedidos:** al recibir un pedido (`POST /orders/new`), el backend busca al cliente
 > por su `customerCode`. Si no existe o no se proporciona el código, el pedido es rechazado (400/404).
 > El campo `customerInfo` del pedido se guarda como snapshot tipado (`CustomerSnapshotSchema`) con los
-> datos actuales de la DB (nunca del body). El campo `deliveryAddress` almacena la dirección de entrega
-> efectiva (del payload si viene, sino la del cliente).
+> datos actuales de la DB (nunca del body). El campo `delivery.address` almacena la dirección de entrega
+> efectiva (del payload si viene, sino la del cliente). La observación puntual del cliente se guarda aparte
+> en `customerNote`.
 
 ---
 

@@ -100,6 +100,30 @@ class OrdersService {
         };
     }
 
+    static normalizeCustomerNote(value) {
+        return value == null ? '' : String(value).trim();
+    }
+
+    static resolveCustomerNote(orderData = {}) {
+        const noteSources = [
+            orderData.customerNote,
+            orderData.notes,
+            orderData.note,
+            orderData.notas,
+            orderData.customerInfo?.notas
+        ];
+        const note = noteSources.find(value => value !== undefined && value !== null);
+
+        return this.normalizeCustomerNote(note);
+    }
+
+    static ensureCustomerNote(order) {
+        if (order && order.customerNote == null) {
+            order.customerNote = '';
+        }
+        return order;
+    }
+
     /**
      * Transforma items normalizados (de DB) al formato que espera el frontend
      * Convierte: { product_id, quantity, priceAtPurchase, product: {...} }
@@ -176,8 +200,11 @@ class OrdersService {
             contactPhone: payloadDelivery.contactPhone || customer.telefono1 || '',
             schedule: payloadDelivery.schedule || ''
         };
+        const customerNote = this.resolveCustomerNote(orderData);
+
         const orderDoc = await OrderModel.create({
             customerInfo,
+            customerNote,
             customerId: customer._id,
             delivery,
             items: normalizedItems,
@@ -233,11 +260,13 @@ class OrdersService {
         const orders = await OrderModel.find(filter).sort({ createdAt: -1 }).lean();
 
         if (!populate) {
-            return orders;
+            return orders.map(order => this.ensureCustomerNote(order));
         }
 
         // Poblar productos manualmente y transformar al formato del frontend
         for (const order of orders) {
+            this.ensureCustomerNote(order);
+
             for (const item of order.items) {
                 const product = await ScrapedProduct.findOne({ product_id: item.product_id }).lean();
                 item.product = product;
@@ -259,8 +288,10 @@ class OrdersService {
         const order = await OrderModel.findOne({ orderId }).lean();
 
         if (!order || !populate) {
-            return order;
+            return this.ensureCustomerNote(order);
         }
+
+        this.ensureCustomerNote(order);
 
         // Poblar productos manualmente
         for (const item of order.items) {
@@ -317,6 +348,10 @@ class OrdersService {
             };
         }
 
+        if ('customerNote' in updatePayload) {
+            updatePayload.customerNote = this.normalizeCustomerNote(updatePayload.customerNote);
+        }
+
         if (updatePayload.cartItems) {
             updatePayload.items = this.transformCartItemsToOrderItems(updatePayload.cartItems);
             delete updatePayload.cartItems;
@@ -340,7 +375,7 @@ class OrdersService {
             updatePayload.extraCharge = totals.extraCharge;
         }
 
-        const allowedFields = ['customerInfo', 'delivery', 'items', 'total', 'totalItems', 'status', 'extraCharge'];
+        const allowedFields = ['customerInfo', 'customerNote', 'delivery', 'items', 'total', 'totalItems', 'status', 'extraCharge'];
         const updateSet = {};
         for (const field of allowedFields) {
             if (field in updatePayload) {
@@ -364,6 +399,8 @@ class OrdersService {
 
         // Poblar después de actualizar y transformar a cartItems
         if (updated && updated.items) {
+            this.ensureCustomerNote(updated);
+
             for (const item of updated.items) {
                 const product = await ScrapedProduct.findOne({ product_id: item.product_id }).lean();
                 item.product = product;
