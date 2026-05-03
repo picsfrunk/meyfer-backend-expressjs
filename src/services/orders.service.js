@@ -188,8 +188,11 @@ class OrdersService {
         });
 
         // Notificaciones asíncronas
+        const adminEmailTask = this.getOrderById(orderDoc.orderId, true)
+            .then(orderForEmail => sendOrderNotificationToAdmins(orderForEmail || orderDoc));
+
         Promise.allSettled([
-            sendOrderNotificationToAdmins(orderDoc),
+            adminEmailTask,
             sendOrderConfirmationToCustomer(orderDoc)
         ]).then(results => {
             results.forEach((r, i) => {
