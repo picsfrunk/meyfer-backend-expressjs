@@ -104,6 +104,14 @@ docker-compose down
 
 Accede a **mongo-express** en: `http://localhost:8081`
 
+## 📦 Pedidos
+
+Los pedidos se crean con `POST /api/orders/new` usando un cliente existente referenciado por `customerInfo.customerCode`. El backend arma el snapshot `customerInfo` desde la base de datos y guarda los datos de entrega en `delivery`.
+
+Cada pedido puede incluir una observación libre opcional del cliente en `customerNote`. El valor se normaliza a string con `trim()` y, si no se envía, se guarda como `''`. Para compatibilidad temporal, creación también acepta `notes`, `note`, `notas` o `customerInfo.notas`, pero siempre persiste la observación en `customerNote`.
+
+`customerNote` no pertenece a `customerInfo`, no pertenece a `delivery` y no debe mezclarse con `delivery.schedule`, que sigue representando únicamente el horario o ventana de entrega.
+
 ## ☁️ Despliegue en Railway
 
 1. Subir el proyecto a un repositorio GitHub.

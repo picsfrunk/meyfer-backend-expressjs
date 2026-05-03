@@ -56,7 +56,7 @@ function normalizeItems(order) {
 }
 
 function buildOrderHtml(order) {
-    const { orderId, customerInfo = {}, delivery = {}, total, totalItems, extraCharge = 0 } = order;
+    const { orderId, customerInfo = {}, customerNote = '', delivery = {}, total, totalItems, extraCharge = 0 } = order;
     const direccion = delivery?.address || customerInfo?.direccion || {};
     const items = normalizeItems(order);
     const calculatedItems = items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
@@ -104,7 +104,7 @@ function buildOrderHtml(order) {
             </td>
           </tr>
           <tr><td><strong>Horarios</strong></td><td>${delivery?.schedule || customerInfo?.horarios || '-'}</td></tr>
-          <tr><td><strong>Notas</strong></td><td>${customerInfo?.notas || '-'}</td></tr>
+          <tr><td><strong>Observación del cliente</strong></td><td>${customerNote || '-'}</td></tr>
         </tbody>
       </table>
 
