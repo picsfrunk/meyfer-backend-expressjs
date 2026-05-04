@@ -118,6 +118,8 @@ Cada pedido puede tener una bitácora interna para seguimiento operativo del equ
 
 La bitácora no reemplaza ni se mezcla con `customerNote`: `customerNote` es la observación escrita por el cliente al crear el pedido; los logs son notas internas posteriores para administración.
 
+Además de notas manuales (`type: "note"`), el backend registra automáticamente cambios operativos del pedido con tipos específicos como `status_change`, `delivery_change`, `pricing_change`, `customer_note_change`, `customer_info_change` y `order_deleted`. Estos logs pueden incluir `metadata` con valores anteriores/nuevos, productos agregados/quitados/modificados, cambios de recargo extra y totales.
+
 Endpoints disponibles:
 
 - `GET /api/orders/:orderId/logs`

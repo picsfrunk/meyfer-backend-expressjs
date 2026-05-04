@@ -14,6 +14,9 @@ const OrderLogSchema = new mongoose.Schema({
         type: String,
         default: 'note'
     },
+    metadata: {
+        type: mongoose.Schema.Types.Mixed
+    },
     createdBy: {
         type: String,
         default: 'admin'

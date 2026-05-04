@@ -51,6 +51,7 @@ class OrderLogsService {
             orderId,
             message,
             type: logData.type || 'note',
+            metadata: logData.metadata ?? null,
             createdBy: logData.createdBy || 'admin'
         });
     }
@@ -72,6 +73,10 @@ class OrderLogsService {
 
         if (logData.updatedBy !== undefined) {
             update.updatedBy = logData.updatedBy;
+        }
+
+        if (logData.metadata !== undefined) {
+            update.metadata = logData.metadata;
         }
 
         return OrderLog.findOneAndUpdate(

@@ -142,6 +142,17 @@ Notas internas de seguimiento operativo asociadas a un pedido. Se guardan en una
 
 No confundir con `customerNote`: `customerNote` lo escribe el cliente al crear el pedido; la bitácora la usa el equipo/admin para seguimiento interno.
 
+La bitácora contiene notas manuales (`type: "note"`) y eventos automáticos generados cuando se modifica el pedido:
+
+- `status_change`: cambio de estado.
+- `delivery_change`: cambio en datos de entrega.
+- `pricing_change`: cambios en productos, cantidades, precios, recargo extra o totales.
+- `customer_note_change`: cambio en la observación del cliente.
+- `customer_info_change`: cambio en datos del cliente guardados en el pedido.
+- `order_deleted`: eliminación lógica del pedido.
+
+Los eventos automáticos se crean con `createdBy: "system"` y pueden incluir `metadata` con valores anteriores y nuevos.
+
 #### `GET /orders/:orderId/logs`
 Lista los logs no eliminados de un pedido, ordenados por `createdAt` descendente.
 
@@ -156,6 +167,19 @@ Lista los logs no eliminados de un pedido, ordenados por `createdAt` descendente
     "createdBy": "admin",
     "isDeleted": false,
     "createdAt": "2026-05-03T18:30:00.000Z"
+  },
+  {
+    "_id": "665f1a0f6d0a4c2f9a8b5678",
+    "orderId": "MF-001",
+    "message": "Estado cambiado de pending a confirmed",
+    "type": "status_change",
+    "createdBy": "system",
+    "metadata": {
+      "from": "pending",
+      "to": "confirmed"
+    },
+    "isDeleted": false,
+    "createdAt": "2026-05-03T18:35:00.000Z"
   }
 ]
 ```
@@ -192,6 +216,7 @@ Crea una nota interna para un pedido existente. Valida que el pedido exista ante
     "message": "Cliente pidió coordinar entrega por la tarde",
     "type": "note",
     "createdBy": "admin",
+    "metadata": null,
     "isDeleted": false,
     "createdAt": "2026-05-03T18:30:00.000Z"
   }
@@ -228,6 +253,7 @@ Edita una nota interna no eliminada.
     "type": "note",
     "createdBy": "admin",
     "updatedBy": "admin",
+    "metadata": null,
     "isDeleted": false,
     "createdAt": "2026-05-03T18:30:00.000Z",
     "updatedAt": "2026-05-03T19:00:00.000Z"
@@ -258,6 +284,41 @@ Elimina una nota interna con soft delete. Marca `isDeleted: true`, completa `del
 { "status": "error", "message": "Nota interna no encontrada" }
 ```
 
+#### Ejemplo de `pricing_change` automático
+Se genera al actualizar ítems, cantidades, precios o `extraCharge` mediante endpoints de modificación del pedido.
+
+```json
+{
+  "_id": "665f1a0f6d0a4c2f9a8b9012",
+  "orderId": "MF-001",
+  "message": "Cambios de productos/precios: 1 producto(s) agregado(s), 1 producto(s) modificado(s), cargo extra de 500 a 800",
+  "type": "pricing_change",
+  "createdBy": "system",
+  "metadata": {
+    "items": {
+      "added": [
+        { "product_id": "1528", "quantity": 2, "priceAtPurchase": 1500 }
+      ],
+      "removed": [],
+      "updated": [
+        {
+          "product_id": "999",
+          "changes": {
+            "quantity": { "from": 1, "to": 3 },
+            "priceAtPurchase": { "from": 1000, "to": 1200 }
+          }
+        }
+      ]
+    },
+    "extraCharge": { "from": 500, "to": 800 },
+    "total": { "from": 2500, "to": 5600 },
+    "totalItems": { "from": 2, "to": 5 }
+  },
+  "isDeleted": false,
+  "createdAt": "2026-05-03T19:15:00.000Z"
+}
+```
+
 ### `PUT /orders/:id` (Admin)
 Actualización de pedido (permite editar `customerInfo`, `customerNote`, `delivery`, ítems y precios).
 - Campos actualizables: `customerInfo`, `customerNote`, `delivery`, `cartItems`/`items`, `extraCharge`, `status`.
@@ -265,6 +326,7 @@ Actualización de pedido (permite editar `customerInfo`, `customerNote`, `delive
 - Si se envía `customerInfo`, se mergea con los datos actuales (solo se sobreescriben los campos enviados). **Nota:** `customerInfo` NO tiene campo `direccion`; la dirección de entrega se gestiona con `delivery.address`.
 - Si se envía `delivery`, se mergea campo a campo con los datos de entrega actuales. `delivery.schedule` representa solo horario/ventana de entrega.
 - Si se envía `cartItems`/`items` y/o `extraCharge`, el backend recalcula `total` y `totalItems`.
+- Los cambios efectivos generan logs automáticos en la bitácora del pedido.
 
 ### `PATCH /orders/:id/pricing` (Admin)
 Actualiza precios/cantidades de un pedido y recargo extra (ej. flete) recalculando totales.
@@ -281,6 +343,7 @@ Actualiza precios/cantidades de un pedido y recargo extra (ej. flete) recalculan
   "extraCharge": 1200
 }
 ```
+- Si hay cambios efectivos de productos, precios, cantidades, `extraCharge` o totales, genera un log automático `pricing_change`.
 
 ### `PATCH /orders/:id/status` (Admin)
 Cambiar el estado de un pedido. Solo acepta valores del enum del modelo.
@@ -296,6 +359,7 @@ Cambiar el estado de un pedido. Solo acepta valores del enum del modelo.
   "order": { "orderId": "MF-001", "status": "shipped", "..." }
 }
 ```
+- Si el estado cambia efectivamente, genera un log automático `status_change`.
 - **Response 400 — estado ausente:**
 ```json
 { "message": "El estado del pedido es requerido" }
@@ -333,6 +397,7 @@ Cambiar los datos de entrega de un pedido.
   }
 }
 ```
+- Si los datos de entrega cambian efectivamente, genera un log automático `delivery_change`.
 - **Response 200:**
 ```json
 {
@@ -350,6 +415,7 @@ Cambiar los datos de entrega de un pedido.
 
 ### `DELETE /orders/:id` (Admin)
 Soft delete (cambia estado a `"deleted"`).
+- Si el pedido cambia a `"deleted"`, genera un log automático `order_deleted`.
 
 ### `POST /orders/:orderId/resend-emails` (Admin)
 Reenvío manual de correos de confirmación.
