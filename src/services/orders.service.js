@@ -2,6 +2,7 @@ const { generateOrderId } = require("../utils/generateOrderId");
 const OrderModel = require('../models/order.model');
 const ScrapedProduct = require('../models/products.model');
 const Customer = require('../models/customer.model');
+const OrderLogsService = require('./order_logs.service');
 const {
     sendOrderNotificationToAdmins,
     sendOrderConfirmationToCustomer
@@ -122,6 +123,175 @@ class OrdersService {
             order.customerNote = '';
         }
         return order;
+    }
+
+    static valuesAreEqual(a, b) {
+        return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+    }
+
+    static formatMoney(value) {
+        return Number(value ?? 0);
+    }
+
+    static buildOrderItemsMap(items = []) {
+        return new Map(items.map(item => [
+            String(item.product_id),
+            {
+                product_id: String(item.product_id),
+                quantity: item.quantity,
+                priceAtPurchase: item.priceAtPurchase
+            }
+        ]));
+    }
+
+    static buildItemsChangeMetadata(previousItems = [], nextItems = []) {
+        const previousMap = this.buildOrderItemsMap(previousItems);
+        const nextMap = this.buildOrderItemsMap(nextItems);
+        const added = [];
+        const removed = [];
+        const updated = [];
+
+        for (const [productId, nextItem] of nextMap.entries()) {
+            const previousItem = previousMap.get(productId);
+            if (!previousItem) {
+                added.push(nextItem);
+                continue;
+            }
+
+            const changes = {};
+            if (previousItem.quantity !== nextItem.quantity) {
+                changes.quantity = { from: previousItem.quantity, to: nextItem.quantity };
+            }
+            if (previousItem.priceAtPurchase !== nextItem.priceAtPurchase) {
+                changes.priceAtPurchase = {
+                    from: previousItem.priceAtPurchase,
+                    to: nextItem.priceAtPurchase
+                };
+            }
+
+            if (Object.keys(changes).length) {
+                updated.push({ product_id: productId, changes });
+            }
+        }
+
+        for (const [productId, previousItem] of previousMap.entries()) {
+            if (!nextMap.has(productId)) {
+                removed.push(previousItem);
+            }
+        }
+
+        return { added, removed, updated };
+    }
+
+    static hasItemsChanges(itemsChangeMetadata) {
+        return Boolean(
+            itemsChangeMetadata.added.length ||
+            itemsChangeMetadata.removed.length ||
+            itemsChangeMetadata.updated.length
+        );
+    }
+
+    static buildPricingChangeLog(currentOrder, nextOrder) {
+        const items = this.buildItemsChangeMetadata(currentOrder.items, nextOrder.items);
+        const previousExtraCharge = this.formatMoney(currentOrder.extraCharge);
+        const nextExtraCharge = this.formatMoney(nextOrder.extraCharge);
+        const extraChargeChanged = previousExtraCharge !== nextExtraCharge;
+
+        if (!this.hasItemsChanges(items) && !extraChargeChanged) {
+            return null;
+        }
+
+        const summary = [];
+        if (items.added.length) summary.push(`${items.added.length} producto(s) agregado(s)`);
+        if (items.removed.length) summary.push(`${items.removed.length} producto(s) quitado(s)`);
+        if (items.updated.length) summary.push(`${items.updated.length} producto(s) modificado(s)`);
+        if (extraChargeChanged) {
+            summary.push(`cargo extra de ${previousExtraCharge} a ${nextExtraCharge}`);
+        }
+
+        return {
+            type: 'pricing_change',
+            message: `Cambios de productos/precios: ${summary.join(', ')}`,
+            metadata: {
+                items,
+                extraCharge: extraChargeChanged
+                    ? { from: previousExtraCharge, to: nextExtraCharge }
+                    : null,
+                total: {
+                    from: currentOrder.total,
+                    to: nextOrder.total
+                },
+                totalItems: {
+                    from: currentOrder.totalItems,
+                    to: nextOrder.totalItems
+                }
+            }
+        };
+    }
+
+    static async createOrderChangeLog(orderId, type, message, metadata = {}) {
+        return OrderLogsService.createLog(orderId, {
+            type,
+            message,
+            metadata,
+            createdBy: 'system'
+        });
+    }
+
+    static async logOrderChanges(currentOrder, nextOrder, changedFields = {}) {
+        const logs = [];
+
+        if ('status' in changedFields && currentOrder.status !== nextOrder.status) {
+            logs.push(this.createOrderChangeLog(
+                nextOrder.orderId,
+                'status_change',
+                `Estado cambiado de ${currentOrder.status} a ${nextOrder.status}`,
+                { from: currentOrder.status, to: nextOrder.status }
+            ));
+        }
+
+        if ('delivery' in changedFields && !this.valuesAreEqual(currentOrder.delivery, nextOrder.delivery)) {
+            logs.push(this.createOrderChangeLog(
+                nextOrder.orderId,
+                'delivery_change',
+                'Datos de entrega actualizados',
+                { from: currentOrder.delivery, to: nextOrder.delivery }
+            ));
+        }
+
+        if ('customerNote' in changedFields && currentOrder.customerNote !== nextOrder.customerNote) {
+            logs.push(this.createOrderChangeLog(
+                nextOrder.orderId,
+                'customer_note_change',
+                'Observación del cliente actualizada',
+                { from: currentOrder.customerNote || '', to: nextOrder.customerNote || '' }
+            ));
+        }
+
+        if ('customerInfo' in changedFields && !this.valuesAreEqual(currentOrder.customerInfo, nextOrder.customerInfo)) {
+            logs.push(this.createOrderChangeLog(
+                nextOrder.orderId,
+                'customer_info_change',
+                'Datos del cliente en el pedido actualizados',
+                { from: currentOrder.customerInfo, to: nextOrder.customerInfo }
+            ));
+        }
+
+        if ('items' in changedFields || 'extraCharge' in changedFields) {
+            const pricingLog = this.buildPricingChangeLog(currentOrder, nextOrder);
+            if (pricingLog) {
+                logs.push(this.createOrderChangeLog(
+                    nextOrder.orderId,
+                    pricingLog.type,
+                    pricingLog.message,
+                    pricingLog.metadata
+                ));
+            }
+        }
+
+        if (logs.length) {
+            await Promise.all(logs);
+        }
     }
 
     /**
@@ -397,6 +567,10 @@ class OrdersService {
             { new: true, runValidators: true }
         ).lean();
 
+        if (updated) {
+            await this.logOrderChanges(currentOrder, updated, updateSet);
+        }
+
         // Poblar después de actualizar y transformar a cartItems
         if (updated && updated.items) {
             this.ensureCustomerNote(updated);
@@ -444,11 +618,17 @@ class OrdersService {
             schedule: delivery.schedule ?? currentDelivery.schedule ?? ''
         };
 
-        return OrderModel.findOneAndUpdate(
+        const updated = await OrderModel.findOneAndUpdate(
             { orderId },
             { $set: { delivery: normalizedDelivery } },
             { new: true, runValidators: true }
         ).lean();
+
+        if (updated) {
+            await this.logOrderChanges(currentOrder, updated, { delivery: normalizedDelivery });
+        }
+
+        return updated;
     }
 
     static async updateOrderPricing(orderId, pricingData = {}) {
@@ -475,22 +655,51 @@ class OrdersService {
      * Elimina lógicamente un pedido
      */
     static async deleteOrder(orderId) {
-        return OrderModel.findOneAndUpdate(
+        const currentOrder = await OrderModel.findOne({ orderId }).lean();
+
+        if (!currentOrder) {
+            return null;
+        }
+
+        const updated = await OrderModel.findOneAndUpdate(
             { orderId },
             { status: 'deleted' },
             { new: true, runValidators: true }
         ).lean();
+
+        if (updated && currentOrder.status !== updated.status) {
+            await this.createOrderChangeLog(
+                orderId,
+                'order_deleted',
+                `Pedido eliminado: estado cambiado de ${currentOrder.status} a deleted`,
+                { from: currentOrder.status, to: updated.status }
+            );
+        }
+
+        return updated;
     }
 
     /**
      * Actualiza solo el estado
      */
     static async updateOrderStatus(orderId, newStatus) {
-        return OrderModel.findOneAndUpdate(
+        const currentOrder = await OrderModel.findOne({ orderId }).lean();
+
+        if (!currentOrder) {
+            return null;
+        }
+
+        const updated = await OrderModel.findOneAndUpdate(
             { orderId },
             { status: newStatus },
             { new: true, runValidators: true }
         ).lean();
+
+        if (updated) {
+            await this.logOrderChanges(currentOrder, updated, { status: newStatus });
+        }
+
+        return updated;
     }
 
     /**
