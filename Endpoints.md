@@ -137,6 +137,127 @@ Devuelve los estados de pedido válidos definidos en el modelo.
 Detalle de un pedido por ID.
 - La respuesta incluye `customerNote`. En documentos antiguos sin el campo, se devuelve como `""`.
 
+### Bitácora interna de pedidos `OrderLog` (Admin)
+Notas internas de seguimiento operativo asociadas a un pedido. Se guardan en una colección separada (`OrderLog`), no como array dentro de `Order`.
+
+No confundir con `customerNote`: `customerNote` lo escribe el cliente al crear el pedido; la bitácora la usa el equipo/admin para seguimiento interno.
+
+#### `GET /orders/:orderId/logs`
+Lista los logs no eliminados de un pedido, ordenados por `createdAt` descendente.
+
+- **Response 200:**
+```json
+[
+  {
+    "_id": "665f1a0f6d0a4c2f9a8b1234",
+    "orderId": "MF-001",
+    "message": "Cliente pidió coordinar entrega por la tarde",
+    "type": "note",
+    "createdBy": "admin",
+    "isDeleted": false,
+    "createdAt": "2026-05-03T18:30:00.000Z"
+  }
+]
+```
+- **Response 404 — pedido no encontrado:**
+```json
+{ "status": "error", "message": "Pedido no encontrado" }
+```
+
+#### `POST /orders/:orderId/logs`
+Crea una nota interna para un pedido existente. Valida que el pedido exista antes de crear el log.
+
+- **Body:**
+```json
+{
+  "message": "Cliente pidió coordinar entrega por la tarde",
+  "type": "note",
+  "createdBy": "admin"
+}
+```
+- **Reglas:**
+  - `message` es obligatorio.
+  - `message` se normaliza con `String(message).trim()`.
+  - Si `message` queda vacío, responde `400`.
+  - `type` default: `"note"`.
+  - `createdBy` default: `"admin"`.
+- **Response 201:**
+```json
+{
+  "status": "success",
+  "message": "Nota interna creada",
+  "log": {
+    "_id": "665f1a0f6d0a4c2f9a8b1234",
+    "orderId": "MF-001",
+    "message": "Cliente pidió coordinar entrega por la tarde",
+    "type": "note",
+    "createdBy": "admin",
+    "isDeleted": false,
+    "createdAt": "2026-05-03T18:30:00.000Z"
+  }
+}
+```
+- **Response 400 — message ausente o vacío:**
+```json
+{ "status": "error", "message": "message es obligatorio" }
+```
+- **Response 404 — pedido no encontrado:**
+```json
+{ "status": "error", "message": "Pedido no encontrado" }
+```
+
+#### `PATCH /orders/:orderId/logs/:logId`
+Edita una nota interna no eliminada.
+
+- **Body:**
+```json
+{
+  "message": "Entrega coordinada para mañana por la tarde",
+  "updatedBy": "admin"
+}
+```
+- **Response 200:**
+```json
+{
+  "status": "success",
+  "message": "Nota interna actualizada",
+  "log": {
+    "_id": "665f1a0f6d0a4c2f9a8b1234",
+    "orderId": "MF-001",
+    "message": "Entrega coordinada para mañana por la tarde",
+    "type": "note",
+    "createdBy": "admin",
+    "updatedBy": "admin",
+    "isDeleted": false,
+    "createdAt": "2026-05-03T18:30:00.000Z",
+    "updatedAt": "2026-05-03T19:00:00.000Z"
+  }
+}
+```
+- **Response 400 — message ausente o vacío:**
+```json
+{ "status": "error", "message": "message es obligatorio" }
+```
+- **Response 404 — log no encontrado:**
+```json
+{ "status": "error", "message": "Nota interna no encontrada" }
+```
+
+#### `DELETE /orders/:orderId/logs/:logId`
+Elimina una nota interna con soft delete. Marca `isDeleted: true`, completa `deletedAt` y deja de aparecer en el listado.
+
+- **Response 200:**
+```json
+{
+  "status": "success",
+  "message": "Nota interna eliminada"
+}
+```
+- **Response 404 — log no encontrado:**
+```json
+{ "status": "error", "message": "Nota interna no encontrada" }
+```
+
 ### `PUT /orders/:id` (Admin)
 Actualización de pedido (permite editar `customerInfo`, `customerNote`, `delivery`, ítems y precios).
 - Campos actualizables: `customerInfo`, `customerNote`, `delivery`, `cartItems`/`items`, `extraCharge`, `status`.

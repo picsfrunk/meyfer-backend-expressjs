@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const OrdersController = require('../controllers/orders.controller');
+const OrderLogsController = require('../controllers/order_logs.controller');
 
 // Crear nuevo pedido
 router.post('/new', OrdersController.createOrder);
@@ -19,6 +20,12 @@ router.patch('/:id/status', OrdersController.updateOrderStatus);
 
 // Actualizar precios/cantidades y recargo del pedido
 router.patch('/:id/pricing', OrdersController.updateOrderPricing);
+
+// Bitácora interna del pedido
+router.get('/:orderId/logs', OrderLogsController.getLogsByOrderId);
+router.post('/:orderId/logs', OrderLogsController.createLog);
+router.patch('/:orderId/logs/:logId', OrderLogsController.updateLog);
+router.delete('/:orderId/logs/:logId', OrderLogsController.deleteLog);
 
 // Obtener pedido por ID
 router.get('/:id', OrdersController.getOrderById);

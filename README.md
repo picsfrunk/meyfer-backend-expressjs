@@ -112,6 +112,21 @@ Cada pedido puede incluir una observación libre opcional del cliente en `custom
 
 `customerNote` no pertenece a `customerInfo`, no pertenece a `delivery` y no debe mezclarse con `delivery.schedule`, que sigue representando únicamente el horario o ventana de entrega.
 
+### Bitácora interna de pedidos
+
+Cada pedido puede tener una bitácora interna para seguimiento operativo del equipo/admin. Esta bitácora se guarda en una colección separada (`OrderLog`) y no modifica el documento `Order`.
+
+La bitácora no reemplaza ni se mezcla con `customerNote`: `customerNote` es la observación escrita por el cliente al crear el pedido; los logs son notas internas posteriores para administración.
+
+Endpoints disponibles:
+
+- `GET /api/orders/:orderId/logs`
+- `POST /api/orders/:orderId/logs`
+- `PATCH /api/orders/:orderId/logs/:logId`
+- `DELETE /api/orders/:orderId/logs/:logId`
+
+Los logs eliminados usan soft delete (`isDeleted`, `deletedAt`) y no aparecen en el listado.
+
 ## ☁️ Despliegue en Railway
 
 1. Subir el proyecto a un repositorio GitHub.
