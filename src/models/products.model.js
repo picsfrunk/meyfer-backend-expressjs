@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const scrapedProductSchema = new mongoose.Schema({
     product_id: {
-        type: Number,
+        type: String,
         required: true,
         unique: true
     },
@@ -30,6 +30,10 @@ const scrapedProductSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    priceUpdatedAt: {
+        type: Date,
+        default: Date.now
+    },
     product_type: {
         type: String
     },
@@ -38,6 +42,11 @@ const scrapedProductSchema = new mongoose.Schema({
     },
     category_name: {
         type: String
+    },
+    isManual: {
+        type: Boolean,
+        default: false,
+        index: true  // el scraper filtrará por este campo en deleteMany
     }
 }, {
     collection: 'scraped-products',

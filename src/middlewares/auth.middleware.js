@@ -23,7 +23,7 @@ function authenticateAdmin(req, res, next) {
         req.user = decoded; // guarda info del admin en la request
         next();
     } catch (err) {
-        return res.status(403).json({ error: 'Token inválido o expirado' });
+        return res.status(401).json({ error: 'Token inválido o expirado' });
     }
 }
 

@@ -12,18 +12,70 @@ function fmt(amount) {
     }
 }
 
-function buildOrderHtml(order) {
-    const { orderId, customerInfo = {}, cartItems = [], total, totalItems } = order;
-    const direccion = customerInfo?.direccion || {};
+function getProductName(product, productId) {
+    return product?.display_name
+        ?? product?.title
+        ?? product?.name
+        ?? product?.descripcion
+        ?? productId
+        ?? '-';
+}
 
-    const itemsHtml = cartItems.map(ci => {
-        const p = ci.productCartItem || {};
+function normalizeItems(order) {
+    if (Array.isArray(order?.items) && order.items.length > 0) {
+        return order.items.map(item => {
+            const product = item.product || item.productCartItem || {};
+            const productId = item.product_id ?? product.product_id;
+            const quantity = Number(item.quantity ?? item.qty ?? 0);
+            const price = Number(item.priceAtPurchase ?? product.priceAtPurchase ?? product.final_price ?? product.list_price ?? 0);
+
+            return {
+                productId,
+                name: getProductName(product, productId),
+                quantity,
+                price,
+                subtotal: quantity * price
+            };
+        });
+    }
+
+    return (order?.cartItems || []).map(ci => {
+        const product = ci.productCartItem || ci.product || {};
+        const productId = ci.product_id ?? product.product_id;
+        const quantity = Number(ci.qty ?? ci.quantity ?? 0);
+        const price = Number(ci.priceAtPurchase ?? ci.unitPrice ?? product.priceAtPurchase ?? product.final_price ?? product.list_price ?? product.precio ?? 0);
+
+        return {
+            productId,
+            name: getProductName(product, productId),
+            quantity,
+            price,
+            subtotal: quantity * price
+        };
+    });
+}
+
+function buildOrderHtml(order) {
+    const { orderId, customerInfo = {}, customerNote = '', delivery = {}, total, totalItems, extraCharge = 0 } = order;
+    const direccion = delivery?.address || customerInfo?.direccion || {};
+    const items = normalizeItems(order);
+    const calculatedItems = items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+    const calculatedProductsTotal = items.reduce((sum, item) => sum + (Number(item.subtotal) || 0), 0);
+    const normalizedTotal = Number(total);
+    const normalizedExtraCharge = Number(extraCharge ?? 0);
+    const displayTotalItems = totalItems ?? calculatedItems;
+    const productsTotal = Number.isFinite(normalizedTotal)
+        ? normalizedTotal - normalizedExtraCharge
+        : calculatedProductsTotal;
+
+    const itemsHtml = items.map(item => {
         return `
       <tr>
-        <td>${p.product_id ?? '-'}</td>
-        <td>${p.display_name ?? p.title ?? '-'}</td>
-        <td>${ci.qty}</td>
-        <td>${fmt(p.list_price ?? 0)}</td>
+        <td>${item.productId ?? '-'}</td>
+        <td>${item.name}</td>
+        <td>${item.quantity || '-'}</td>
+        <td>${fmt(item.price)}</td>
+        <td>${fmt(item.subtotal)}</td>
       </tr>
     `;
     }).join('');
@@ -41,6 +93,8 @@ function buildOrderHtml(order) {
           <tr><td><strong>Contacto</strong></td><td>${customerInfo?.contacto || '-'}</td></tr>
           <tr><td><strong>Email</strong></td><td>${customerInfo?.email || '-'}</td></tr>
           <tr><td><strong>Teléfono</strong></td><td>${customerInfo?.telefono1 || '-'}</td></tr>
+          <tr><td><strong>Contacto entrega</strong></td><td>${delivery?.contactName || '-'}</td></tr>
+          <tr><td><strong>Teléfono entrega</strong></td><td>${delivery?.contactPhone || '-'}</td></tr>
           <tr><td><strong>Dirección</strong></td>
             <td>
               ${direccion.calle || '-'} ${direccion.numero || ''}<br/>
@@ -49,13 +103,12 @@ function buildOrderHtml(order) {
               Localidad: ${direccion.localidad || '-'} &nbsp; Partido: ${direccion.partido || '-'}
             </td>
           </tr>
-          <tr><td><strong>Horarios</strong></td><td>${customerInfo?.horarios || '-'}</td></tr>
-          <tr><td><strong>Notas</strong></td><td>${customerInfo?.notas || '-'}</td></tr>
+          <tr><td><strong>Horarios</strong></td><td>${delivery?.schedule || customerInfo?.horarios || '-'}</td></tr>
+          <tr><td><strong>Observación del cliente</strong></td><td>${customerNote || '-'}</td></tr>
         </tbody>
       </table>
 
       <h3>Resumen del pedido</h3>
-      <p><strong>Ítems:</strong> ${totalItems} &nbsp; | &nbsp; <strong>Total:</strong> ${fmt(total)}</p>
 
       <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; width:100%; margin-top:8px;">
         <thead>
@@ -64,11 +117,30 @@ function buildOrderHtml(order) {
             <th style="text-align:left">Producto</th>
             <th style="text-align:left">Cant.</th>
             <th style="text-align:left">Precio</th>
+            <th style="text-align:left">Subtotal</th>
           </tr>
         </thead>
         <tbody>
           ${itemsHtml}
         </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="4" style="text-align:right"><strong>Cantidad de ítems</strong></td>
+            <td><strong>${displayTotalItems}</strong></td>
+          </tr>
+          <tr>
+            <td colspan="4" style="text-align:right"><strong>Subtotal productos</strong></td>
+            <td><strong>${fmt(productsTotal)}</strong></td>
+          </tr>
+          <tr>
+            <td colspan="4" style="text-align:right"><strong>Recargo</strong></td>
+            <td><strong>${fmt(extraCharge)}</strong></td>
+          </tr>
+          <tr>
+            <td colspan="4" style="text-align:right"><strong>Total</strong></td>
+            <td><strong>${fmt(total)}</strong></td>
+          </tr>
+        </tfoot>
       </table>
 
       <p style="margin-top:16px;">Este es un correo automático.</p>
