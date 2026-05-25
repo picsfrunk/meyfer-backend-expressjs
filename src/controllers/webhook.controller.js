@@ -3,7 +3,8 @@ const ScraperMonitor = require('../services/scraper_monitor.service');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SCRAPER WEBHOOK
-// POST /webhooks/scraper/result
+// Ruta real: POST /api/webhook/scraper/result
+// Montaje: app.js -> /api, api.routes.js -> /webhook, webhooks.routes.js -> /scraper/result
 // ─────────────────────────────────────────────────────────────────────────────
 
 exports.scraperFinished = async (req, res) => {
@@ -149,7 +150,8 @@ async function _handleScraperEvent(body) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PRICE CHECK WEBHOOK
-// POST /webhooks/price-check/result
+// Ruta real: POST /api/webhook/price-check/result
+// Montaje: app.js -> /api, api.routes.js -> /webhook, webhooks.routes.js -> /price-check/result
 // ─────────────────────────────────────────────────────────────────────────────
 
 exports.priceCheckFinished = async (req, res) => {
