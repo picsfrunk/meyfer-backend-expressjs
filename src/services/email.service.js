@@ -1,4 +1,5 @@
 const buildOrderHtml = require("../utils/buildOrderHtml");
+const buildCustomerOrderConfirmationHtml = require("../utils/buildCustomerOrderConfirmationHtml");
 const { buildScraperEmail }     = require("../utils/buildScraperEmail");
 const { buildPriceCheckEmail }  = require("../utils/buildPriceCheckEmail");
 const { mailjet }       = require("./MailJet.service");
@@ -55,14 +56,11 @@ async function sendOrderConfirmationToCustomer(order) {
     const to = order?.customerInfo?.email;
     if (!to) return null;
 
-    const html = `
-        <div style="font-family:Arial,sans-serif">
-            <h2>¡Gracias por tu pedido!</h2>
-            <p>Tu número de pedido es <strong>${order.orderId}</strong>.</p>
-            <p>Pronto nos estaremos contactando para coordinar la entrega.</p>
-        </div>`;
-
-    return _send({ to, subject: `Confirmación de pedido #${order.orderId}`, html });
+    return _send({
+        to,
+        subject: `Confirmación de pedido #${order.orderId}`,
+        html: buildCustomerOrderConfirmationHtml(order)
+    });
 }
 
 /**
