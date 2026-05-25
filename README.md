@@ -62,8 +62,9 @@ CLOUDINARY_API_SECRET=
 # Mailjet (emails transaccionales)
 MJ_APIKEY_PUBLIC=
 MJ_APIKEY_PRIVATE=
-MJ_SENDER_EMAIL=noreply@tudominio.com
-MJ_SENDER_NAME=MeyFer
+MAIL_FROM=noreply@tudominio.com
+MAIL_FROM_NAME=MeyFer
+# Compatibilidad temporal: también se aceptan MJ_SENDER_EMAIL y MJ_SENDER_NAME
 
 # Scrapers externos (URLs de los microservicios)
 CATEGORY_SCRAPER_URL=http://localhost:3001/api/scraper/category
@@ -78,6 +79,8 @@ WEBHOOK_PRICE_CHECK_URL=http://localhost:3000/api/webhook/price-check/result
 ```
 
 > **Nota:** `MONGODB_URI_DEV` se usa cuando `NODE_ENV=development`; `MONGODB_URI_PROD` cuando `NODE_ENV=production`. El README anterior mencionaba `MONGO_URI`, que ya **no existe** en el código.
+>
+> **Nota Mailjet:** para el remitente se recomienda usar `MAIL_FROM` y `MAIL_FROM_NAME`. Por compatibilidad temporal, el backend también acepta `MJ_SENDER_EMAIL` y `MJ_SENDER_NAME` como fallback.
 
 ## 🚀 Scripts disponibles
 
