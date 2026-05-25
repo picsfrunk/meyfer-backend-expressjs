@@ -11,12 +11,13 @@ const allowedOrigins = process.env.CORS_ORIGIN
 
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin && process.env.NODE_ENV !== 'production') {
+        if (!origin) {
             return callback(null, true);
         }
         if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
             return callback(null, true);
         }
+        console.warn(`[CORS] Origen no permitido: ${origin}`);
         return callback(new Error('CORS: origen no permitido'));
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
