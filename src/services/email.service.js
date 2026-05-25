@@ -4,6 +4,7 @@ const { buildScraperEmail }     = require("../utils/buildScraperEmail");
 const { buildPriceCheckEmail }  = require("../utils/buildPriceCheckEmail");
 const { mailjet }       = require("./MailJet.service");
 const ConfigService     = require("./config.service");
+const ScrapedProduct    = require("../models/products.model");
 
 const MAIL_FROM = process.env.MAIL_FROM || process.env.MJ_SENDER_EMAIL;
 const MAIL_FROM_NAME = process.env.MAIL_FROM_NAME || process.env.MJ_SENDER_NAME || "Tienda";
@@ -41,6 +42,28 @@ async function _send({ to, subject, html, name = MAIL_FROM_NAME }) {
     }
 }
 
+async function enrichOrderProducts(order) {
+    const plainOrder = typeof order?.toObject === 'function'
+        ? order.toObject()
+        : { ...(order || {}) };
+
+    if (!Array.isArray(plainOrder.items) || plainOrder.items.length === 0) {
+        return plainOrder;
+    }
+
+    const enrichedItems = await Promise.all(plainOrder.items.map(async item => {
+        if (item.product || item.productCartItem) return item;
+
+        const product = await ScrapedProduct.findOne({ product_id: item.product_id }).lean();
+        return product ? { ...item, product } : item;
+    }));
+
+    return {
+        ...plainOrder,
+        items: enrichedItems
+    };
+}
+
 async function sendOrderNotificationToAdmins(order) {
     const adminEmails = await ConfigService.listActiveAdminEmails();
     if (!adminEmails.length) return { success: false, error: "No hay admins activos" };
@@ -56,10 +79,12 @@ async function sendOrderConfirmationToCustomer(order) {
     const to = order?.customerInfo?.email;
     if (!to) return null;
 
+    const orderForEmail = await enrichOrderProducts(order);
+
     return _send({
         to,
         subject: `Confirmación de pedido #${order.orderId}`,
-        html: buildCustomerOrderConfirmationHtml(order)
+        html: buildCustomerOrderConfirmationHtml(orderForEmail)
     });
 }
 
