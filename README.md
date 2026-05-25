@@ -72,8 +72,9 @@ SITEMAP_SCRAPER_URL=http://localhost:3001/api/scraper/sitemap
 SITEMAP_ANALYSIS_URL=http://localhost:3001/api/scraper/analyze
 PRICE_CHECK_URL=http://localhost:3001/api/scraper/check-prices
 SCRAPER_STATUS_URL=http://localhost:3001/api/scraper/status
+SCRAPER_URL=http://localhost:3001/api/scraper
 
-# Webhooks (URL base del backend para que los scrapers devuelvan resultados)
+# Webhooks (URL del backend para que los scrapers devuelvan resultados)
 WEBHOOK_URL=http://localhost:3000/api/webhook/scraper/result
 WEBHOOK_PRICE_CHECK_URL=http://localhost:3000/api/webhook/price-check/result
 ```
@@ -131,6 +132,29 @@ Endpoints disponibles:
 - `DELETE /api/orders/:orderId/logs/:logId`
 
 Los logs eliminados usan soft delete (`isDeleted`, `deletedAt`) y no aparecen en el listado.
+
+## 🔁 Webhooks de scraper
+
+El backend le envía al microservicio scraper la URL de respuesta en el campo `webhookUrl`. El scraper no debería tener hardcodeado el endpoint del backend: debe usar la URL recibida.
+
+Endpoints reales que recibe este backend:
+
+- `POST /api/webhook/scraper/result`
+- `POST /api/webhook/price-check/result`
+
+Variables críticas en producción:
+
+```env
+WEBHOOK_URL=https://<backend-production-url>/api/webhook/scraper/result
+WEBHOOK_PRICE_CHECK_URL=https://<backend-production-url>/api/webhook/price-check/result
+```
+
+Checklist rápido si el historial del scraper no se actualiza:
+
+1. Verificar que `WEBHOOK_URL` no apunte a `/webhooks/...`; el path real es `/api/webhook/...`.
+2. Verificar que el microservicio scraper esté recibiendo y usando el `webhookUrl` enviado por el backend.
+3. Verificar que MongoDB esté conectado y que los eventos creen/actualicen documentos `ScraperJob`.
+4. Probar manualmente `POST /api/webhook/scraper/result` con un payload `completed` de prueba y luego consultar `/api/admin/scraper/history`.
 
 ## ☁️ Despliegue en Railway
 
