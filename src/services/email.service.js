@@ -4,12 +4,18 @@ const { buildPriceCheckEmail }  = require("../utils/buildPriceCheckEmail");
 const { mailjet }       = require("./MailJet.service");
 const ConfigService     = require("./config.service");
 
-const { MAIL_FROM, MAIL_FROM_NAME } = process.env;
+const MAIL_FROM = process.env.MAIL_FROM || process.env.MJ_SENDER_EMAIL;
+const MAIL_FROM_NAME = process.env.MAIL_FROM_NAME || process.env.MJ_SENDER_NAME || "Tienda";
 
-async function _send({ to, subject, html, name = MAIL_FROM_NAME || "Tienda" }) {
+async function _send({ to, subject, html, name = MAIL_FROM_NAME }) {
     if (!mailjet) {
         console.warn("⚠️ Mailjet no disponible.");
         return { success: false, error: "Mailjet no inicializado" };
+    }
+
+    if (!MAIL_FROM) {
+        console.warn('[mail] MAIL_FROM/MJ_SENDER_EMAIL no configurado. No se enviará el email.');
+        return { success: false, error: "Sender email no configurado" };
     }
 
     const recipients = Array.isArray(to)
