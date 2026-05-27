@@ -1,10 +1,7 @@
 const ScraperMonitor = require('../services/scraper_monitor.service');
 const ProductsService = require('../services/products.service');
+const CategoryMaintenanceService = require('../services/scraper_category_maintenance.service');
 
-/**
- * GET /admin/scraper/status
- * Estado live de la cola: job corriendo, jobs en espera.
- */
 exports.getQueueStatus = async (req, res) => {
     try {
         const status = await ScraperMonitor.getLiveStatus();
@@ -15,16 +12,6 @@ exports.getQueueStatus = async (req, res) => {
     }
 };
 
-/**
- * GET /admin/scraper/history
- * Historial paginado de jobs.
- *
- * Query params:
- *   page    (default 1)
- *   limit   (default 20)
- *   status  'enqueued' | 'running' | 'completed' | 'failed'
- *   type    'sitemapScraper' | 'categoryScraper' | 'sitemapAnalysis'
- */
 exports.getHistory = async (req, res) => {
     try {
         const { page, limit, status, type } = req.query;
@@ -41,10 +28,6 @@ exports.getHistory = async (req, res) => {
     }
 };
 
-/**
- * GET /admin/scraper/history/:jobId
- * Detalle de un job específico.
- */
 exports.getJobDetail = async (req, res) => {
     try {
         const job = await ScraperMonitor.getJobById(req.params.jobId);
@@ -56,10 +39,6 @@ exports.getJobDetail = async (req, res) => {
     }
 };
 
-/**
- * GET /admin/scraper/stats
- * Stats resumidas para el dashboard: totales, tasa de error, duración promedio.
- */
 exports.getDashboardStats = async (req, res) => {
     try {
         const stats = await ScraperMonitor.getDashboardStats();
@@ -70,12 +49,6 @@ exports.getDashboardStats = async (req, res) => {
     }
 };
 
-/**
- * POST /admin/scraper/trigger
- * Dispara un scraper desde el panel admin (igual que config.routes pero centralizado).
- *
- * Body: { scraperType: 'sitemapScraper' | 'categoryScraper', ...params }
- */
 exports.triggerScraper = async (req, res) => {
     const { scraperType, ...params } = req.body;
     try {
@@ -93,10 +66,6 @@ exports.triggerScraper = async (req, res) => {
     }
 };
 
-/**
- * POST /admin/scraper/analyze
- * Dispara el análisis de sitemap desde el panel admin.
- */
 exports.triggerAnalysis = async (req, res) => {
     try {
         const result = await ProductsService.runSitemapAnalysis(req.body);
@@ -109,12 +78,40 @@ exports.triggerAnalysis = async (req, res) => {
     }
 };
 
+exports.restoreOfficialCategories = async (req, res) => {
+    try {
+        const result = await CategoryMaintenanceService.restoreOfficialCategories(req.body);
+        res.status(202).json({
+            message: 'Restauración de categorías oficiales encolada/iniciada',
+            result,
+        });
+    } catch (error) {
+        res.status(error.statusCode || 500).json({
+            error: error.message || 'Error al restaurar categorías oficiales',
+            details: error.details,
+        });
+    }
+};
+
+exports.reorganizeCategories = async (req, res) => {
+    try {
+        const result = await CategoryMaintenanceService.reorganizeCategories(req.body);
+        res.status(202).json({
+            message: 'Reorganización de categorías encolada/iniciada',
+            result,
+        });
+    } catch (error) {
+        res.status(error.statusCode || 500).json({
+            error: error.message || 'Error al reorganizar categorías',
+            details: error.details,
+        });
+    }
+};
+
 exports.cancelJobById = async (req, res, next) => {
     try {
         const { jobId } = req.params;
-
         const result = await ScraperMonitor.cancelJobById(jobId);
-
         return res.status(result.httpStatus || 200).json(result);
     } catch (error) {
         next(error);
@@ -124,7 +121,6 @@ exports.cancelJobById = async (req, res, next) => {
 exports.cancelAllPendingJobs = async (req, res, next) => {
     try {
         const result = await ScraperMonitor.cancelAllPendingJobs();
-
         return res.status(200).json(result);
     } catch (error) {
         next(error);

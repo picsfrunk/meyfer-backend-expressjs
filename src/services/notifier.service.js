@@ -1,12 +1,13 @@
 const Config = require('../models/config.model');
 const emailService = require('./email.service');
 
-/**
- * Orquestador de acciones tras finalizar el scraping.
- * Recibe opcionalmente `queueInfo` con datos de cola para enriquecer el email.
- */
+const CATEGORY_MAINTENANCE_TYPES = ['categoriesRestore', 'categoriesReorganize'];
+
 async function notifyScraper(payload) {
-    if (payload.status === 'success') {
+    const shouldUpdateCatalogTimestamp = payload.status === 'success'
+        && !CATEGORY_MAINTENANCE_TYPES.includes(payload.source);
+
+    if (shouldUpdateCatalogTimestamp) {
         await Config.findOneAndUpdate(
             { key: 'last_update' },
             { value: new Date() },
@@ -23,10 +24,6 @@ async function notifyScraper(payload) {
     return { success: true };
 }
 
-/**
- * Notificación de resultado de verificación de precios.
- * Se llama desde webhook.controller cuando llega el resultado del priceChecker.
- */
 async function notifyPriceCheck(payload) {
     try {
         await emailService.sendPriceCheckNotification(payload);
