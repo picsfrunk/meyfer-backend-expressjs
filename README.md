@@ -1,4 +1,3 @@
-
 # Meyfer Backend (Express.js)
 
 Este es el backend del proyecto **Meyfer**, construido con Node.js, Express.js y MongoDB. Centraliza tres responsabilidades principales: parsear y servir el catálogo de productos desde un Excel remoto, orquestar scrapers y monitores de precios externos, y gestionar pedidos con notificaciones por email a admins y clientes.
@@ -16,7 +15,7 @@ Este es el backend del proyecto **Meyfer**, construido con Node.js, Express.js y
 
 ## 📁 Estructura del proyecto
 
-```
+```text
 meyfer-backend-expressjs/
 ├── src/
 │   ├── controllers/       # Controladores de las rutas
@@ -73,6 +72,9 @@ SITEMAP_ANALYSIS_URL=http://localhost:3001/api/scraper/analyze
 PRICE_CHECK_URL=http://localhost:3001/api/scraper/check-prices
 SCRAPER_STATUS_URL=http://localhost:3001/api/scraper/status
 SCRAPER_URL=http://localhost:3001/api/scraper
+# Opcionales: si no se configuran, se derivan desde SCRAPER_URL
+SCRAPER_CATEGORIES_RESTORE_URL=http://localhost:3001/api/scraper/categories/restore-official
+SCRAPER_CATEGORIES_REORGANIZE_URL=http://localhost:3001/api/scraper/categories/reorganize
 
 # Webhooks (URL del backend para que los scrapers devuelvan resultados)
 WEBHOOK_URL=http://localhost:3000/api/webhook/scraper/result
@@ -155,6 +157,25 @@ Checklist rápido si el historial del scraper no se actualiza:
 2. Verificar que el microservicio scraper esté recibiendo y usando el `webhookUrl` enviado por el backend.
 3. Verificar que MongoDB esté conectado y que los eventos creen/actualicen documentos `ScraperJob`.
 4. Probar manualmente `POST /api/webhook/scraper/result` con un payload `completed` de prueba y luego consultar `/api/admin/scraper/history`.
+
+## 🧩 Mantenimiento seguro de categorías
+
+El backend puede orquestar los jobs agregados en el scraper para recuperar categorías sin ejecutar el scrape completo de productos.
+
+Endpoints admin:
+
+- `POST /api/admin/scraper/categories/restore-official`
+- `POST /api/admin/scraper/categories/reorganize`
+
+Flujo recomendado ante categorías corruptas o incompletas:
+
+1. Ejecutar restore oficial para restaurar `configs.discoveredCategories` desde `rubros.js` en el scraper.
+2. Ejecutar reorganización con `dryRun: true`.
+3. Revisar `/api/admin/scraper/status` o `/api/admin/scraper/history`.
+4. Ejecutar reorganización con `dryRun: false`.
+5. Para futuros scrapes completos por categoría, enviar `useAutoDiscovery: false` al `categoryScraper` desde `/api/admin/scraper/trigger`.
+
+Estos jobs se persisten en `ScraperJob` con tipos `categoriesRestore` y `categoriesReorganize`. No actualizan `last_update` del catálogo porque no representan una actualización comercial de productos.
 
 ## ☁️ Despliegue en Railway
 
