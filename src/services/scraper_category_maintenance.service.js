@@ -17,11 +17,10 @@ const resolveScraperUrl = (explicitUrl, fallbackPath, envName) => {
 
 const postToScraper = async (url, params = {}) => {
     try {
-        const response = await axios.post(url, {
-            webhookUrl: process.env.WEBHOOK_URL,
-            ...params,
-        });
+        const requestBody = { ...params };
+        requestBody.webhookUrl = process.env.WEBHOOK_URL;
 
+        const response = await axios.post(url, requestBody);
         return response.data;
     } catch (error) {
         throw {
