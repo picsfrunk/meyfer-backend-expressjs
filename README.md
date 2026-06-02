@@ -139,6 +139,30 @@ Los logs eliminados usan soft delete (`isDeleted`, `deletedAt`) y no aparecen en
 
 El backend le envía al microservicio scraper la URL de respuesta en el campo `webhookUrl`. El scraper no debería tener hardcodeado el endpoint del backend: debe usar la URL recibida.
 
+### Modo limitado de scraper
+
+El endpoint admin `POST /api/admin/scraper/trigger` acepta parámetros opcionales para disparar corridas limitadas de `categoryScraper` o `sitemapScraper` sin exponer públicamente el microservicio scraper:
+
+```json
+{
+  "scraperType": "categoryScraper",
+  "categoryIds": "all",
+  "testMode": true,
+  "limitProducts": 10,
+  "limitCategories": 1,
+  "skipImages": true
+}
+```
+
+Parámetros validados por el backend antes de reenviar al scraper:
+
+- `testMode`: boolean.
+- `skipImages`: boolean.
+- `limitProducts`: entero positivo, máximo `100`.
+- `limitCategories`: entero positivo, máximo `5`.
+
+`limitProducts` no implica `dryRun`: una corrida limitada puede persistir esos pocos productos si el scraper real persiste. En modo limitado, el scraper omite la limpieza de huérfanos. Este modo sirve para pruebas rápidas y validación de webhooks/cancelación.
+
 Endpoints reales que recibe este backend:
 
 - `POST /api/webhook/scraper/result`

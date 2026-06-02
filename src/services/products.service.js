@@ -10,6 +10,95 @@ const { uploadProductImage, deleteProductImage } = require('./cloudinary.service
 
 // ─── Helpers internos ────────────────────────────────────────────────────────
 
+const SCRAPER_LIMITS = {
+    limitProducts: 100,
+    limitCategories: 5,
+};
+
+const LIMITED_SCRAPER_PARAMS = ['testMode', 'limitProducts', 'limitCategories', 'skipImages'];
+
+const hasOwn = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
+
+const normalizeOptionalBoolean = (params, key) => {
+    if (!hasOwn(params, key)) return undefined;
+
+    const value = params[key];
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        if (normalized === 'true') return true;
+        if (normalized === 'false') return false;
+    }
+
+    throw {
+        statusCode: 400,
+        message: `Parámetro inválido: ${key} debe ser boolean`,
+        details: { field: key, value },
+    };
+};
+
+const normalizeOptionalPositiveInteger = (params, key, max) => {
+    if (!hasOwn(params, key)) return undefined;
+
+    const value = params[key];
+    const parsed = typeof value === 'string' && value.trim() !== ''
+        ? Number(value)
+        : value;
+
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+        throw {
+            statusCode: 400,
+            message: `Parámetro inválido: ${key} debe ser un entero positivo`,
+            details: { field: key, value },
+        };
+    }
+
+    if (parsed > max) {
+        throw {
+            statusCode: 400,
+            message: `Parámetro inválido: ${key} no puede ser mayor a ${max}`,
+            details: { field: key, value, max },
+        };
+    }
+
+    return parsed;
+};
+
+const normalizeLimitedScraperParams = (params = {}) => {
+    const normalized = { ...params };
+
+    const testMode = normalizeOptionalBoolean(params, 'testMode');
+    const skipImages = normalizeOptionalBoolean(params, 'skipImages');
+    const limitProducts = normalizeOptionalPositiveInteger(
+        params,
+        'limitProducts',
+        SCRAPER_LIMITS.limitProducts
+    );
+    const limitCategories = normalizeOptionalPositiveInteger(
+        params,
+        'limitCategories',
+        SCRAPER_LIMITS.limitCategories
+    );
+
+    if (testMode !== undefined) normalized.testMode = testMode;
+    if (skipImages !== undefined) normalized.skipImages = skipImages;
+    if (limitProducts !== undefined) normalized.limitProducts = limitProducts;
+    if (limitCategories !== undefined) normalized.limitCategories = limitCategories;
+
+    const hasLimitedParams = LIMITED_SCRAPER_PARAMS.some(key => hasOwn(params, key));
+    if (hasLimitedParams) {
+        console.log(
+            `[scraper-test-mode] forwarding limited scraper run ` +
+            `testMode=${normalized.testMode ?? false} ` +
+            `limitProducts=${normalized.limitProducts ?? '-'} ` +
+            `limitCategories=${normalized.limitCategories ?? '-'} ` +
+            `skipImages=${normalized.skipImages ?? false}`
+        );
+    }
+
+    return normalized;
+};
+
 /**
  * Obtiene el margen de ganancia vigente desde la config.
  * @returns {Promise<number>} margen en porcentaje (ej: 30)
@@ -109,10 +198,13 @@ const runScraper = async (scraperType, params = {}) => {
             throw { statusCode: 400, message: 'Tipo de scraper inválido o URL no configurada' };
         }
 
-        const response = await axios.post(scraperUrl, { webhookUrl: process.env.WEBHOOK_URL, ...params });
+        const normalizedParams = normalizeLimitedScraperParams(params);
+        const response = await axios.post(scraperUrl, { webhookUrl: process.env.WEBHOOK_URL, ...normalizedParams });
         return response.data;
 
     } catch (error) {
+        if (error.statusCode) throw error;
+
         throw {
             statusCode: error.response?.status || 500,
             message: error.message || 'Error desconocido en el scraper',
