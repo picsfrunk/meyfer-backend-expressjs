@@ -79,6 +79,7 @@ SCRAPER_CATEGORIES_REORGANIZE_URL=http://localhost:3001/api/scraper/categories/r
 # Webhooks (URL del backend para que los scrapers devuelvan resultados)
 WEBHOOK_URL=http://localhost:3000/api/webhook/scraper/result
 WEBHOOK_PRICE_CHECK_URL=http://localhost:3000/api/webhook/price-check/result
+SCRAPER_WEBHOOK_SECRET=change-me
 ```
 
 > **Nota:** `MONGODB_URI_DEV` se usa cuando `NODE_ENV=development`; `MONGODB_URI_PROD` cuando `NODE_ENV=production`. El README anterior mencionaba `MONGO_URI`, que ya **no existe** en el código.
@@ -168,11 +169,14 @@ Endpoints reales que recibe este backend:
 - `POST /api/webhook/scraper/result`
 - `POST /api/webhook/price-check/result`
 
+Ambos endpoints públicos requieren el header `X-Webhook-Secret` con el mismo valor configurado en `SCRAPER_WEBHOOK_SECRET`. Esta variable debe existir en backend y scraper, con idéntico valor en ambos servicios. No debe commitearse en el repositorio. En Railway hay que agregarla como variable de entorno en backend y scraper; después de cambiarla, redeployar ambos servicios.
+
 Variables críticas en producción:
 
 ```env
 WEBHOOK_URL=https://<backend-production-url>/api/webhook/scraper/result
 WEBHOOK_PRICE_CHECK_URL=https://<backend-production-url>/api/webhook/price-check/result
+SCRAPER_WEBHOOK_SECRET=<mismo-secreto-configurado-en-el-scraper>
 ```
 
 Checklist rápido si el historial del scraper no se actualiza:
