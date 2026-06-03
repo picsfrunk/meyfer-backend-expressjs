@@ -120,7 +120,10 @@ SCRAPER_CATEGORIES_REORGANIZE_URL=http://localhost:3001/api/scraper/categories/r
 
 ```env
 WEBHOOK_URL=http://localhost:3000/api/webhook/scraper/result
+SCRAPER_WEBHOOK_SECRET=change-me
 ```
+
+`SCRAPER_WEBHOOK_SECRET` debe configurarse con el mismo valor en backend y scraper. El scraper debe enviarlo en el header `X-Webhook-Secret` al llamar los webhooks del backend.
 
 ## Seguridad del cambio
 
