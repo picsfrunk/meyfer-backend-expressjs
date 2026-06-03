@@ -914,6 +914,179 @@
                   "response": []
                 },
                 {
+                  "name": "admin scraper trigger category limited",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "pm.test(\"category limited scraper: returns 202\", function () {",
+                          "  pm.response.to.have.status(202);",
+                          "});",
+                          "",
+                          "pm.test(\"category limited scraper: keeps scraper response wrapper\", function () {",
+                          "  const json = pm.response.json();",
+                          "  pm.expect(json).to.have.property(\"scraperType\");",
+                          "  pm.expect(json).to.have.property(\"result\");",
+                          "});"
+                        ],
+                        "type": "text/javascript",
+                        "packages": {},
+                        "requests": {}
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{JWT}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"scraperType\": \"categoryScraper\",\n  \"categoryIds\": \"all\",\n  \"testMode\": true,\n  \"limitProducts\": 5,\n  \"limitCategories\": 1,\n  \"skipImages\": true\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/admin/scraper/trigger",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "admin",
+                        "scraper",
+                        "trigger"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "admin scraper trigger sitemap limited",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "pm.test(\"sitemap limited scraper: returns 202\", function () {",
+                          "  pm.response.to.have.status(202);",
+                          "});",
+                          "",
+                          "pm.test(\"sitemap limited scraper: keeps scraper response wrapper\", function () {",
+                          "  const json = pm.response.json();",
+                          "  pm.expect(json).to.have.property(\"scraperType\");",
+                          "  pm.expect(json).to.have.property(\"result\");",
+                          "});"
+                        ],
+                        "type": "text/javascript",
+                        "packages": {},
+                        "requests": {}
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{JWT}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"scraperType\": \"sitemapScraper\",\n  \"testMode\": true,\n  \"limitProducts\": 5,\n  \"skipImages\": true\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/admin/scraper/trigger",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "admin",
+                        "scraper",
+                        "trigger"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "admin scraper trigger invalid limited payload",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "pm.test(\"invalid limited scraper payload: returns 400\", function () {",
+                          "  pm.response.to.have.status(400);",
+                          "});",
+                          "",
+                          "pm.test(\"invalid limited scraper payload: returns clear error\", function () {",
+                          "  const json = pm.response.json();",
+                          "  pm.expect(json).to.have.property(\"error\");",
+                          "});"
+                        ],
+                        "type": "text/javascript",
+                        "packages": {},
+                        "requests": {}
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{JWT}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"scraperType\": \"categoryScraper\",\n  \"testMode\": true,\n  \"limitProducts\": -10,\n  \"limitCategories\": \"abc\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/admin/scraper/trigger",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "admin",
+                        "scraper",
+                        "trigger"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
                   "name": "admin scraper analyze",
                   "request": {
                     "method": "POST",
@@ -982,6 +1155,29 @@
                         "scraper",
                         "jobs",
                         "all"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Restore Categories",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:3000/api/admin/scraper/categories/restore-official",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "admin",
+                        "scraper",
+                        "categories",
+                        "restore-official"
                       ]
                     }
                   },
@@ -1558,7 +1754,13 @@
                   "name": "webhook — scraper completed",
                   "request": {
                     "method": "POST",
-                    "header": [],
+                    "header": [
+                      {
+                        "key": "Origin",
+                        "value": "https://admin-meyfer.web.app",
+                        "type": "text"
+                      }
+                    ],
                     "body": {
                       "mode": "raw",
                       "raw": "{\n  \"event\": \"completed\",\n  \"job\": {\n    \"id\": \"sitemapScraper-test-001\",\n    \"type\": \"sitemapScraper\"\n  },\n  \"result\": {\n    \"total\": 320,\n    \"processed\": 320,\n    \"errors\": 2,\n    \"uploaded\": 318,\n    \"orphansDeleted\": 5,\n    \"durationMs\": 94000\n  },\n  \"queueSnapshot\": {\n    \"isRunning\": false,\n    \"running\": null,\n    \"pending\": 0,\n    \"pendingJobs\": []\n  }\n}",
@@ -1569,12 +1771,14 @@
                       }
                     },
                     "url": {
-                      "raw": "http://localhost:3000/api/webhook/scraper/result",
-                      "protocol": "http",
+                      "raw": "https://meyfer-backend-expressjs-production-a5e7.up.railway.app/api/webhook/scraper/result",
+                      "protocol": "https",
                       "host": [
-                        "localhost"
+                        "meyfer-backend-expressjs-production-a5e7",
+                        "up",
+                        "railway",
+                        "app"
                       ],
-                      "port": "3000",
                       "path": [
                         "api",
                         "webhook",

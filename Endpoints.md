@@ -517,6 +517,39 @@ Historial paginado de ejecuciones.
 Dispara manualmente un scraper.
 - **Body:** `{ "scraperType": "sitemapScraper" | "categoryScraper", ...params }`
 
+También acepta parámetros opcionales para corridas limitadas/test mode. El backend los valida, normaliza y reenvía al microservicio scraper:
+
+```json
+{
+  "scraperType": "categoryScraper",
+  "categoryIds": "all",
+  "testMode": true,
+  "limitProducts": 10,
+  "limitCategories": 1,
+  "skipImages": true
+}
+```
+
+Validaciones:
+
+- `testMode`: boolean.
+- `skipImages`: boolean.
+- `limitProducts`: entero positivo, máximo `100`.
+- `limitCategories`: entero positivo, máximo `5`.
+
+Ejemplo para `sitemapScraper` limitado:
+
+```json
+{
+  "scraperType": "sitemapScraper",
+  "testMode": true,
+  "limitProducts": 5,
+  "skipImages": true
+}
+```
+
+`limitProducts` no implica `dryRun`. Una corrida limitada puede persistir esos pocos productos si el scraper real persiste, y el scraper omite limpieza de huérfanos en corridas limitadas. Este modo sirve para pruebas rápidas y validación de webhooks/cancelación.
+
 ### `POST /config/price-check`
 Inicia el monitor de comparación de precios contra la competencia.
 
