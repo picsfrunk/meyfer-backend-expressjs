@@ -565,7 +565,11 @@ Crea un producto manual con carga de imagen a Cloudinary.
 - **Body:** `image` (File), `display_name`, `list_price`, `category_id`.
 
 ### `PUT /admin/products/:productId`
-Actualiza datos o imagen de un producto manual.
+Actualiza datos o imagen de un producto manual o scrapeado.
+- **Content-Type:** `application/json` para actualizar por URL, o `multipart/form-data` para subir archivo.
+- **Body JSON imagen:** `image_url` es el campo canonico y debe ser una URL `http(s)` no vacia. Se acepta `imageUrl` como alias de entrada y se persiste como `image_url`.
+- **Body multipart imagen:** `image` (File) reemplaza la imagen en Cloudinary usando `meyfer/products/product_<productId>` y devuelve la URL resultante en `image_url`.
+- Si se guarda la misma URL, el refresco visual puede depender del cache del navegador/CDN; el backend persiste y devuelve la URL recibida.
 
 ### `DELETE /admin/products/:productId`
 Elimina el producto de la DB y su imagen de Cloudinary.
