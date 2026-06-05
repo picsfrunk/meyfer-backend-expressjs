@@ -99,6 +99,75 @@ const normalizeLimitedScraperParams = (params = {}) => {
     return normalized;
 };
 
+const normalizeImageUrl = (value) => {
+    if (typeof value !== 'string') {
+        throw {
+            statusCode: 400,
+            message: 'image_url debe ser una URL valida',
+            details: { field: 'image_url' },
+        };
+    }
+
+    const imageUrl = value.trim();
+
+    if (!imageUrl) {
+        throw {
+            statusCode: 400,
+            message: 'image_url no puede estar vacio',
+            details: { field: 'image_url' },
+        };
+    }
+
+    try {
+        const parsed = new URL(imageUrl);
+        if (!['http:', 'https:'].includes(parsed.protocol)) {
+            throw new Error('Unsupported protocol');
+        }
+    } catch (_error) {
+        throw {
+            statusCode: 400,
+            message: 'image_url debe ser una URL http(s) valida',
+            details: { field: 'image_url', value },
+        };
+    }
+
+    return imageUrl;
+};
+
+const normalizeImageUrlFields = (safeData, hasImageBuffer = false) => {
+    const hasSnakeCase = hasOwn(safeData, 'image_url');
+    const hasCamelCase = hasOwn(safeData, 'imageUrl');
+
+    if (hasSnakeCase && hasCamelCase) {
+        const snakeCaseUrl = normalizeImageUrl(safeData.image_url);
+        const camelCaseUrl = normalizeImageUrl(safeData.imageUrl);
+
+        if (snakeCaseUrl !== camelCaseUrl) {
+            throw {
+                statusCode: 400,
+                message: 'Enviar solo image_url o imageUrl para actualizar la imagen',
+                details: { fields: ['image_url', 'imageUrl'] },
+            };
+        }
+
+        safeData.image_url = snakeCaseUrl;
+    }
+
+    if (!hasSnakeCase && hasCamelCase) {
+        safeData.image_url = safeData.imageUrl;
+    }
+
+    delete safeData.imageUrl;
+
+    if (hasImageBuffer) {
+        return;
+    }
+
+    if (hasOwn(safeData, 'image_url')) {
+        safeData.image_url = normalizeImageUrl(safeData.image_url);
+    }
+};
+
 /**
  * Obtiene el margen de ganancia vigente desde la config.
  * @returns {Promise<number>} margen en porcentaje (ej: 30)
@@ -420,6 +489,8 @@ const createProduct = async (data, imageBuffer = null) => {
  *   product_type:   string
  *   list_price:     number  → recalcula final_price automáticamente
  *   final_price:    number  → solo se usa si NO viene list_price
+ *   image_url:      string  → URL http(s) canonica para la imagen
+ *   imageUrl:       string  → alias de entrada, se persiste como image_url
  *   image:          File    → campo multipart, reemplaza la imagen en Cloudinary
  * }
  *
@@ -429,6 +500,8 @@ const createProduct = async (data, imageBuffer = null) => {
 const updateProduct = async (productId, data, imageBuffer = null) => {
     // Descartar campos inmutables
     const { _id, product_id, isManual, createdAt, updatedAt, ...safeData } = data;
+
+    normalizeImageUrlFields(safeData, Boolean(imageBuffer));
 
     // Normalizar tipos numéricos si vienen como string (multipart/form-data los manda así)
     if (safeData.list_price !== undefined) {
