@@ -169,6 +169,8 @@ Endpoints reales que recibe este backend:
 
 - `POST /api/webhook/scraper/result`
 - `POST /api/webhook/price-check/result`
+- `GET /api/webhook/price-list-import/jobs/next?status=queued`
+- `POST /api/webhook/price-list-import/jobs/:jobId/claim`
 - `PATCH /api/webhook/price-list-import/jobs/:jobId`
 - `GET /api/webhook/price-list-import/files/:fileId`
 
@@ -199,8 +201,18 @@ Endpoints admin:
 
 Endpoints para worker con `X-Webhook-Secret`:
 
+- `GET /api/webhook/price-list-import/jobs/next?status=queued` devuelve el proximo job queued por `queuedAt` ascendente; responde `204` si no hay jobs
+- `POST /api/webhook/price-list-import/jobs/:jobId/claim` cambia `queued -> running` y setea `startedAt`; responde `409` si el job ya no esta queued
 - `GET /api/webhook/price-list-import/files/:fileId` devuelve metadata y `contentBase64`
 - `PATCH /api/webhook/price-list-import/jobs/:jobId` persiste `status`, `summary`, `errors`, `preview` y `result`
+
+Transiciones validas:
+
+- `queued -> running`
+- `queued -> canceled`
+- `running -> completed`
+- `running -> failed`
+- `running -> canceled`
 
 Checklist rápido si el historial del scraper no se actualiza:
 

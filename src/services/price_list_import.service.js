@@ -133,21 +133,6 @@ async function createManualUploadJob({ file, user }) {
     const jobId = generateJobId();
     const now = new Date();
 
-    const job = await PriceListImportJob.create({
-        jobId,
-        type: 'price-list-import',
-        source: 'manual_upload',
-        status: 'queued',
-        queuedAt: now,
-        requestedBy: actor,
-        metadata: {
-            originalName: file.originalname,
-            mimeType: file.mimetype || null,
-            size: file.size,
-            extension,
-        },
-    });
-
     const importFile = await PriceListImportFile.create({
         originalName: file.originalname,
         mimeType: file.mimetype || null,
@@ -160,8 +145,27 @@ async function createManualUploadJob({ file, user }) {
         expiresAt: new Date(now.getTime() + FILE_TTL_MS),
     });
 
-    job.fileId = importFile._id;
-    await job.save();
+    let job;
+    try {
+        job = await PriceListImportJob.create({
+            jobId,
+            type: 'price-list-import',
+            source: 'manual_upload',
+            status: 'queued',
+            fileId: importFile._id,
+            queuedAt: now,
+            requestedBy: actor,
+            metadata: {
+                originalName: file.originalname,
+                mimeType: file.mimetype || null,
+                size: file.size,
+                extension,
+            },
+        });
+    } catch (error) {
+        await PriceListImportFile.deleteOne({ _id: importFile._id });
+        throw error;
+    }
 
     await PriceListSettings.findOneAndUpdate(
         {},
@@ -180,6 +184,47 @@ async function createManualUploadJob({ file, user }) {
             importJobId: importFile.importJobId,
             expiresAt: importFile.expiresAt,
         },
+    };
+}
+
+async function getNextJobForWorker({ status = 'queued' } = {}) {
+    if (status !== 'queued') {
+        throw {
+            statusCode: 400,
+            message: 'Solo se puede consultar el proximo job queued',
+            details: { status },
+        };
+    }
+
+    return PriceListImportJob.findOne({ status: 'queued' })
+        .sort({ queuedAt: 1 })
+        .lean();
+}
+
+async function claimJobForWorker(jobId) {
+    const now = new Date();
+    const job = await PriceListImportJob.findOneAndUpdate(
+        { jobId, status: 'queued' },
+        {
+            $set: {
+                status: 'running',
+                startedAt: now,
+            },
+        },
+        { new: true }
+    ).lean();
+
+    if (job) return job;
+
+    const existing = await PriceListImportJob.findOne({ jobId }).lean();
+    if (!existing) {
+        throw { statusCode: 404, message: 'Job de importacion no encontrado' };
+    }
+
+    throw {
+        statusCode: 409,
+        message: 'El job ya no esta queued',
+        details: { jobId, currentStatus: existing.status },
     };
 }
 
@@ -259,6 +304,29 @@ async function updateJobResult({ jobId, status, summary, errors, preview, result
         };
     }
 
+    const existing = await PriceListImportJob.findOne({ jobId }).lean();
+    if (!existing) {
+        throw { statusCode: 404, message: 'Job de importacion no encontrado' };
+    }
+
+    const allowedTransitions = {
+        queued: ['running', 'canceled'],
+        running: ['completed', 'failed', 'canceled'],
+    };
+    const allowedNextStatuses = allowedTransitions[existing.status] ?? [];
+    if (!allowedNextStatuses.includes(status)) {
+        throw {
+            statusCode: 409,
+            message: 'Transicion de estado invalida',
+            details: {
+                jobId,
+                currentStatus: existing.status,
+                requestedStatus: status,
+                allowedNextStatuses,
+            },
+        };
+    }
+
     const now = new Date();
     const update = {
         status,
@@ -283,10 +351,6 @@ async function updateJobResult({ jobId, status, summary, errors, preview, result
         { $set: update },
         { new: true }
     ).lean();
-
-    if (!job) {
-        throw { statusCode: 404, message: 'Job de importacion no encontrado' };
-    }
 
     if (status === 'failed') {
         await PriceListSettings.findOneAndUpdate(
@@ -324,6 +388,8 @@ module.exports = {
     createConfiguredUrlJob,
     getJobs,
     getJobById,
+    getNextJobForWorker,
+    claimJobForWorker,
     updateJobResult,
     getImportFileForWorker,
 };

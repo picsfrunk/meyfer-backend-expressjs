@@ -181,6 +181,8 @@ exports.priceCheckFinished = async (req, res) => {
 };
 
 exports.priceListImportJobUpdated = PriceListImportController.workerUpdateJobResult;
+exports.getNextPriceListImportJob = PriceListImportController.workerGetNextJob;
+exports.claimPriceListImportJob = PriceListImportController.workerClaimJob;
 exports.getPriceListImportFile = PriceListImportController.workerGetImportFile;
 
 async function _handlePriceCheckEvent(body) {

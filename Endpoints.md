@@ -475,6 +475,8 @@ Consulta estado, resumen, errores, preview y resultado persistido del job.
 
 ### Worker webhooks
 Requieren `X-Webhook-Secret`.
+- `GET /webhook/price-list-import/jobs/next?status=queued`: devuelve el próximo job `queued`, ordenado por `queuedAt` ascendente. Responde `204` si no hay jobs.
+- `POST /webhook/price-list-import/jobs/:jobId/claim`: cambia `queued -> running` y setea `startedAt`. Responde `409` si el job ya no está `queued`.
 - `GET /webhook/price-list-import/files/:fileId`: devuelve metadata y `contentBase64` del archivo temporal.
 - `PATCH /webhook/price-list-import/jobs/:jobId`: persiste resultado del worker. Body ejemplo:
 ```json
@@ -486,6 +488,14 @@ Requieren `X-Webhook-Secret`.
   "result": { "durationMs": 12000 }
 }
 ```
+
+Transiciones válidas:
+
+- `queued -> running`
+- `queued -> canceled`
+- `running -> completed`
+- `running -> failed`
+- `running -> canceled`
 
 ---
 

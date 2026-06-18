@@ -127,6 +127,31 @@ exports.workerUpdateJobResult = async (req, res) => {
     }
 };
 
+exports.workerGetNextJob = async (req, res) => {
+    try {
+        const job = await PriceListImportService.getNextJobForWorker({
+            status: req.query.status || 'queued',
+        });
+
+        if (!job) {
+            return res.status(204).send();
+        }
+
+        res.json({ job });
+    } catch (error) {
+        handleError(res, error, 'Error al obtener proximo job de importacion');
+    }
+};
+
+exports.workerClaimJob = async (req, res) => {
+    try {
+        const job = await PriceListImportService.claimJobForWorker(req.params.jobId);
+        res.json({ message: 'Job de importacion reclamado', job });
+    } catch (error) {
+        handleError(res, error, 'Error al reclamar job de importacion');
+    }
+};
+
 exports.workerGetImportFile = async (req, res) => {
     try {
         const file = await PriceListImportService.getImportFileForWorker(req.params.fileId);
