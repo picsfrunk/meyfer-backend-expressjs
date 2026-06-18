@@ -15,7 +15,7 @@ Autentica al administrador.
 
 ## 🛒 Productos (Público)
 ### `GET /products/parsed`
-Obtiene el catálogo estructurado desde el archivo Excel.
+Obtiene el catálogo estructurado persistido. La importación CSV/XLSX ya no se procesa en backend.
 
 ### `GET /products/scraped`
 Obtiene productos scrapeados de la base de datos con paginación y filtros.
@@ -440,6 +440,52 @@ Lista de emails que reciben notificaciones del sistema.
 ### `POST /config/admin-emails`
 Agrega un nuevo admin/vendedor.
 - **Body:** `{ "email": "...", "role": "admin" | "seller" }`
+
+---
+
+## 📥 Importación de Lista de Precios (Admin)
+El backend coordina la importación y no parsea filas CSV/XLSX. Los jobs quedan en Mongo para que el worker/scraper los tome.
+
+### `GET /admin/price-list-import/settings`
+Devuelve la configuración persistida de lista de precios.
+
+### `PUT /admin/price-list-import/settings`
+Guarda o actualiza la URL remota de lista de precios.
+- **Body:** `{ "priceListUrl": "https://example.com/lista.xlsx" }`
+
+### `GET /admin/price-list-import/settings/last-modified`
+Devuelve `updatedAt`, `updatedBy`, `lastImportJobId` y `lastError` si existe configuración.
+
+### `POST /admin/price-list-import/upload`
+Sube un archivo manual y crea un job `queued`.
+- **Content-Type:** `multipart/form-data`
+- **Campo archivo:** `file`
+- **Validaciones:** extensión `.csv` o `.xlsx`, MIME permitido si viene informado, tamaño máximo 5 MB, archivo presente.
+- **Response 202:** `{ "message": "...", "job": { "jobId": "...", "status": "queued" }, "file": { "id": "...", "originalName": "...", "size": 80000 } }`
+
+### `POST /admin/price-list-import/jobs/from-configured-url`
+Crea un job `queued` con `source: "remote_configured_url"` usando la URL guardada.
+
+### `GET /admin/price-list-import/jobs`
+Lista jobs de importación.
+- **Query Params:** `page`, `limit`, `status`, `source`.
+
+### `GET /admin/price-list-import/jobs/:jobId`
+Consulta estado, resumen, errores, preview y resultado persistido del job.
+
+### Worker webhooks
+Requieren `X-Webhook-Secret`.
+- `GET /webhook/price-list-import/files/:fileId`: devuelve metadata y `contentBase64` del archivo temporal.
+- `PATCH /webhook/price-list-import/jobs/:jobId`: persiste resultado del worker. Body ejemplo:
+```json
+{
+  "status": "completed",
+  "summary": { "processed": 1608, "updated": 1590, "errors": 0 },
+  "errors": [],
+  "preview": null,
+  "result": { "durationMs": 12000 }
+}
+```
 
 ---
 

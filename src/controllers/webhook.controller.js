@@ -1,5 +1,6 @@
 const { notifyScraper, notifyPriceCheck } = require('../services/notifier.service');
 const ScraperMonitor = require('../services/scraper_monitor.service');
+const PriceListImportController = require('./price_list_import.controller');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SCRAPER WEBHOOK
@@ -178,6 +179,9 @@ exports.priceCheckFinished = async (req, res) => {
         console.error('[webhook.controller] Error procesando price check webhook:', error);
     }
 };
+
+exports.priceListImportJobUpdated = PriceListImportController.workerUpdateJobResult;
+exports.getPriceListImportFile = PriceListImportController.workerGetImportFile;
 
 async function _handlePriceCheckEvent(body) {
     const { status, summary, changed = [], error, timestamp } = body;
