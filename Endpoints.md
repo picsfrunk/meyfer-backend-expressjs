@@ -444,7 +444,7 @@ Agrega un nuevo admin/vendedor.
 ---
 
 ## 📥 Importación de Lista de Precios (Admin)
-El backend coordina la importación y no parsea filas CSV/XLSX. Los jobs quedan en Mongo para que el worker/scraper los tome.
+El backend coordina la importación y no parsea filas CSV/XLSX. El scraper crea el job operativo y devuelve su `jobId`; Mongo conserva un historial local con ese `jobId`/`scraperJobId` y un `backendImportJobId` solo para correlación.
 
 ### `GET /admin/price-list-import/settings`
 Devuelve la configuración persistida de lista de precios.
@@ -457,14 +457,14 @@ Guarda o actualiza la URL remota de lista de precios.
 Devuelve `updatedAt`, `updatedBy`, `lastImportJobId` y `lastError` si existe configuración.
 
 ### `POST /admin/price-list-import/upload`
-Sube un archivo manual y crea un job `queued`.
+Sube un archivo manual, guarda el archivo temporal en Mongo y llama al scraper con `source: "manual_upload"` y `fileId`.
 - **Content-Type:** `multipart/form-data`
 - **Campo archivo:** `file`
 - **Validaciones:** extensión `.csv` o `.xlsx`, MIME permitido si viene informado, tamaño máximo 5 MB, archivo presente.
-- **Response 202:** `{ "message": "...", "job": { "jobId": "...", "status": "queued" }, "file": { "id": "...", "originalName": "...", "size": 80000 } }`
+- **Response 202:** `{ "message": "...", "scraperJobId": "...", "backendImportJobId": "pli_...", "job": { "jobId": "...", "scraperJobId": "...", "status": "queued" }, "file": { "id": "...", "originalName": "...", "size": 80000 } }`
 
 ### `POST /admin/price-list-import/jobs/from-configured-url`
-Crea un job `queued` con `source: "remote_configured_url"` usando la URL guardada.
+Lee la URL guardada y llama al scraper con `source: "remote_configured_url"` y `sourceUrl`.
 
 ### `GET /admin/price-list-import/jobs`
 Lista jobs de importación.
@@ -475,22 +475,23 @@ Consulta estado, resumen, errores, preview y resultado persistido del job.
 
 ### Worker webhooks
 Requieren `X-Webhook-Secret`.
-- `GET /webhook/price-list-import/jobs/next?status=queued`: devuelve el próximo job `queued`, ordenado por `queuedAt` ascendente. Responde `204` si no hay jobs.
-- `POST /webhook/price-list-import/jobs/:jobId/claim`: cambia `queued -> running` y setea `startedAt`. Responde `409` si el job ya no está `queued`.
 - `GET /webhook/price-list-import/files/:fileId`: devuelve metadata y `contentBase64` del archivo temporal.
-- `PATCH /webhook/price-list-import/jobs/:jobId`: persiste resultado del worker. Body ejemplo:
+- `POST /webhook/price-list-import/result`: persiste eventos del scraper. Body ejemplo:
 ```json
 {
-  "status": "completed",
-  "summary": { "processed": 1608, "updated": 1590, "errors": 0 },
-  "errors": [],
-  "preview": null,
-  "result": { "durationMs": 12000 }
+  "event": "completed",
+  "job": { "id": "priceListImport-1718000000000-5", "type": "priceListImport" },
+  "result": {
+    "summary": { "processed": 1608, "updated": 1590, "errors": 0 },
+    "durationMs": 12000
+  }
 }
 ```
 
 Transiciones válidas:
 
+- `queued -> completed`
+- `queued -> failed`
 - `queued -> running`
 - `queued -> canceled`
 - `running -> completed`

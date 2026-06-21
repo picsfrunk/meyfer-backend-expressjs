@@ -71,7 +71,9 @@ exports.uploadManualFile = async (req, res) => {
             user: req.user,
         });
         res.status(202).json({
-            message: 'Archivo recibido; job de importacion encolado',
+            message: 'Archivo recibido; importacion iniciada en scraper',
+            scraperJobId: result.scraperJobId,
+            backendImportJobId: result.backendImportJobId,
             job: result.job,
             file: result.file,
         });
@@ -84,7 +86,9 @@ exports.createJobFromConfiguredUrl = async (req, res) => {
     try {
         const job = await PriceListImportService.createConfiguredUrlJob({ user: req.user });
         res.status(202).json({
-            message: 'Job de importacion desde URL configurada encolado',
+            message: 'Importacion desde URL configurada iniciada en scraper',
+            scraperJobId: job.scraperJobId,
+            backendImportJobId: job.backendImportJobId,
             job,
         });
     } catch (error) {
@@ -110,49 +114,22 @@ exports.getJobById = async (req, res) => {
     }
 };
 
-exports.workerUpdateJobResult = async (req, res) => {
+exports.handlePriceListImportWebhook = async (req, res) => {
     try {
-        const job = await PriceListImportService.updateJobResult({
-            jobId: req.params.jobId,
-            status: req.body.status,
-            summary: req.body.summary,
-            errors: req.body.errors,
-            preview: req.body.preview,
+        const job = await PriceListImportService.updateJobFromScraperEvent({
+            event: req.body.event,
+            job: req.body.job,
             result: req.body.result,
-            details: req.body.details,
+            queueSnapshot: req.body.queueSnapshot,
+            body: req.body,
         });
-        res.json({ message: 'Resultado de importacion persistido', job });
+        res.json({ message: 'Evento de importacion persistido', job });
     } catch (error) {
-        handleError(res, error, 'Error al persistir resultado de importacion');
+        handleError(res, error, 'Error al persistir evento de importacion');
     }
 };
 
-exports.workerGetNextJob = async (req, res) => {
-    try {
-        const job = await PriceListImportService.getNextJobForWorker({
-            status: req.query.status || 'queued',
-        });
-
-        if (!job) {
-            return res.status(204).send();
-        }
-
-        res.json({ job });
-    } catch (error) {
-        handleError(res, error, 'Error al obtener proximo job de importacion');
-    }
-};
-
-exports.workerClaimJob = async (req, res) => {
-    try {
-        const job = await PriceListImportService.claimJobForWorker(req.params.jobId);
-        res.json({ message: 'Job de importacion reclamado', job });
-    } catch (error) {
-        handleError(res, error, 'Error al reclamar job de importacion');
-    }
-};
-
-exports.workerGetImportFile = async (req, res) => {
+exports.getImportFileForScraper = async (req, res) => {
     try {
         const file = await PriceListImportService.getImportFileForWorker(req.params.fileId);
         res.json({

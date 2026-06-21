@@ -1,6 +1,7 @@
 const { notifyScraper, notifyPriceCheck } = require('../services/notifier.service');
 const ScraperMonitor = require('../services/scraper_monitor.service');
 const PriceListImportController = require('./price_list_import.controller');
+const PriceListImportService = require('../services/price_list_import.service');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SCRAPER WEBHOOK
@@ -31,6 +32,16 @@ async function _handleScraperEvent(body) {
     } = body;
 
     console.log(`[webhook] scraper evento: ${event ?? 'legado'} | job: ${job?.id ?? '-'} | type: ${job?.type ?? '-'}`);
+
+    if (job?.type === 'priceListImport') {
+        await PriceListImportService.updateJobFromScraperEvent({
+            event,
+            job,
+            result,
+            queueSnapshot,
+            body,
+        });
+    }
 
     switch (event) {
 
@@ -180,10 +191,8 @@ exports.priceCheckFinished = async (req, res) => {
     }
 };
 
-exports.priceListImportJobUpdated = PriceListImportController.workerUpdateJobResult;
-exports.getNextPriceListImportJob = PriceListImportController.workerGetNextJob;
-exports.claimPriceListImportJob = PriceListImportController.workerClaimJob;
-exports.getPriceListImportFile = PriceListImportController.workerGetImportFile;
+exports.priceListImportFinished = PriceListImportController.handlePriceListImportWebhook;
+exports.getPriceListImportFile = PriceListImportController.getImportFileForScraper;
 
 async function _handlePriceCheckEvent(body) {
     const { status, summary, changed = [], error, timestamp } = body;

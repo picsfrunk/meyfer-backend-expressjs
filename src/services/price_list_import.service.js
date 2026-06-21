@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const path = require('path');
+const axios = require('axios');
 const PriceListSettings = require('../models/price_list_settings.model');
 const PriceListImportFile = require('../models/price_list_import_file.model');
 const PriceListImportJob = require('../models/price_list_import_job.model');
@@ -16,6 +17,76 @@ const FILE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 function generateJobId() {
     return `pli_${Date.now()}_${crypto.randomBytes(6).toString('hex')}`;
+}
+
+function trimTrailingSlash(value) {
+    return value.replace(/\/+$/, '');
+}
+
+function getPriceListImportScraperUrl() {
+    if (process.env.PRICE_LIST_IMPORT_SCRAPER_URL) {
+        return process.env.PRICE_LIST_IMPORT_SCRAPER_URL;
+    }
+
+    if (process.env.SCRAPER_API_URL) {
+        return `${trimTrailingSlash(process.env.SCRAPER_API_URL)}/scraper/price-list-import`;
+    }
+
+    if (process.env.SCRAPER_BASE_URL) {
+        return `${trimTrailingSlash(process.env.SCRAPER_BASE_URL)}/api/scraper/price-list-import`;
+    }
+
+    if (process.env.SCRAPER_URL) {
+        return `${trimTrailingSlash(process.env.SCRAPER_URL)}/price-list-import`;
+    }
+
+    throw {
+        statusCode: 503,
+        message: 'PRICE_LIST_IMPORT_SCRAPER_URL no está configurada en el entorno del backend',
+    };
+}
+
+function getPriceListImportWebhookUrl() {
+    const webhookUrl = process.env.WEBHOOK_PRICE_LIST_IMPORT_URL || process.env.WEBHOOK_URL;
+    if (!webhookUrl) {
+        throw {
+            statusCode: 503,
+            message: 'WEBHOOK_PRICE_LIST_IMPORT_URL o WEBHOOK_URL deben estar configuradas en el entorno del backend',
+        };
+    }
+    return webhookUrl;
+}
+
+function getScraperJobId(responseData) {
+    return responseData?.jobId || responseData?.job?.id || responseData?.id || null;
+}
+
+async function triggerPriceListImportScraper(payload) {
+    const url = getPriceListImportScraperUrl();
+    const webhookUrl = getPriceListImportWebhookUrl();
+
+    try {
+        const response = await axios.post(url, { webhookUrl, ...payload });
+        const scraperJobId = getScraperJobId(response.data);
+
+        if (!scraperJobId) {
+            throw {
+                statusCode: 502,
+                message: 'El scraper no devolvio jobId para la importacion de lista de precios',
+                details: response.data ?? null,
+            };
+        }
+
+        return { scraperJobId, response: response.data };
+    } catch (error) {
+        if (error.statusCode) throw error;
+
+        throw {
+            statusCode: error.response?.status || 502,
+            message: error.message || 'Error al iniciar importacion de lista de precios en scraper',
+            details: error.response?.data || null,
+        };
+    }
 }
 
 function getActor(user) {
@@ -130,7 +201,7 @@ function validateImportFile(file) {
 async function createManualUploadJob({ file, user }) {
     const extension = validateImportFile(file);
     const actor = getActor(user);
-    const jobId = generateJobId();
+    const backendImportJobId = generateJobId();
     const now = new Date();
 
     const importFile = await PriceListImportFile.create({
@@ -141,91 +212,67 @@ async function createManualUploadJob({ file, user }) {
         buffer: file.buffer,
         uploadedAt: now,
         uploadedBy: actor,
-        importJobId: jobId,
+        importJobId: backendImportJobId,
         expiresAt: new Date(now.getTime() + FILE_TTL_MS),
     });
 
-    let job;
+    let scraperAccepted = false;
     try {
-        job = await PriceListImportJob.create({
-            jobId,
+        const metadata = {
+            originalName: file.originalname,
+            mimeType: file.mimetype || null,
+            size: file.size,
+            extension,
+        };
+        const { scraperJobId, response } = await triggerPriceListImportScraper({
+            source: 'manual_upload',
+            fileId: importFile._id.toString(),
+            metadata,
+            backendImportJobId,
+            requestId: backendImportJobId,
+        });
+        scraperAccepted = true;
+
+        const job = await PriceListImportJob.create({
+            jobId: scraperJobId,
+            scraperJobId,
+            backendImportJobId,
             type: 'price-list-import',
             source: 'manual_upload',
             status: 'queued',
             fileId: importFile._id,
             queuedAt: now,
             requestedBy: actor,
-            metadata: {
-                originalName: file.originalname,
-                mimeType: file.mimetype || null,
-                size: file.size,
-                extension,
-            },
+            metadata: { ...metadata, scraperResponse: response },
         });
+
+        await PriceListSettings.findOneAndUpdate(
+            {},
+            { $set: { lastImportJobId: scraperJobId, lastError: null } },
+            { upsert: true, new: true, sort: { updatedAt: -1 } }
+        );
+
+        return {
+            job: job.toObject(),
+            scraperJobId,
+            backendImportJobId,
+            scraperResponse: response,
+            file: {
+                id: importFile._id,
+                originalName: importFile.originalName,
+                mimeType: importFile.mimeType,
+                size: importFile.size,
+                uploadedAt: importFile.uploadedAt,
+                importJobId: importFile.importJobId,
+                expiresAt: importFile.expiresAt,
+            },
+        };
     } catch (error) {
-        await PriceListImportFile.deleteOne({ _id: importFile._id });
+        if (!scraperAccepted) {
+            await PriceListImportFile.deleteOne({ _id: importFile._id });
+        }
         throw error;
     }
-
-    await PriceListSettings.findOneAndUpdate(
-        {},
-        { $set: { lastImportJobId: jobId, lastError: null } },
-        { upsert: true, new: true, sort: { updatedAt: -1 } }
-    );
-
-    return {
-        job: job.toObject(),
-        file: {
-            id: importFile._id,
-            originalName: importFile.originalName,
-            mimeType: importFile.mimeType,
-            size: importFile.size,
-            uploadedAt: importFile.uploadedAt,
-            importJobId: importFile.importJobId,
-            expiresAt: importFile.expiresAt,
-        },
-    };
-}
-
-async function getNextJobForWorker({ status = 'queued' } = {}) {
-    if (status !== 'queued') {
-        throw {
-            statusCode: 400,
-            message: 'Solo se puede consultar el proximo job queued',
-            details: { status },
-        };
-    }
-
-    return PriceListImportJob.findOne({ status: 'queued' })
-        .sort({ queuedAt: 1 })
-        .lean();
-}
-
-async function claimJobForWorker(jobId) {
-    const now = new Date();
-    const job = await PriceListImportJob.findOneAndUpdate(
-        { jobId, status: 'queued' },
-        {
-            $set: {
-                status: 'running',
-                startedAt: now,
-            },
-        },
-        { new: true }
-    ).lean();
-
-    if (job) return job;
-
-    const existing = await PriceListImportJob.findOne({ jobId }).lean();
-    if (!existing) {
-        throw { statusCode: 404, message: 'Job de importacion no encontrado' };
-    }
-
-    throw {
-        statusCode: 409,
-        message: 'El job ya no esta queued',
-        details: { jobId, currentStatus: existing.status },
-    };
 }
 
 async function createConfiguredUrlJob({ user }) {
@@ -238,25 +285,42 @@ async function createConfiguredUrlJob({ user }) {
         };
     }
 
-    const jobId = generateJobId();
+    const backendImportJobId = generateJobId();
+    const { scraperJobId, response } = await triggerPriceListImportScraper({
+        source: 'remote_configured_url',
+        sourceUrl: settings.priceListUrl,
+        metadata: { configuredSettingsId: settings._id?.toString?.() ?? String(settings._id) },
+        backendImportJobId,
+        requestId: backendImportJobId,
+    });
+
     const job = await PriceListImportJob.create({
-        jobId,
+        jobId: scraperJobId,
+        scraperJobId,
+        backendImportJobId,
         type: 'price-list-import',
         source: 'remote_configured_url',
         status: 'queued',
         sourceUrl: settings.priceListUrl,
         queuedAt: new Date(),
         requestedBy: getActor(user),
+        metadata: { scraperResponse: response },
     });
 
     await PriceListSettings.findByIdAndUpdate(settings._id, {
         $set: {
-            lastImportJobId: jobId,
+            lastImportJobId: scraperJobId,
             lastError: null,
         },
     });
 
-    return job.toObject();
+    const jobObject = job.toObject();
+    return {
+        ...jobObject,
+        scraperJobId,
+        backendImportJobId,
+        scraperResponse: response,
+    };
 }
 
 async function getJobs({ page = 1, limit = 20, status = null, source = null } = {}) {
@@ -287,7 +351,13 @@ async function getJobs({ page = 1, limit = 20, status = null, source = null } = 
 }
 
 async function getJobById(jobId) {
-    const job = await PriceListImportJob.findOne({ jobId }).lean();
+    const job = await PriceListImportJob.findOne({
+        $or: [
+            { jobId },
+            { scraperJobId: jobId },
+            { backendImportJobId: jobId },
+        ],
+    }).lean();
     if (!job) {
         throw { statusCode: 404, message: 'Job de importacion no encontrado' };
     }
@@ -304,16 +374,29 @@ async function updateJobResult({ jobId, status, summary, errors, preview, result
         };
     }
 
-    const existing = await PriceListImportJob.findOne({ jobId }).lean();
+    const identityFilter = {
+        $or: [
+            { jobId },
+            { scraperJobId: jobId },
+            { backendImportJobId: jobId },
+        ],
+    };
+    const existing = await PriceListImportJob.findOne(identityFilter).lean();
     if (!existing) {
         throw { statusCode: 404, message: 'Job de importacion no encontrado' };
     }
 
     const allowedTransitions = {
-        queued: ['running', 'canceled'],
+        queued: ['running', 'completed', 'failed', 'canceled'],
         running: ['completed', 'failed', 'canceled'],
+        completed: ['completed'],
+        failed: ['failed'],
+        canceled: ['canceled'],
     };
-    const allowedNextStatuses = allowedTransitions[existing.status] ?? [];
+    const allowedNextStatuses = [
+        existing.status,
+        ...(allowedTransitions[existing.status] ?? []),
+    ];
     if (!allowedNextStatuses.includes(status)) {
         throw {
             statusCode: 409,
@@ -347,7 +430,7 @@ async function updateJobResult({ jobId, status, summary, errors, preview, result
     }
 
     const job = await PriceListImportJob.findOneAndUpdate(
-        { jobId },
+        { _id: existing._id },
         { $set: update },
         { new: true }
     ).lean();
@@ -355,18 +438,71 @@ async function updateJobResult({ jobId, status, summary, errors, preview, result
     if (status === 'failed') {
         await PriceListSettings.findOneAndUpdate(
             {},
-            { $set: { lastError: update.lastError, lastImportJobId: jobId } },
+            { $set: { lastError: update.lastError, lastImportJobId: existing.scraperJobId || existing.jobId } },
             { upsert: true, new: true, sort: { updatedAt: -1 } }
         );
     } else if (status === 'completed') {
         await PriceListSettings.findOneAndUpdate(
             {},
-            { $set: { lastError: null, lastImportJobId: jobId } },
+            { $set: { lastError: null, lastImportJobId: existing.scraperJobId || existing.jobId } },
             { upsert: true, new: true, sort: { updatedAt: -1 } }
         );
     }
 
     return job;
+}
+
+async function updateJobFromScraperEvent({ event, job, result, queueSnapshot, body }) {
+    const scraperJobId = job?.id || body?.jobId || body?.scraperJobId;
+    if (!scraperJobId) {
+        throw {
+            statusCode: 400,
+            message: 'jobId del scraper requerido para actualizar importacion',
+        };
+    }
+
+    const statusByEvent = {
+        enqueued: 'queued',
+        started: 'running',
+        completed: 'completed',
+        failed: 'failed',
+        canceled: 'canceled',
+    };
+    const statusByPayload = {
+        enqueued: 'queued',
+        started: 'running',
+        running: 'running',
+        success: 'completed',
+        completed: 'completed',
+        error: 'failed',
+        failed: 'failed',
+        canceled: 'canceled',
+    };
+    const rawStatus = statusByEvent[event] || body?.status;
+    const status = statusByPayload[rawStatus] || rawStatus;
+
+    if (!status) {
+        throw {
+            statusCode: 400,
+            message: 'Estado de importacion requerido',
+            details: { event },
+        };
+    }
+
+    return updateJobResult({
+        jobId: scraperJobId,
+        status,
+        summary: result?.summary ?? body?.summary,
+        errors: result?.errors ?? body?.errors,
+        preview: result?.preview ?? body?.preview,
+        result: result ?? body?.result,
+        details: {
+            event,
+            queueSnapshot,
+            scraperJob: job ?? null,
+            payload: body,
+        },
+    });
 }
 
 async function getImportFileForWorker(fileId) {
@@ -388,8 +524,7 @@ module.exports = {
     createConfiguredUrlJob,
     getJobs,
     getJobById,
-    getNextJobForWorker,
-    claimJobForWorker,
     updateJobResult,
+    updateJobFromScraperEvent,
     getImportFileForWorker,
 };

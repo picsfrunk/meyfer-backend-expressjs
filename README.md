@@ -70,16 +70,17 @@ CATEGORY_SCRAPER_URL=http://localhost:3001/api/scraper/category
 SITEMAP_SCRAPER_URL=http://localhost:3001/api/scraper/sitemap
 SITEMAP_ANALYSIS_URL=http://localhost:3001/api/scraper/analyze
 PRICE_CHECK_URL=http://localhost:3001/api/scraper/check-prices
+PRICE_LIST_IMPORT_SCRAPER_URL=http://localhost:3001/api/scraper/price-list-import
 SCRAPER_STATUS_URL=http://localhost:3001/api/scraper/status
 SCRAPER_URL=http://localhost:3001/api/scraper
-# Opcionales: si no se configuran, se derivan desde SCRAPER_URL
+# Opcionales: si no se configuran, algunas URLs se derivan desde SCRAPER_URL
 SCRAPER_CATEGORIES_RESTORE_URL=http://localhost:3001/api/scraper/categories/restore-official
 SCRAPER_CATEGORIES_REORGANIZE_URL=http://localhost:3001/api/scraper/categories/reorganize
 
 # Webhooks (URL del backend para que los scrapers devuelvan resultados)
 WEBHOOK_URL=http://localhost:3000/api/webhook/scraper/result
 WEBHOOK_PRICE_CHECK_URL=http://localhost:3000/api/webhook/price-check/result
-WEBHOOK_PRICE_LIST_IMPORT_URL=http://localhost:3000/api/webhook/price-list-import/jobs/:jobId
+WEBHOOK_PRICE_LIST_IMPORT_URL=http://localhost:3000/api/webhook/price-list-import/result
 SCRAPER_WEBHOOK_SECRET=change-me
 ```
 
@@ -169,9 +170,7 @@ Endpoints reales que recibe este backend:
 
 - `POST /api/webhook/scraper/result`
 - `POST /api/webhook/price-check/result`
-- `GET /api/webhook/price-list-import/jobs/next?status=queued`
-- `POST /api/webhook/price-list-import/jobs/:jobId/claim`
-- `PATCH /api/webhook/price-list-import/jobs/:jobId`
+- `POST /api/webhook/price-list-import/result`
 - `GET /api/webhook/price-list-import/files/:fileId`
 
 Estos endpoints públicos requieren el header `X-Webhook-Secret` con el mismo valor configurado en `SCRAPER_WEBHOOK_SECRET`. Esta variable debe existir en backend y scraper, con idéntico valor en ambos servicios. No debe commitearse en el repositorio. En Railway hay que agregarla como variable de entorno en backend y scraper; después de cambiarla, redeployar ambos servicios.
@@ -181,13 +180,15 @@ Variables críticas en producción:
 ```env
 WEBHOOK_URL=https://<backend-production-url>/api/webhook/scraper/result
 WEBHOOK_PRICE_CHECK_URL=https://<backend-production-url>/api/webhook/price-check/result
-WEBHOOK_PRICE_LIST_IMPORT_URL=https://<backend-production-url>/api/webhook/price-list-import/jobs/:jobId
+WEBHOOK_PRICE_LIST_IMPORT_URL=https://<backend-production-url>/api/webhook/price-list-import/result
 SCRAPER_WEBHOOK_SECRET=<mismo-secreto-configurado-en-el-scraper>
 ```
 
 ## Importacion de lista de precios
 
-El backend no procesa filas CSV/XLSX. Para cargas manuales, el admin sube el archivo a Mongo como documento temporal y el backend crea un job `price-list-import` en estado `queued`. El worker/scraper toma el job y procesa el archivo o la URL configurada.
+El backend no procesa filas CSV/XLSX ni crea el job operativo. Para cargas manuales, el admin sube el archivo a Mongo como documento temporal y el backend llama al scraper con `source: "manual_upload"` y `fileId`. Para URL configurada, llama al scraper con `source: "remote_configured_url"` y `sourceUrl`.
+
+El scraper crea el job operativo y devuelve `jobId`. El backend guarda ese valor como `jobId`/`scraperJobId` en el historial local; el id `pli_*` queda solo como `backendImportJobId` de correlacion.
 
 Endpoints admin:
 
@@ -201,13 +202,13 @@ Endpoints admin:
 
 Endpoints para worker con `X-Webhook-Secret`:
 
-- `GET /api/webhook/price-list-import/jobs/next?status=queued` devuelve el proximo job queued por `queuedAt` ascendente; responde `204` si no hay jobs
-- `POST /api/webhook/price-list-import/jobs/:jobId/claim` cambia `queued -> running` y setea `startedAt`; responde `409` si el job ya no esta queued
 - `GET /api/webhook/price-list-import/files/:fileId` devuelve metadata y `contentBase64`
-- `PATCH /api/webhook/price-list-import/jobs/:jobId` persiste `status`, `summary`, `errors`, `preview` y `result`
+- `POST /api/webhook/price-list-import/result` persiste eventos del scraper (`enqueued`, `started`, `completed`, `failed`, `canceled`)
 
 Transiciones validas:
 
+- `queued -> completed`
+- `queued -> failed`
 - `queued -> running`
 - `queued -> canceled`
 - `running -> completed`

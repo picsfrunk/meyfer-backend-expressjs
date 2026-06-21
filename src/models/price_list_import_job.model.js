@@ -7,6 +7,16 @@ const priceListImportJobSchema = new mongoose.Schema({
         unique: true,
         index: true,
     },
+    scraperJobId: {
+        type: String,
+        default: null,
+        index: true,
+    },
+    backendImportJobId: {
+        type: String,
+        default: null,
+        index: true,
+    },
     type: {
         type: String,
         enum: ['price-list-import'],
