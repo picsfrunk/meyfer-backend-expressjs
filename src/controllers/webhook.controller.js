@@ -1,5 +1,6 @@
 const { notifyScraper, notifyPriceCheck } = require('../services/notifier.service');
 const ScraperMonitor = require('../services/scraper_monitor.service');
+const PriceListImportService = require('../services/price_list_import.service');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SCRAPER WEBHOOK
@@ -176,3 +177,26 @@ async function _handlePriceCheckEvent(body) {
 
     await notifyPriceCheck({ status, summary, changed, error, timestamp });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PRICE LIST IMPORT WEBHOOK
+// Ruta real: POST /api/webhook/price-list-import/result
+// ─────────────────────────────────────────────────────────────────────────────
+
+exports.priceListImportFinished = async (req, res) => {
+    try {
+        const body = req.body;
+        if (!body || typeof body !== 'object') {
+            return res.status(400).json({ message: 'Body inválido' });
+        }
+
+        await PriceListImportService.handleWebhookResult(body);
+        return res.status(200).json({ message: 'Webhook recibido' });
+    } catch (error) {
+        console.error('[webhook.controller] Error procesando price-list-import webhook:', error);
+        return res.status(error.statusCode || 500).json({
+            message: error.message || 'Error procesando price-list-import webhook',
+            details: error.details,
+        });
+    }
+};

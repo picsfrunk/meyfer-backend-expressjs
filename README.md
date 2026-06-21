@@ -70,6 +70,7 @@ CATEGORY_SCRAPER_URL=http://localhost:3001/api/scraper/category
 SITEMAP_SCRAPER_URL=http://localhost:3001/api/scraper/sitemap
 SITEMAP_ANALYSIS_URL=http://localhost:3001/api/scraper/analyze
 PRICE_CHECK_URL=http://localhost:3001/api/scraper/check-prices
+SCRAPER_PRICE_LIST_IMPORT_URL=http://localhost:3001/api/scraper/price-list-import
 SCRAPER_STATUS_URL=http://localhost:3001/api/scraper/status
 SCRAPER_URL=http://localhost:3001/api/scraper
 # Opcionales: si no se configuran, se derivan desde SCRAPER_URL
@@ -79,6 +80,7 @@ SCRAPER_CATEGORIES_REORGANIZE_URL=http://localhost:3001/api/scraper/categories/r
 # Webhooks (URL del backend para que los scrapers devuelvan resultados)
 WEBHOOK_URL=http://localhost:3000/api/webhook/scraper/result
 WEBHOOK_PRICE_CHECK_URL=http://localhost:3000/api/webhook/price-check/result
+WEBHOOK_PRICE_LIST_IMPORT_URL=http://localhost:3000/api/webhook/price-list-import/result
 SCRAPER_WEBHOOK_SECRET=change-me
 ```
 
@@ -168,6 +170,7 @@ Endpoints reales que recibe este backend:
 
 - `POST /api/webhook/scraper/result`
 - `POST /api/webhook/price-check/result`
+- `POST /api/webhook/price-list-import/result`
 
 Ambos endpoints públicos requieren el header `X-Webhook-Secret` con el mismo valor configurado en `SCRAPER_WEBHOOK_SECRET`. Esta variable debe existir en backend y scraper, con idéntico valor en ambos servicios. No debe commitearse en el repositorio. En Railway hay que agregarla como variable de entorno en backend y scraper; después de cambiarla, redeployar ambos servicios.
 
@@ -176,6 +179,7 @@ Variables críticas en producción:
 ```env
 WEBHOOK_URL=https://<backend-production-url>/api/webhook/scraper/result
 WEBHOOK_PRICE_CHECK_URL=https://<backend-production-url>/api/webhook/price-check/result
+WEBHOOK_PRICE_LIST_IMPORT_URL=https://<backend-production-url>/api/webhook/price-list-import/result
 SCRAPER_WEBHOOK_SECRET=<mismo-secreto-configurado-en-el-scraper>
 ```
 
