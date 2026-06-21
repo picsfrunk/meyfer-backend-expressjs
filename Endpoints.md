@@ -553,6 +553,30 @@ Ejemplo para `sitemapScraper` limitado:
 ### `POST /config/price-check`
 Inicia el monitor de comparación de precios contra la competencia.
 
+### `GET /admin/price-list-import/settings`
+Devuelve la URL configurada de lista de precios y el último estado persistido.
+
+### `PUT /admin/price-list-import/settings`
+Guarda la URL configurada de lista de precios.
+
+```json
+{
+  "sourceUrl": "https://proveedor.example/lista.xlsx"
+}
+```
+
+### `POST /admin/price-list-import/import-from-url`
+Inicia una importación usando la URL guardada. El backend llama al scraper y devuelve el `jobId` generado por el scraper.
+
+### `POST /admin/price-list-import/upload`
+Inicia una importación manual con archivo temporal. `Content-Type: multipart/form-data`, campo `file` (`csv` o `xlsx`). El backend guarda temporalmente el archivo, llama al scraper con `fileId` y devuelve el `jobId` generado por el scraper.
+
+### `GET /webhook/price-list-import/files/:fileId`
+Endpoint para que el scraper descargue un archivo temporal. Requiere `X-Webhook-Secret` y responde JSON con `contentBase64`, metadata y extensión.
+
+### `POST /webhook/price-list-import/result`
+Webhook protegido para recibir el resultado del scraper. Requiere `X-Webhook-Secret`.
+
 ### `GET /admin/price-check/latest`
 Obtiene el último reporte de cambios de precios generado.
 

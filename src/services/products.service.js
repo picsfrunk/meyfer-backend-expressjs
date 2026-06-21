@@ -1,7 +1,5 @@
 const axios = require('axios');
-const XLSX = require('xlsx');
-const { EXCEL_URL, DEFAULT_PROFIT } = require("../utils/constants");
-const { processSheetItems } = require('./parser.service');
+const { DEFAULT_PROFIT } = require("../utils/constants");
 const Section = require('../models/sections.model');
 const Config = require('../models/config.model');
 const ScrapedProduct = require('../models/products.model');
@@ -145,7 +143,7 @@ const getProductBrands = async () => {
     }
 };
 
-// ─── Secciones / catálogo XLS ────────────────────────────────────────────────
+// ─── Secciones ───────────────────────────────────────────────────────────────
 
 const getSections = async () => {
     try {
@@ -153,34 +151,6 @@ const getSections = async () => {
     } catch (error) {
         console.error('Error en ProductService al obtener secciones:', error);
         throw { statusCode: 500, message: 'Error al consultar la base de datos', details: error.message };
-    }
-};
-
-const updateCatalogFromXls = async () => {
-    try {
-        const response = await axios.get(EXCEL_URL, { responseType: 'arraybuffer' });
-
-        const workbook = XLSX.read(response.data, { type: 'buffer' });
-        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-        const sheetItems = XLSX.utils.sheet_to_json(worksheet, { raw: true, range: 15 });
-
-        const profit = await getCurrentProfitMargin();
-        const parsedSections = processSheetItems(sheetItems, profit);
-
-        await Section.deleteMany();
-        await Section.insertMany(parsedSections);
-
-        await Config.findOneAndUpdate(
-            { key: 'last_update' },
-            { value: new Date() },
-            { upsert: true, new: true }
-        );
-
-        return { message: 'Catálogo actualizado correctamente' };
-
-    } catch (error) {
-        console.error('Error en ProductService al actualizar catálogo:', error);
-        throw { statusCode: 500, message: 'Error al actualizar el catálogo', details: error.message };
     }
 };
 
@@ -498,7 +468,6 @@ const deleteProduct = async (productId) => {
 };
 
 module.exports = {
-    updateCatalogFromXls,
     runScraper,
     getPaginatedScrapedProducts,
     getScrapedProductById,

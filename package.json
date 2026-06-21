@@ -23,8 +23,7 @@
     "mongoose": "^8.13.2",
     "morgan": "^1.10.0",
     "multer": "^2.1.1",
-    "node-mailjet": "^6.0.9",
-    "xlsx": "^0.18.5"
+    "node-mailjet": "^6.0.9"
   },
   "devDependencies": {
     "cross-env": "^7.0.3",
