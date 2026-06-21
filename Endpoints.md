@@ -15,7 +15,7 @@ Autentica al administrador.
 
 ## 🛒 Productos (Público)
 ### `GET /products/parsed`
-Obtiene el catálogo estructurado persistido. La importación CSV/XLSX ya no se procesa en backend.
+Obtiene el catálogo estructurado desde el archivo Excel.
 
 ### `GET /products/scraped`
 Obtiene productos scrapeados de la base de datos con paginación y filtros.
@@ -443,62 +443,6 @@ Agrega un nuevo admin/vendedor.
 
 ---
 
-## 📥 Importación de Lista de Precios (Admin)
-El backend coordina la importación y no parsea filas CSV/XLSX. Los jobs quedan en Mongo para que el worker/scraper los tome.
-
-### `GET /admin/price-list-import/settings`
-Devuelve la configuración persistida de lista de precios.
-
-### `PUT /admin/price-list-import/settings`
-Guarda o actualiza la URL remota de lista de precios.
-- **Body:** `{ "priceListUrl": "https://example.com/lista.xlsx" }`
-
-### `GET /admin/price-list-import/settings/last-modified`
-Devuelve `updatedAt`, `updatedBy`, `lastImportJobId` y `lastError` si existe configuración.
-
-### `POST /admin/price-list-import/upload`
-Sube un archivo manual y crea un job `queued`.
-- **Content-Type:** `multipart/form-data`
-- **Campo archivo:** `file`
-- **Validaciones:** extensión `.csv` o `.xlsx`, MIME permitido si viene informado, tamaño máximo 5 MB, archivo presente.
-- **Response 202:** `{ "message": "...", "job": { "jobId": "...", "status": "queued" }, "file": { "id": "...", "originalName": "...", "size": 80000 } }`
-
-### `POST /admin/price-list-import/jobs/from-configured-url`
-Crea un job `queued` con `source: "remote_configured_url"` usando la URL guardada.
-
-### `GET /admin/price-list-import/jobs`
-Lista jobs de importación.
-- **Query Params:** `page`, `limit`, `status`, `source`.
-
-### `GET /admin/price-list-import/jobs/:jobId`
-Consulta estado, resumen, errores, preview y resultado persistido del job.
-
-### Worker webhooks
-Requieren `X-Webhook-Secret`.
-- `GET /webhook/price-list-import/jobs/next?status=queued`: devuelve el próximo job `queued`, ordenado por `queuedAt` ascendente. Responde `204` si no hay jobs.
-- `POST /webhook/price-list-import/jobs/:jobId/claim`: cambia `queued -> running` y setea `startedAt`. Responde `409` si el job ya no está `queued`.
-- `GET /webhook/price-list-import/files/:fileId`: devuelve metadata y `contentBase64` del archivo temporal.
-- `PATCH /webhook/price-list-import/jobs/:jobId`: persiste resultado del worker. Body ejemplo:
-```json
-{
-  "status": "completed",
-  "summary": { "processed": 1608, "updated": 1590, "errors": 0 },
-  "errors": [],
-  "preview": null,
-  "result": { "durationMs": 12000 }
-}
-```
-
-Transiciones válidas:
-
-- `queued -> running`
-- `queued -> canceled`
-- `running -> completed`
-- `running -> failed`
-- `running -> canceled`
-
----
-
 ## 🤖 Administración de Scrapers & Precios (Admin)
 ### `GET /admin/scraper/status`
 Estado en tiempo real de la cola de procesamiento.
@@ -621,11 +565,7 @@ Crea un producto manual con carga de imagen a Cloudinary.
 - **Body:** `image` (File), `display_name`, `list_price`, `category_id`.
 
 ### `PUT /admin/products/:productId`
-Actualiza datos o imagen de un producto manual o scrapeado.
-- **Content-Type:** `application/json` para actualizar por URL, o `multipart/form-data` para subir archivo.
-- **Body JSON imagen:** `image_url` es el campo canonico y debe ser una URL `http(s)` no vacia. Se acepta `imageUrl` como alias de entrada y se persiste como `image_url`.
-- **Body multipart imagen:** `image` (File) reemplaza la imagen en Cloudinary usando `meyfer/products/product_<productId>` y devuelve la URL resultante en `image_url`.
-- Si se guarda la misma URL, el refresco visual puede depender del cache del navegador/CDN; el backend persiste y devuelve la URL recibida.
+Actualiza datos o imagen de un producto manual.
 
 ### `DELETE /admin/products/:productId`
 Elimina el producto de la DB y su imagen de Cloudinary.

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const configController = require('../controllers/config.controller');
 const {
+    updateParsedProducts,
     triggerScraper,
     analyzeSitemap,
     checkPrices,
@@ -10,6 +11,7 @@ const {
 router.get('/profit', configController.getProfitMargin);
 router.put('/profit', configController.setProfitMargin);
 router.get('/last-update', configController.getLastUpdateDate);
+router.post('/parsed', updateParsedProducts);
 router.post('/scrape', triggerScraper);
 router.post('/sitemap/analyze', analyzeSitemap);
 router.post('/price-check', checkPrices);

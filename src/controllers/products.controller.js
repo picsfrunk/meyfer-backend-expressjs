@@ -9,6 +9,16 @@ const getParsedProducts = async (req, res) => {
     }
 };
 
+const updateParsedProducts = async (req, res) => {
+    try {
+        const result = await ProductsService.updateCatalogFromXls();
+        res.status(200).json(result);
+    } catch (error) {
+        console.error(error);
+        res.status(error.statusCode || 500).json({ error: error.message || 'Error al actualizar catálogo', details: error.details });
+    }
+};
+
 const triggerScraper = async (req, res) => {
     const { scraperType, ...params } = req.body;
     try {
@@ -151,6 +161,7 @@ const deleteProduct = async (req, res) => {
 
 module.exports = {
     getParsedProducts,
+    updateParsedProducts,
     triggerScraper,
     getScrapedProducts,
     getScrapedProductById,

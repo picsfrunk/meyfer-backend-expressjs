@@ -2,7 +2,6 @@ const multer = require('multer');
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_SIZE_MB = 5;
-const PRICE_LIST_MAX_SIZE_MB = 5;
 
 const storage = multer.memoryStorage(); // buffer en RAM, nunca toca el disco
 
@@ -20,9 +19,4 @@ const upload = multer({
     limits: { fileSize: MAX_SIZE_MB * 1024 * 1024 },
 });
 
-const uploadPriceList = multer({
-    storage,
-    limits: { fileSize: PRICE_LIST_MAX_SIZE_MB * 1024 * 1024 },
-});
-
-module.exports = { upload, uploadPriceList };
+module.exports = { upload };

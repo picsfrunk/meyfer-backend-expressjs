@@ -1,6 +1,6 @@
 # Meyfer Backend (Express.js)
 
-Este es el backend del proyecto **Meyfer**, construido con Node.js, Express.js y MongoDB. Centraliza tres responsabilidades principales: servir el catálogo de productos persistido, coordinar scrapers/importadores y monitores de precios externos, y gestionar pedidos con notificaciones por email a admins y clientes.
+Este es el backend del proyecto **Meyfer**, construido con Node.js, Express.js y MongoDB. Centraliza tres responsabilidades principales: parsear y servir el catálogo de productos desde un Excel remoto, orquestar scrapers y monitores de precios externos, y gestionar pedidos con notificaciones por email a admins y clientes.
 
 ## 🧰 Tecnologías utilizadas
 
@@ -8,7 +8,7 @@ Este es el backend del proyecto **Meyfer**, construido con Node.js, Express.js y
 - MongoDB (Mongoose)
 - Docker + Docker Compose
 - Railway (para despliegue en producción)
-- Multer memoryStorage para uploads controlados
+- XLSX (para procesar archivos Excel)
 - Cloudinary (almacenamiento de imágenes de productos)
 - Mailjet (envío de emails transaccionales)
 - Axios, dotenv, morgan, cors, express-rate-limit, jsonwebtoken, multer
@@ -79,7 +79,6 @@ SCRAPER_CATEGORIES_REORGANIZE_URL=http://localhost:3001/api/scraper/categories/r
 # Webhooks (URL del backend para que los scrapers devuelvan resultados)
 WEBHOOK_URL=http://localhost:3000/api/webhook/scraper/result
 WEBHOOK_PRICE_CHECK_URL=http://localhost:3000/api/webhook/price-check/result
-WEBHOOK_PRICE_LIST_IMPORT_URL=http://localhost:3000/api/webhook/price-list-import/jobs/:jobId
 SCRAPER_WEBHOOK_SECRET=change-me
 ```
 
@@ -169,50 +168,16 @@ Endpoints reales que recibe este backend:
 
 - `POST /api/webhook/scraper/result`
 - `POST /api/webhook/price-check/result`
-- `GET /api/webhook/price-list-import/jobs/next?status=queued`
-- `POST /api/webhook/price-list-import/jobs/:jobId/claim`
-- `PATCH /api/webhook/price-list-import/jobs/:jobId`
-- `GET /api/webhook/price-list-import/files/:fileId`
 
-Estos endpoints públicos requieren el header `X-Webhook-Secret` con el mismo valor configurado en `SCRAPER_WEBHOOK_SECRET`. Esta variable debe existir en backend y scraper, con idéntico valor en ambos servicios. No debe commitearse en el repositorio. En Railway hay que agregarla como variable de entorno en backend y scraper; después de cambiarla, redeployar ambos servicios.
+Ambos endpoints públicos requieren el header `X-Webhook-Secret` con el mismo valor configurado en `SCRAPER_WEBHOOK_SECRET`. Esta variable debe existir en backend y scraper, con idéntico valor en ambos servicios. No debe commitearse en el repositorio. En Railway hay que agregarla como variable de entorno en backend y scraper; después de cambiarla, redeployar ambos servicios.
 
 Variables críticas en producción:
 
 ```env
 WEBHOOK_URL=https://<backend-production-url>/api/webhook/scraper/result
 WEBHOOK_PRICE_CHECK_URL=https://<backend-production-url>/api/webhook/price-check/result
-WEBHOOK_PRICE_LIST_IMPORT_URL=https://<backend-production-url>/api/webhook/price-list-import/jobs/:jobId
 SCRAPER_WEBHOOK_SECRET=<mismo-secreto-configurado-en-el-scraper>
 ```
-
-## Importacion de lista de precios
-
-El backend no procesa filas CSV/XLSX. Para cargas manuales, el admin sube el archivo a Mongo como documento temporal y el backend crea un job `price-list-import` en estado `queued`. El worker/scraper toma el job y procesa el archivo o la URL configurada.
-
-Endpoints admin:
-
-- `GET /api/admin/price-list-import/settings`
-- `PUT /api/admin/price-list-import/settings` con body `{ "priceListUrl": "https://..." }`
-- `GET /api/admin/price-list-import/settings/last-modified`
-- `POST /api/admin/price-list-import/upload` multipart/form-data con campo `file` (`.csv` o `.xlsx`, max 5 MB)
-- `POST /api/admin/price-list-import/jobs/from-configured-url`
-- `GET /api/admin/price-list-import/jobs`
-- `GET /api/admin/price-list-import/jobs/:jobId`
-
-Endpoints para worker con `X-Webhook-Secret`:
-
-- `GET /api/webhook/price-list-import/jobs/next?status=queued` devuelve el proximo job queued por `queuedAt` ascendente; responde `204` si no hay jobs
-- `POST /api/webhook/price-list-import/jobs/:jobId/claim` cambia `queued -> running` y setea `startedAt`; responde `409` si el job ya no esta queued
-- `GET /api/webhook/price-list-import/files/:fileId` devuelve metadata y `contentBase64`
-- `PATCH /api/webhook/price-list-import/jobs/:jobId` persiste `status`, `summary`, `errors`, `preview` y `result`
-
-Transiciones validas:
-
-- `queued -> running`
-- `queued -> canceled`
-- `running -> completed`
-- `running -> failed`
-- `running -> canceled`
 
 Checklist rápido si el historial del scraper no se actualiza:
 

@@ -1,6 +1,5 @@
 const { notifyScraper, notifyPriceCheck } = require('../services/notifier.service');
 const ScraperMonitor = require('../services/scraper_monitor.service');
-const PriceListImportController = require('./price_list_import.controller');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SCRAPER WEBHOOK
@@ -30,50 +29,40 @@ async function _handleScraperEvent(body) {
         source, status, processed, stats, timestamp,
     } = body;
 
-    console.log(`[webhook] scraper evento: ${event ?? 'legado'} | job: ${job?.id ?? '-'} | type: ${job?.type ?? '-'}`);
+    console.log(`[webhook] scraper evento: ${event ?? 'legado'} | job: ${job?.id ?? '-'}`);
 
     switch (event) {
 
         case 'enqueued':
             await ScraperMonitor.handleJobEnqueued({ job, queueSnapshot, message: body.message });
-            if (job?.type === 'priceCheck') {
-                await notifyPriceCheck({
-                    jobId: job?.id,
-                    status: 'enqueued',
-                    timestamp: new Date().toISOString(),
-                    queueInfo: buildQueueInfo(queueSnapshot),
-                });
-            } else {
-                await notifyScraper({
-                    jobId:  job?.id,
-                    source: job?.type || 'scraper',
-                    status: 'enqueued',
-                    processed: 0,
-                    stats:  {},
-                    timestamp: new Date().toISOString(),
-                    queueInfo: buildQueueInfo(queueSnapshot),
-                });
-            }
+            await notifyScraper({
+                jobId:  job?.id,
+                source: job?.type || 'scraper',
+                status: 'enqueued',
+                processed: 0,
+                stats:  {},
+                timestamp: new Date().toISOString(),
+                queueInfo: {
+                    pendingAfter:   queueSnapshot?.pending ?? 0,
+                    waitTimeMs:     null,
+                    position:       queueSnapshot?.pending ?? 1,
+                    runningJobId:   queueSnapshot?.running?.id   ?? null,
+                    runningJobType: queueSnapshot?.running?.type ?? null,
+                    runningElapsed: queueSnapshot?.running?.elapsedMs ?? null,
+                },
+            });
             break;
 
         case 'started':
             await ScraperMonitor.handleJobStarted({ job, queueSnapshot });
-            if (job?.type === 'priceCheck') {
-                await notifyPriceCheck({
-                    jobId: job?.id,
-                    status: 'running',
-                    timestamp: new Date().toISOString(),
-                });
-            } else {
-                await notifyScraper({
-                    jobId:  job?.id,
-                    source: job?.type || 'scraper',
-                    status: 'running',
-                    processed: 0,
-                    stats:  {},
-                    timestamp: new Date().toISOString(),
-                });
-            }
+            await notifyScraper({
+                jobId:  job?.id,
+                source: job?.type || 'scraper',
+                status: 'running',
+                processed: 0,
+                stats:  {},
+                timestamp: new Date().toISOString(),
+            });
             break;
 
         case 'completed':
@@ -180,42 +169,10 @@ exports.priceCheckFinished = async (req, res) => {
     }
 };
 
-exports.priceListImportJobUpdated = PriceListImportController.workerUpdateJobResult;
-exports.getNextPriceListImportJob = PriceListImportController.workerGetNextJob;
-exports.claimPriceListImportJob = PriceListImportController.workerClaimJob;
-exports.getPriceListImportFile = PriceListImportController.workerGetImportFile;
-
 async function _handlePriceCheckEvent(body) {
     const { status, summary, changed = [], error, timestamp } = body;
-    const normalizedStatus = normalizePriceCheckStatus(status);
-    const isError = ['error', 'failed'].includes(status);
 
-    if (isError) {
-        console.error(`[webhook] priceCheck error: ${error ?? 'Error desconocido'}`);
-    } else if (['queued', 'enqueued', 'started', 'running'].includes(status)) {
-        console.log(`[webhook] priceCheck ${normalizedStatus}`);
-    } else {
-        console.log(`[webhook] priceCheck ${normalizedStatus} — changed:${summary?.changed ?? 0} new:${summary?.new ?? 0} removed:${summary?.removed ?? 0}`);
-    }
+    console.log(`[webhook] priceCheck ${status} — changed:${summary?.changed ?? 0} new:${summary?.new ?? 0} removed:${summary?.removed ?? 0}`);
 
     await notifyPriceCheck({ status, summary, changed, error, timestamp });
-}
-
-function buildQueueInfo(queueSnapshot) {
-    return {
-        pendingAfter:   queueSnapshot?.pending ?? 0,
-        waitTimeMs:     null,
-        position:       queueSnapshot?.pending ?? 1,
-        runningJobId:   queueSnapshot?.running?.id   ?? null,
-        runningJobType: queueSnapshot?.running?.type ?? null,
-        runningElapsed: queueSnapshot?.running?.elapsedMs ?? null,
-    };
-}
-
-function normalizePriceCheckStatus(status) {
-    if (['queued', 'enqueued'].includes(status)) return 'en cola';
-    if (['started', 'running'].includes(status)) return 'iniciado';
-    if (['success', 'completed'].includes(status)) return 'completado';
-    if (status === 'canceled') return 'cancelado';
-    return 'error';
 }
