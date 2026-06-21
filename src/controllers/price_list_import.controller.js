@@ -60,9 +60,7 @@ exports.importManualUpload = async (req, res) => {
 exports.downloadTemporaryFile = async (req, res) => {
     try {
         const file = await PriceListImportService.downloadTemporaryFile(req.params.fileId);
-        res.setHeader('Content-Type', file.mimeType);
-        res.setHeader('Content-Length', file.size);
-        res.download(file.filePath, file.fileName);
+        res.json(file);
     } catch (error) {
         res.status(error.statusCode || 500).json({
             message: error.message || 'Error al descargar archivo temporal',

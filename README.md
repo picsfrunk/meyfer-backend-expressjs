@@ -171,8 +171,9 @@ Endpoints reales que recibe este backend:
 - `POST /api/webhook/scraper/result`
 - `POST /api/webhook/price-check/result`
 - `POST /api/webhook/price-list-import/result`
+- `GET /api/webhook/price-list-import/files/:fileId`
 
-Ambos endpoints públicos requieren el header `X-Webhook-Secret` con el mismo valor configurado en `SCRAPER_WEBHOOK_SECRET`. Esta variable debe existir en backend y scraper, con idéntico valor en ambos servicios. No debe commitearse en el repositorio. En Railway hay que agregarla como variable de entorno en backend y scraper; después de cambiarla, redeployar ambos servicios.
+Estos endpoints públicos requieren el header `X-Webhook-Secret` con el mismo valor configurado en `SCRAPER_WEBHOOK_SECRET`. Esta variable debe existir en backend y scraper, con idéntico valor en ambos servicios. No debe commitearse en el repositorio. En Railway hay que agregarla como variable de entorno en backend y scraper; después de cambiarla, redeployar ambos servicios.
 
 Variables críticas en producción:
 

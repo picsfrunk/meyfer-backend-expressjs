@@ -9,11 +9,10 @@ const CONFIG_KEY = 'priceListImport';
 const TEMP_DIR = process.env.PRICE_LIST_IMPORT_TEMP_DIR
     || path.join(os.tmpdir(), 'meyfer-price-list-imports');
 const MAX_FILE_AGE_MS = 24 * 60 * 60 * 1000;
-const ALLOWED_EXTENSIONS = ['csv', 'xls', 'xlsx'];
+const ALLOWED_EXTENSIONS = ['csv', 'xlsx'];
 const ALLOWED_MIME_TYPES = [
     'text/csv',
     'application/csv',
-    'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'application/octet-stream',
 ];
@@ -71,7 +70,7 @@ async function importManualUpload(file) {
     }
 
     const metadata = buildFileMetadata(file);
-    const fileId = await saveTemporaryFile(file.buffer, metadata.extension);
+    const fileId = await saveTemporaryFile(file.buffer, metadata);
 
     return enqueueImport({
         source: 'manual_upload',
@@ -88,7 +87,17 @@ async function downloadTemporaryFile(fileId) {
         throw { statusCode: 404, message: 'Archivo temporal no encontrado' };
     }
 
-    return tempFile;
+    const content = await fs.readFile(tempFile.filePath);
+
+    return {
+        fileId: safeFileId,
+        originalName: tempFile.originalName,
+        fileName: tempFile.fileName,
+        size: tempFile.size,
+        mimeType: tempFile.mimeType,
+        extension: tempFile.extension,
+        contentBase64: content.toString('base64'),
+    };
 }
 
 async function handleWebhookResult(body) {
@@ -246,7 +255,7 @@ function buildFileMetadata(file) {
     };
 }
 
-async function saveTemporaryFile(buffer, extension) {
+async function saveTemporaryFile(buffer, metadata) {
     if (!Buffer.isBuffer(buffer) || buffer.length === 0) {
         throw { statusCode: 400, message: 'Archivo vacío o inválido' };
     }
@@ -255,26 +264,35 @@ async function saveTemporaryFile(buffer, extension) {
     await fs.mkdir(TEMP_DIR, { recursive: true });
 
     const fileId = crypto.randomUUID();
-    const filePath = path.join(TEMP_DIR, `${fileId}.${extension}`);
+    const filePath = path.join(TEMP_DIR, `${fileId}.${metadata.extension}`);
+    const metadataPath = getMetadataPath(fileId);
     await fs.writeFile(filePath, buffer);
+    await fs.writeFile(metadataPath, JSON.stringify({ fileId, ...metadata }, null, 2));
     return fileId;
 }
 
 async function findTemporaryFile(fileId) {
     await fs.mkdir(TEMP_DIR, { recursive: true });
     const entries = await fs.readdir(TEMP_DIR);
-    const fileName = entries.find(entry => entry.startsWith(`${fileId}.`));
+    const fileName = entries.find((entry) => {
+        if (!entry.startsWith(`${fileId}.`)) return false;
+        const extension = path.extname(entry).replace('.', '').toLowerCase();
+        return ALLOWED_EXTENSIONS.includes(extension);
+    });
     if (!fileName) return null;
 
     const filePath = path.join(TEMP_DIR, fileName);
     const stat = await fs.stat(filePath);
     const extension = path.extname(fileName).replace('.', '').toLowerCase();
+    const metadata = await readTemporaryMetadata(fileId);
 
     return {
         filePath,
         fileName,
         size: stat.size,
-        mimeType: mimeTypeForExtension(extension),
+        originalName: metadata?.originalName ?? fileName,
+        mimeType: metadata?.mimeType ?? mimeTypeForExtension(extension),
+        extension,
     };
 }
 
@@ -294,6 +312,19 @@ async function cleanupExpiredFiles() {
     } catch (error) {
         console.warn('[price-list-import] No se pudo limpiar temporales:', error.message);
     }
+}
+
+async function readTemporaryMetadata(fileId) {
+    try {
+        const raw = await fs.readFile(getMetadataPath(fileId), 'utf8');
+        return JSON.parse(raw);
+    } catch (_error) {
+        return null;
+    }
+}
+
+function getMetadataPath(fileId) {
+    return path.join(TEMP_DIR, `${fileId}.json`);
 }
 
 function validateFileId(fileId) {
@@ -338,7 +369,6 @@ function mimeTypeForExtension(extension) {
     if (extension === 'xlsx') {
         return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
     }
-    if (extension === 'xls') return 'application/vnd.ms-excel';
     return 'application/octet-stream';
 }
 
