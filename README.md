@@ -175,6 +175,8 @@ Endpoints reales que recibe este backend:
 
 Estos endpoints públicos requieren el header `X-Webhook-Secret` con el mismo valor configurado en `SCRAPER_WEBHOOK_SECRET`. Esta variable debe existir en backend y scraper, con idéntico valor en ambos servicios. No debe commitearse en el repositorio. En Railway hay que agregarla como variable de entorno en backend y scraper; después de cambiarla, redeployar ambos servicios.
 
+El webhook `POST /api/webhook/price-list-import/result` lo consume el backend, no el Admin React. Cuando el scraper informa `completed` o `failed`, el backend normaliza el resumen recibido, actualiza el estado persistido de `priceListImport`, registra el proceso en el historial de scraper con tipo `priceListImport` y envía un email legible a los admins activos. El email distingue importaciones desde archivo manual (`manual_upload`) y desde URL configurada (`remote_configured_url`).
+
 Variables críticas en producción:
 
 ```env

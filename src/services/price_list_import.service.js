@@ -4,11 +4,18 @@ const fs = require('fs/promises');
 const path = require('path');
 const os = require('os');
 const Config = require('../models/config.model');
+const ScraperMonitor = require('./scraper_monitor.service');
+const { notifyPriceListImport } = require('./notifier.service');
 
 const CONFIG_KEY = 'priceListImport';
 const TEMP_DIR = process.env.PRICE_LIST_IMPORT_TEMP_DIR
     || path.join(os.tmpdir(), 'meyfer-price-list-imports');
 const MAX_FILE_AGE_MS = 24 * 60 * 60 * 1000;
+const COMPLETED_STATUSES = ['completed', 'success', 'succeeded', 'done', 'finished'];
+const FAILURE_STATUSES = ['failed', 'error', 'errored', 'failure'];
+const CANCELED_STATUSES = ['canceled', 'cancelled'];
+const ENQUEUED_STATUSES = ['enqueued', 'queued', 'pending', 'accepted'];
+const RUNNING_STATUSES = ['started', 'running', 'processing'];
 const ALLOWED_EXTENSIONS = ['csv', 'xlsx'];
 const ALLOWED_MIME_TYPES = [
     'text/csv',
@@ -27,6 +34,7 @@ function normalizeSettings(value = {}) {
         lastScraperJobId: value.lastScraperJobId ?? null,
         lastSource: value.lastSource ?? null,
         lastResult: value.lastResult ?? null,
+        lastPriceListImportAt: value.lastPriceListImportAt ?? null,
     };
 }
 
@@ -105,19 +113,27 @@ async function handleWebhookResult(body) {
         throw { statusCode: 400, message: 'Body inválido' };
     }
 
-    const jobId = extractJobId(body);
-    const status = body.status ?? body.event ?? null;
-    const result = body.result ?? body.summary ?? body;
-    const error = body.error ?? body.result?.error ?? null;
-
     const current = await getSettings();
+    const normalized = normalizeWebhookPayload(body, current);
+
+    if (!normalized.jobId && !normalized.rawStatus) {
+        throw {
+            statusCode: 400,
+            message: 'Payload incompleto: se requiere jobId o status',
+        };
+    }
+
     const value = normalizeSettings({
         ...current,
-        lastCompletedAt: new Date(),
-        lastStatus: status,
-        lastError: error,
-        lastScraperJobId: jobId ?? current.lastScraperJobId,
-        lastResult: result,
+        lastCompletedAt: normalized.isTerminal ? normalized.finishedAt : null,
+        lastStatus: normalized.historyStatus,
+        lastError: normalized.shouldSetError ? { message: normalized.error } : null,
+        lastScraperJobId: normalized.jobId ?? current.lastScraperJobId,
+        lastSource: normalized.sourceType ?? current.lastSource,
+        lastResult: normalized.summary,
+        ...(normalized.emailStatus === 'success'
+            ? { lastPriceListImportAt: normalized.finishedAt }
+            : { lastPriceListImportAt: current.lastPriceListImportAt }),
     });
 
     await Config.findOneAndUpdate(
@@ -125,6 +141,11 @@ async function handleWebhookResult(body) {
         { value },
         { upsert: true, new: true }
     );
+
+    await persistProcessHistory(normalized);
+    if (shouldNotifyPriceListImport(normalized)) {
+        await notifyPriceListImport(normalized);
+    }
 
     return value;
 }
@@ -190,6 +211,18 @@ async function markImportStarted({ source, scraperJobId }) {
         { value },
         { upsert: true, new: true }
     );
+
+    await ScraperMonitor.handleJobStarted({
+        job: {
+            id: scraperJobId,
+            type: 'priceListImport',
+            params: {
+                sourceType: source,
+                processName: processNameForSource(source),
+            },
+        },
+        queueSnapshot: null,
+    });
 }
 
 async function markImportFailed(error) {
@@ -362,6 +395,196 @@ function getWebhookUrl() {
 
 function extractJobId(payload = {}) {
     return payload.jobId ?? payload.id ?? payload.job?.id ?? null;
+}
+
+function normalizeWebhookPayload(body, currentSettings = {}) {
+    const result = body.result && typeof body.result === 'object' ? body.result : {};
+    const metadata = body.metadata && typeof body.metadata === 'object' ? body.metadata : {};
+    const job = body.job && typeof body.job === 'object' ? body.job : {};
+
+    const rawStatus = body.status ?? body.event ?? result.status ?? null;
+    const error = extractErrorMessage(body);
+    const historyStatus = normalizeHistoryStatus(rawStatus, Boolean(error));
+    const emailStatus = getEmailStatus(historyStatus);
+    const sourceType = normalizeSourceType(
+        body.source ?? body.sourceType ?? result.source ?? result.sourceType ?? metadata.source ?? metadata.sourceType ?? job.params?.sourceType ?? currentSettings.lastSource
+    );
+    const summary = normalizeSummary(body);
+    const finishedAt = parseDate(body.finishedAt ?? result.finishedAt ?? metadata.finishedAt ?? body.timestamp) ?? new Date();
+    const startedAt = parseDate(body.startedAt ?? result.startedAt ?? metadata.startedAt ?? currentSettings.lastRunAt);
+    const isTerminal = isTerminalStatus(historyStatus);
+
+    return {
+        jobId: extractJobId(body),
+        rawStatus,
+        historyStatus,
+        emailStatus,
+        status: emailStatus,
+        isTerminal,
+        shouldSetError: isFailureStatus(historyStatus) || Boolean(error),
+        sourceType,
+        processName: processNameForSource(sourceType),
+        startedAt,
+        finishedAt,
+        completedAt: finishedAt,
+        summary,
+        error: error ?? (isFailureStatus(historyStatus) ? 'Error desconocido en importación de lista de precios' : null),
+        errorsSummary: extractErrorsSummary(body),
+    };
+}
+
+function normalizeHistoryStatus(status, hasExplicitError = false) {
+    const normalized = String(status || '').toLowerCase();
+    if (COMPLETED_STATUSES.includes(normalized)) return 'completed';
+    if (FAILURE_STATUSES.includes(normalized)) return 'failed';
+    if (CANCELED_STATUSES.includes(normalized)) return 'canceled';
+    if (ENQUEUED_STATUSES.includes(normalized)) return 'enqueued';
+    if (RUNNING_STATUSES.includes(normalized)) return 'running';
+    if (hasExplicitError) return 'failed';
+    return normalized || null;
+}
+
+function getEmailStatus(historyStatus) {
+    if (historyStatus === 'completed') return 'success';
+    if (isFailureStatus(historyStatus)) return 'error';
+    return null;
+}
+
+function isTerminalStatus(historyStatus) {
+    return ['completed', 'failed', 'canceled'].includes(historyStatus);
+}
+
+function isFailureStatus(historyStatus) {
+    return ['failed', 'canceled'].includes(historyStatus);
+}
+
+function shouldNotifyPriceListImport(normalized) {
+    return isTerminalStatus(normalized.historyStatus);
+}
+
+function normalizeSourceType(source) {
+    if (!source) return null;
+    const normalized = String(source).trim();
+    const comparable = normalized.toLowerCase();
+    if (['manual', 'manualupload', 'manual_upload', 'file', 'upload'].includes(comparable)) return 'manual_upload';
+    if (['remote', 'url', 'configured_url', 'remote_configured_url'].includes(comparable)) return 'remote_configured_url';
+    return normalized;
+}
+
+function normalizeSummary(body) {
+    const result = body.result && typeof body.result === 'object' ? body.result : {};
+    const summary = body.summary && typeof body.summary === 'object'
+        ? body.summary
+        : (result.summary && typeof result.summary === 'object' ? result.summary : result);
+
+    return {
+        totalRows: pickNumber(summary, ['totalRows', 'total_rows', 'rowsTotal', 'total', 'rows', 'processedRows']),
+        validRows: pickNumber(summary, ['validRows', 'valid_rows', 'valid', 'successfulRows']),
+        updatedProducts: pickNumber(summary, ['updatedProducts', 'productsUpdated', 'updated', 'updatedCount', 'modified']),
+        unchangedProducts: pickNumber(summary, ['unchangedProducts', 'productsUnchanged', 'unchanged', 'unchangedCount', 'withoutChanges']),
+        notFoundProducts: pickNumber(summary, ['notFoundProducts', 'productsNotFound', 'notFound', 'not_found', 'missingProducts']),
+        invalidRows: pickNumber(summary, ['invalidRows', 'invalid_rows', 'invalid', 'failedRows']),
+        duplicates: pickNumber(summary, ['duplicates', 'duplicateRows', 'duplicatedRows']),
+        durationMs: pickNumber(summary, ['durationMs', 'duration', 'elapsedMs']),
+    };
+}
+
+async function persistProcessHistory(normalized) {
+    if (!normalized.jobId) return;
+
+    const job = {
+        id: normalized.jobId,
+        type: 'priceListImport',
+        params: {
+            sourceType: normalized.sourceType,
+            processName: normalized.processName,
+        },
+    };
+
+    if (normalized.historyStatus === 'enqueued') {
+        await ScraperMonitor.handleJobEnqueued({ job, queueSnapshot: null });
+        return;
+    }
+
+    if (normalized.historyStatus === 'running') {
+        await ScraperMonitor.handleJobStarted({ job, queueSnapshot: null });
+        return;
+    }
+
+    if (isTerminalStatus(normalized.historyStatus)) {
+        await ScraperMonitor.handleJobFinished({
+            job,
+            status: normalized.historyStatus,
+            result: {
+                ...normalized.summary,
+                error: normalized.error,
+                errorsSummary: normalized.errorsSummary,
+            },
+            queueSnapshot: null,
+        });
+        return;
+    }
+
+    await ScraperMonitor.handleJobStatusReceived({
+        job,
+        statusReceived: normalized.historyStatus,
+        result: {
+            ...normalized.summary,
+            error: normalized.error,
+            errorsSummary: normalized.errorsSummary,
+        },
+        queueSnapshot: null,
+    });
+}
+
+function pickNumber(source, keys) {
+    for (const key of keys) {
+        if (source?.[key] == null || source[key] === '') continue;
+        const value = Number(source[key]);
+        if (Number.isFinite(value)) return value;
+    }
+    return null;
+}
+
+function extractErrorMessage(body) {
+    const result = body.result && typeof body.result === 'object' ? body.result : {};
+    const value = body.error ?? result.error ?? body.message ?? result.message ?? null;
+    if (!value) return null;
+    if (typeof value === 'string') return value;
+    if (value.message) return value.message;
+    try { return JSON.stringify(value); }
+    catch { return String(value); }
+}
+
+function extractErrorsSummary(body) {
+    const result = body.result && typeof body.result === 'object' ? body.result : {};
+    const summary = body.summary && typeof body.summary === 'object'
+        ? body.summary
+        : (result.summary && typeof result.summary === 'object' ? result.summary : {});
+    const candidates = [body.errors, result.errors, summary.errors, body.errorDetails, result.errorDetails];
+    const values = candidates.find(Array.isArray) ?? [];
+
+    return values
+        .map((error) => {
+            if (!error) return null;
+            if (typeof error === 'string') return error;
+            if (error.message) return error.message;
+            try { return JSON.stringify(error); }
+            catch { return String(error); }
+        })
+        .filter(Boolean);
+}
+
+function parseDate(value) {
+    if (!value) return null;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function processNameForSource(sourceType) {
+    if (sourceType === 'manual_upload') return 'Actualización por lista manual';
+    if (sourceType === 'remote_configured_url') return 'Actualización por lista configurada';
+    return 'Importación de lista de precios';
 }
 
 function mimeTypeForExtension(extension) {
