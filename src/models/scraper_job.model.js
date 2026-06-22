@@ -20,6 +20,7 @@ const scraperJobSchema = new mongoose.Schema({
             'categoryScraper',
             'sitemapAnalysis',
             'priceCheck',
+            'priceListImport',
             'categoriesRestore',
             'categoriesReorganize',
         ],
@@ -28,7 +29,7 @@ const scraperJobSchema = new mongoose.Schema({
 
     status: {
         type: String,
-        enum: ['enqueued', 'running', 'completed', 'failed', 'canceled'],
+        enum: ['enqueued', 'running', 'completed', 'failed', 'canceled', 'received'],
         default: 'enqueued',
         index: true,
     },
@@ -65,8 +66,17 @@ const scraperJobSchema = new mongoose.Schema({
         matched:       { type: Number, default: null },
         modified:      { type: Number, default: null },
         dryRun:        { type: Boolean, default: null },
+        totalRows:     { type: Number, default: null },
+        validRows:     { type: Number, default: null },
+        updatedProducts:{ type: Number, default: null },
+        unchangedProducts:{ type: Number, default: null },
+        notFoundProducts:{ type: Number, default: null },
+        invalidRows:   { type: Number, default: null },
+        duplicates:    { type: Number, default: null },
         durationMs:    { type: Number, default: null },
         error:         { type: String, default: null },
+        errorsSummary: { type: [String], default: undefined },
+        statusReceived:{ type: String, default: null },
     },
 
     lastQueueSnapshot: {

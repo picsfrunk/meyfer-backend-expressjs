@@ -554,7 +554,7 @@ Ejemplo para `sitemapScraper` limitado:
 Inicia el monitor de comparación de precios contra la competencia.
 
 ### `GET /admin/price-list-import/settings`
-Devuelve la URL configurada de lista de precios y el último estado persistido.
+Devuelve la URL configurada de lista de precios y el último estado persistido. El estado incluye, cuando existe, `lastScraperJobId`, `lastStatus`, `lastRunAt`, `lastCompletedAt`, `lastError`, `lastResult`, `lastSource` y `lastPriceListImportAt`.
 
 ### `PUT /admin/price-list-import/settings`
 Guarda la URL configurada de lista de precios.
@@ -576,6 +576,15 @@ Endpoint para que el scraper descargue un archivo temporal. Requiere `X-Webhook-
 
 ### `POST /webhook/price-list-import/result`
 Webhook protegido para recibir el resultado del scraper. Requiere `X-Webhook-Secret`.
+
+Este endpoint es llamado por el scraper; el frontend no lo consume directamente. Al recibir un resultado `completed` o `failed`, el backend normaliza payloads con campos como `jobId`, `status`, `source`, `summary`, `result`, `error`, `errors`, `metadata`, `startedAt` y `finishedAt`. Luego actualiza el estado `priceListImport`, registra el proceso en el historial de scraper como `priceListImport` y envía email administrativo con resumen legible.
+
+Fuentes reconocidas:
+
+- `manual_upload`: se muestra como “Actualización por lista manual”.
+- `remote_configured_url`: se muestra como “Actualización por lista configurada”.
+
+El email puede incluir `jobId`, fuente, fecha/hora, filas totales, filas válidas, productos actualizados, productos sin cambios, productos no encontrados, filas inválidas, duplicados, errores resumidos y mensaje de error.
 
 ### `GET /admin/price-check/latest`
 Obtiene el último reporte de cambios de precios generado.

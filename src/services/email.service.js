@@ -2,6 +2,7 @@ const buildOrderHtml = require("../utils/buildOrderHtml");
 const buildCustomerOrderConfirmationHtml = require("../utils/buildCustomerOrderConfirmationHtml");
 const { buildScraperEmail }     = require("../utils/buildScraperEmail");
 const { buildPriceCheckEmail }  = require("../utils/buildPriceCheckEmail");
+const { buildPriceListImportEmail, normalizeEmailState } = require("../utils/buildPriceListImportEmail");
 const { mailjet }       = require("./MailJet.service");
 const ConfigService     = require("./config.service");
 const ScrapedProduct    = require("../models/products.model");
@@ -112,9 +113,23 @@ async function sendPriceCheckNotification(payload = {}) {
     return _send({ to: adminEmails, subject, html });
 }
 
+async function sendPriceListImportNotification(payload = {}) {
+    const state = normalizeEmailState(payload.status);
+    if (!['success', 'error'].includes(state.key)) {
+        return { success: false, skipped: true, error: "Estado no terminal, no se envía email" };
+    }
+
+    const adminEmails = await ConfigService.listActiveAdminEmails();
+    if (!adminEmails.length) return { success: false, error: "No hay admins activos" };
+
+    const { subject, html } = buildPriceListImportEmail(payload);
+    return _send({ to: adminEmails, subject, html });
+}
+
 module.exports = {
     sendOrderNotificationToAdmins,
     sendOrderConfirmationToCustomer,
     sendScraperFinishedNotification,
     sendPriceCheckNotification,
+    sendPriceListImportNotification,
 };
