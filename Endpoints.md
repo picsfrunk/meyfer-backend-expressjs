@@ -616,6 +616,7 @@ Detalle de un cliente por su `_id` de MongoDB.
 
 ### `POST /admin/customers`
 Crea un cliente manualmente. El campo `customerCode` se genera automáticamente (no se acepta en el body).
+Si el alta se completa correctamente, el backend envía un aviso a administradores activos y una bienvenida al cliente cuando tiene email y `STORE_PUBLIC_URL` está configurada. El fallo de email no revierte la creación.
 - **Body:**
 ```json
 {

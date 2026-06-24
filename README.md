@@ -63,6 +63,8 @@ MJ_APIKEY_PUBLIC=
 MJ_APIKEY_PRIVATE=
 MAIL_FROM=noreply@tudominio.com
 MAIL_FROM_NAME=MeyFer
+STORE_PUBLIC_URL=https://tienda.tudominio.com
+# SEND_CLIENT_WELCOME_EMAIL=true
 # Compatibilidad temporal: también se aceptan MJ_SENDER_EMAIL y MJ_SENDER_NAME
 
 # Scrapers externos (URLs de los microservicios)
@@ -87,6 +89,8 @@ SCRAPER_WEBHOOK_SECRET=change-me
 > **Nota:** `MONGODB_URI_DEV` se usa cuando `NODE_ENV=development`; `MONGODB_URI_PROD` cuando `NODE_ENV=production`. El README anterior mencionaba `MONGO_URI`, que ya **no existe** en el código.
 >
 > **Nota Mailjet:** para el remitente se recomienda usar `MAIL_FROM` y `MAIL_FROM_NAME`. Por compatibilidad temporal, el backend también acepta `MJ_SENDER_EMAIL` y `MJ_SENDER_NAME` como fallback.
+>
+> **Alta de clientes:** al crear un cliente desde Admin, el backend envía un aviso a los emails de administrador activos y, si el cliente tiene email y `STORE_PUBLIC_URL` está configurada, envía un email de bienvenida con su `customerCode`. `SEND_CLIENT_WELCOME_EMAIL=false` deshabilita únicamente la bienvenida al cliente. Si falla el envío, el alta no se revierte.
 
 ## 🚀 Scripts disponibles
 

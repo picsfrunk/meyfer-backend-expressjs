@@ -27,7 +27,9 @@ class CustomersController {
 
     static async createCustomer(req, res) {
         try {
-            const customer = await CustomersService.createCustomer(req.body);
+            const customer = await CustomersService.createCustomer(req.body, {
+                createdBy: req.user?.username || req.user?.email || null,
+            });
             res.status(201).json({ status: 'success', customer });
         } catch (err) {
             console.error('[customers] Error creando cliente:', err);
