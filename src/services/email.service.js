@@ -3,6 +3,8 @@ const buildCustomerOrderConfirmationHtml = require("../utils/buildCustomerOrderC
 const { buildScraperEmail }     = require("../utils/buildScraperEmail");
 const { buildPriceCheckEmail }  = require("../utils/buildPriceCheckEmail");
 const { buildPriceListImportEmail, normalizeEmailState } = require("../utils/buildPriceListImportEmail");
+const { buildCustomerWelcomeEmail } = require("../utils/buildCustomerWelcomeEmail");
+const { buildNewCustomerAdminEmail } = require("../utils/buildNewCustomerAdminEmail");
 const { mailjet }       = require("./MailJet.service");
 const ConfigService     = require("./config.service");
 const ScrapedProduct    = require("../models/products.model");
@@ -126,10 +128,45 @@ async function sendPriceListImportNotification(payload = {}) {
     return _send({ to: adminEmails, subject, html });
 }
 
+async function sendCustomerWelcomeEmail(customer = {}) {
+    if (process.env.SEND_CLIENT_WELCOME_EMAIL === 'false') {
+        return { success: false, skipped: true, error: "Email de bienvenida deshabilitado" };
+    }
+
+    const to = customer?.email;
+    if (!to) {
+        return { success: false, skipped: true, error: "Cliente sin email" };
+    }
+
+    const storeUrl = (process.env.STORE_PUBLIC_URL || '').trim();
+    if (!storeUrl) {
+        return { success: false, skipped: true, error: "STORE_PUBLIC_URL no configurada" };
+    }
+
+    return _send({
+        to,
+        subject: "Ya podés realizar pedidos en Meyfer",
+        html: buildCustomerWelcomeEmail({ customer, storeUrl }),
+    });
+}
+
+async function sendNewCustomerAdminNotification({ customer = {}, createdBy = null } = {}) {
+    const adminEmails = await ConfigService.listActiveAdminEmails();
+    if (!adminEmails.length) return { success: false, error: "No hay admins activos" };
+
+    return _send({
+        to: adminEmails,
+        subject: "Nuevo cliente dado de alta",
+        html: buildNewCustomerAdminEmail({ customer, createdBy }),
+    });
+}
+
 module.exports = {
     sendOrderNotificationToAdmins,
     sendOrderConfirmationToCustomer,
     sendScraperFinishedNotification,
     sendPriceCheckNotification,
     sendPriceListImportNotification,
+    sendCustomerWelcomeEmail,
+    sendNewCustomerAdminNotification,
 };
