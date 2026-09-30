@@ -99,6 +99,35 @@ async function handleJobCanceled({ job, queueSnapshot }) {
     );
 }
 
+async function handleJobStatusReceived({ job, statusReceived, result, queueSnapshot }) {
+    updateLiveSnapshot(queueSnapshot);
+
+    const now = new Date();
+
+    await ScraperJob.findOneAndUpdate(
+        { jobId: job.id },
+        {
+            $set: {
+                status: 'received',
+                result: {
+                    ..._normalizeResult(result, job?.type),
+                    statusReceived,
+                },
+                lastQueueSnapshot: queueSnapshot,
+            },
+            $setOnInsert: {
+                jobId: job.id,
+                type: job.type,
+                enqueuedAt: now,
+                queuePosition: 0,
+                pendingAtEnqueue: 0,
+                params: job.params ?? null,
+            }
+        },
+        { upsert: true, new: true }
+    );
+}
+
 async function handleJobFinished({ job, status, result, queueSnapshot }) {
     updateLiveSnapshot(queueSnapshot);
 
@@ -158,6 +187,22 @@ function _normalizeResult(result = {}, jobType = null) {
             dryRun:       result.dryRun       ?? null,
             durationMs:   result.durationMs   ?? null,
             error:        result.error        ?? null,
+        };
+    }
+
+    if (jobType === 'priceListImport') {
+        return {
+            totalRows:         result.totalRows         ?? null,
+            validRows:         result.validRows         ?? null,
+            updatedProducts:   result.updatedProducts   ?? null,
+            unchangedProducts: result.unchangedProducts ?? null,
+            notFoundProducts:  result.notFoundProducts  ?? null,
+            invalidRows:       result.invalidRows       ?? null,
+            duplicates:        result.duplicates        ?? null,
+            durationMs:        result.durationMs        ?? null,
+            error:             result.error             ?? null,
+            errorsSummary:     Array.isArray(result.errorsSummary) ? result.errorsSummary.slice(0, 10) : undefined,
+            statusReceived:    result.statusReceived    ?? null,
         };
     }
 
@@ -281,6 +326,7 @@ module.exports = {
     handleJobStarted,
     handleJobFinished,
     handleJobCanceled,
+    handleJobStatusReceived,
     getLiveStatus,
     getJobHistory,
     getJobById,

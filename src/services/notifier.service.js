@@ -34,7 +34,18 @@ async function notifyPriceCheck(payload) {
     return { success: true };
 }
 
+async function notifyPriceListImport(payload) {
+    try {
+        await emailService.sendPriceListImportNotification(payload);
+    } catch (error) {
+        console.error('[notifier.service] Falló el envío de email de importación de lista de precios:', error.message);
+    }
+
+    return { success: true };
+}
+
 module.exports = {
     notifyScraper,
     notifyPriceCheck,
+    notifyPriceListImport,
 };

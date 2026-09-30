@@ -6,17 +6,12 @@
  * @param {object} payload
  * @param {object}  payload.summary   - { changed, new, removed, total_odoo, total_db, failed, checkedAt, durationMs }
  * @param {Array}   payload.changed   - [{ product_id, display_name, old_price, new_price, diff, diff_percent }]
- * @param {string}  payload.status    - 'success' | 'completed' | 'enqueued' | 'queued' | 'started' | 'running' | 'error' | 'failed' | 'canceled'
+ * @param {string}  payload.status    - 'success' | 'error' | 'canceled'
  * @param {string}  [payload.error]   - mensaje de error si falló
  * @returns {{ subject: string, html: string }}
  */
-function buildPriceCheckEmail({ summary = {}, changed = [], status = 'success', error = null, timestamp = null, jobId = null, queueInfo = null }) {
-    const normalizedStatus = normalizeStatus(status);
-    const isSuccess = normalizedStatus === 'success';
-    const isQueued = normalizedStatus === 'queued';
-    const isRunning = normalizedStatus === 'running';
-    const isInProgress = isQueued || isRunning;
-    const isCanceled = normalizedStatus === 'canceled';
+function buildPriceCheckEmail({ summary = {}, changed = [], status = 'success', error = null }) {
+    const isSuccess = status === 'success';
 
     const formatMs = (ms) => {
         if (!ms) return '—';
@@ -34,9 +29,9 @@ function buildPriceCheckEmail({ summary = {}, changed = [], status = 'success', 
         n != null ? `$${Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—';
 
     // ── Colores ──────────────────────────────────────────────────────────────
-    const headerColor = isSuccess ? '#1a5276' : (isInProgress ? '#1a5276' : (isCanceled ? '#566573' : '#a93226'));
-    const headerBg    = isSuccess ? '#eaf4fb' : (isInProgress ? '#eaf4fb' : (isCanceled ? '#f2f3f4' : '#fdedec'));
-    const headerBorder= isSuccess ? '#85c1e9' : (isInProgress ? '#85c1e9' : (isCanceled ? '#d5dbdb' : '#f1948a'));
+    const headerColor = isSuccess ? '#1a5276' : (status === 'canceled' ? '#566573' : '#a93226');
+    const headerBg    = isSuccess ? '#eaf4fb' : (status === 'canceled' ? '#f2f3f4' : '#fdedec');
+    const headerBorder= isSuccess ? '#85c1e9' : (status === 'canceled' ? '#d5dbdb' : '#f1948a');
 
     // ── Tabla de resumen ─────────────────────────────────────────────────────
     const row = (label, value, bg = 'transparent') => `
@@ -47,14 +42,6 @@ function buildPriceCheckEmail({ summary = {}, changed = [], status = 'success', 
 
     const badge = (n, color, bg) =>
         `<span style="background:${bg};color:${color};padding:2px 10px;border-radius:12px;font-weight:700;">${n}</span>`;
-
-    const progressRows = `
-        ${jobId ? row('Job ID', `<code style="font-family:monospace;font-size:12px;background:#f4f6f7;padding:2px 6px;border-radius:4px;color:#555;">${jobId}</code>`, '#f8f9fa') : ''}
-        ${row('Estado', `<span style="color:#1a5276;">${isQueued ? 'En cola' : 'Iniciada correctamente'}</span>`)}
-        ${isQueued && queueInfo?.position != null ? row('Posición en cola', queueInfo.position, '#f8f9fa') : ''}
-        ${isQueued && queueInfo?.pendingAfter != null ? row('Jobs pendientes', queueInfo.pendingAfter) : ''}
-        ${row(isQueued ? 'Encolado el' : 'Iniciado el', formatDate(timestamp ?? Date.now()), '#f8f9fa')}
-    `;
 
     const summaryRows = isSuccess ? `
         ${row('Productos verificados', (summary.total_odoo ?? 0).toLocaleString('es-AR'), '#f8f9fa')}
@@ -77,11 +64,11 @@ function buildPriceCheckEmail({ summary = {}, changed = [], status = 'success', 
         ${summary.failed > 0 ? row('Sin respuesta de Odoo', badge(summary.failed, '#7d6608', '#fef9e7'), '#f8f9fa') : ''}
         ${row('Duración', formatMs(summary.durationMs), summary.failed > 0 ? 'transparent' : '#f8f9fa')}
         ${row('Ejecutado el', formatDate(summary.checkedAt))}
-    ` : (isInProgress ? progressRows : (isCanceled ? `
+    ` : (status === 'canceled' ? `
         ${row('Estado', `<span style="color:#566573;">Cancelado</span>`)}
     ` : `
         ${row('Error', `<span style="color:#a93226;">${error ?? 'Error desconocido'}</span>`)}
-    `));
+    `);
 
     // ── Tabla de productos con precios cambiados ──────────────────────────────
     const changedTable = (isSuccess && changed.length > 0) ? `
@@ -134,23 +121,10 @@ function buildPriceCheckEmail({ summary = {}, changed = [], status = 'success', 
     ` : '');
 
     // ── Asunto ───────────────────────────────────────────────────────────────
-    const emoji   = isSuccess ? (summary.changed > 0 ? '💰' : '✅') : (isInProgress ? 'ℹ️' : (isCanceled ? '🚫' : '❌'));
+    const emoji   = isSuccess ? (summary.changed > 0 ? '💰' : '✅') : (status === 'canceled' ? '🚫' : '❌');
     const subject = isSuccess
         ? `${emoji} Verificación de precios — ${summary.changed} cambio${summary.changed !== 1 ? 's' : ''} detectado${summary.changed !== 1 ? 's' : ''}`
-        : (isRunning
-            ? 'Verificación de precios iniciada'
-            : (isQueued
-                ? 'Verificación de precios en cola'
-                : (isCanceled ? `🚫 Verificación de precios — Cancelado` : 'Error en la verificación de precios')));
-
-    const introText = isInProgress
-        ? (isQueued
-            ? 'La verificación de precios fue recibida correctamente y quedó en cola para ejecutarse.'
-            : 'La verificación de precios se inició correctamente. El sistema comparará los precios actuales del sitio fuente con los productos guardados.')
-        : 'Reporte automático de cambios en el catálogo de Odoo';
-
-    const badgeBg = isSuccess ? '#d6eaf8' : (isInProgress ? '#d6eaf8' : (isCanceled ? '#ebedef' : '#fadbd8'));
-    const badgeText = isSuccess ? 'COMPLETADO' : (isRunning ? 'INICIADA' : (isQueued ? 'EN COLA' : (isCanceled ? 'CANCELADO' : 'ERROR')));
+        : (status === 'canceled' ? `🚫 Verificación de precios — Cancelado` : `❌ Verificación de precios — Error`);
 
     const html = `
 <!DOCTYPE html>
@@ -171,14 +145,14 @@ function buildPriceCheckEmail({ summary = {}, changed = [], status = 'success', 
               ${emoji}&nbsp; Verificación de Precios
             </div>
             <div style="margin-top:5px;font-size:13px;color:#7f8c8d;">
-              ${introText}
+              Reporte automático de cambios en el catálogo de Odoo
             </div>
           </td>
           <td align="right" valign="top">
-            <span style="display:inline-block;background:${badgeBg};
+            <span style="display:inline-block;background:${isSuccess ? '#d6eaf8' : (status === 'canceled' ? '#ebedef' : '#fadbd8')};
                          color:${headerColor};border:1px solid ${headerBorder};
                          padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;">
-              ${badgeText}
+              ${isSuccess ? 'COMPLETADO' : (status === 'canceled' ? 'CANCELADO' : 'ERROR')}
             </span>
           </td>
         </tr></table>
@@ -222,14 +196,6 @@ function buildPriceCheckEmail({ summary = {}, changed = [], status = 'success', 
 </html>`;
 
     return { subject, html };
-}
-
-function normalizeStatus(status) {
-    if (['success', 'completed'].includes(status)) return 'success';
-    if (['queued', 'enqueued'].includes(status)) return 'queued';
-    if (['started', 'running'].includes(status)) return 'running';
-    if (status === 'canceled') return 'canceled';
-    return 'error';
 }
 
 module.exports = { buildPriceCheckEmail };

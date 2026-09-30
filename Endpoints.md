@@ -553,6 +553,39 @@ Ejemplo para `sitemapScraper` limitado:
 ### `POST /config/price-check`
 Inicia el monitor de comparación de precios contra la competencia.
 
+### `GET /admin/price-list-import/settings`
+Devuelve la URL configurada de lista de precios y el último estado persistido. El estado incluye, cuando existe, `lastScraperJobId`, `lastStatus`, `lastRunAt`, `lastCompletedAt`, `lastError`, `lastResult`, `lastSource` y `lastPriceListImportAt`.
+
+### `PUT /admin/price-list-import/settings`
+Guarda la URL configurada de lista de precios.
+
+```json
+{
+  "sourceUrl": "https://proveedor.example/lista.xlsx"
+}
+```
+
+### `POST /admin/price-list-import/import-from-url`
+Inicia una importación usando la URL guardada. El backend llama al scraper y devuelve el `jobId` generado por el scraper.
+
+### `POST /admin/price-list-import/upload`
+Inicia una importación manual con archivo temporal. `Content-Type: multipart/form-data`, campo `file` (`csv` o `xlsx`). El backend guarda temporalmente el archivo, llama al scraper con `fileId` y devuelve el `jobId` generado por el scraper.
+
+### `GET /webhook/price-list-import/files/:fileId`
+Endpoint para que el scraper descargue un archivo temporal. Requiere `X-Webhook-Secret` y responde JSON con `contentBase64`, metadata y extensión.
+
+### `POST /webhook/price-list-import/result`
+Webhook protegido para recibir el resultado del scraper. Requiere `X-Webhook-Secret`.
+
+Este endpoint es llamado por el scraper; el frontend no lo consume directamente. Al recibir un resultado `completed` o `failed`, el backend normaliza payloads con campos como `jobId`, `status`, `source`, `summary`, `result`, `error`, `errors`, `metadata`, `startedAt` y `finishedAt`. Luego actualiza el estado `priceListImport`, registra el proceso en el historial de scraper como `priceListImport` y envía email administrativo con resumen legible.
+
+Fuentes reconocidas:
+
+- `manual_upload`: se muestra como “Actualización por lista manual”.
+- `remote_configured_url`: se muestra como “Actualización por lista configurada”.
+
+El email puede incluir `jobId`, fuente, fecha/hora, filas totales, filas válidas, productos actualizados, productos sin cambios, productos no encontrados, filas inválidas, duplicados, errores resumidos y mensaje de error.
+
 ### `GET /admin/price-check/latest`
 Obtiene el último reporte de cambios de precios generado.
 
@@ -565,11 +598,7 @@ Crea un producto manual con carga de imagen a Cloudinary.
 - **Body:** `image` (File), `display_name`, `list_price`, `category_id`.
 
 ### `PUT /admin/products/:productId`
-Actualiza datos o imagen de un producto manual o scrapeado.
-- **Content-Type:** `application/json` para actualizar por URL, o `multipart/form-data` para subir archivo.
-- **Body JSON imagen:** `image_url` es el campo canonico y debe ser una URL `http(s)` no vacia. Se acepta `imageUrl` como alias de entrada y se persiste como `image_url`.
-- **Body multipart imagen:** `image` (File) reemplaza la imagen en Cloudinary usando `meyfer/products/product_<productId>` y devuelve la URL resultante en `image_url`.
-- Si se guarda la misma URL, el refresco visual puede depender del cache del navegador/CDN; el backend persiste y devuelve la URL recibida.
+Actualiza datos o imagen de un producto manual.
 
 ### `DELETE /admin/products/:productId`
 Elimina el producto de la DB y su imagen de Cloudinary.
@@ -587,6 +616,7 @@ Detalle de un cliente por su `_id` de MongoDB.
 
 ### `POST /admin/customers`
 Crea un cliente manualmente. El campo `customerCode` se genera automáticamente (no se acepta en el body).
+Si el alta se completa correctamente, el backend envía un aviso a administradores activos y una bienvenida al cliente cuando tiene email y `STORE_PUBLIC_URL` está configurada. El fallo de email no revierte la creación.
 - **Body:**
 ```json
 {

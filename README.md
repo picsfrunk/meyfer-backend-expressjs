@@ -1,41 +1,139 @@
-# Meyfer Backend (Express.js)
+# MeyFer Backend (Express.js)
 
-Este es el backend del proyecto **Meyfer**, construido con Node.js, Express.js y MongoDB. Centraliza tres responsabilidades principales: parsear y servir el catálogo de productos desde un Excel remoto, orquestar scrapers y monitores de precios externos, y gestionar pedidos con notificaciones por email a admins y clientes.
+![Node.js](https://img.shields.io/badge/Node.js-20-339933?logo=nodedotjs&logoColor=white)
+![Express.js](https://img.shields.io/badge/Express.js-4.21-000000?logo=express&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-8-47A248?logo=mongodb&logoColor=white)
+![Mongoose](https://img.shields.io/badge/Mongoose-8.13-880000?logo=mongoose&logoColor=white)
+![JWT](https://img.shields.io/badge/JWT-Auth-000000?logo=jsonwebtokens&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
-## 🧰 Tecnologías utilizadas
+API REST central del ecosistema **MeyFer**, una plataforma B2B de e-commerce para distribución de productos de ferretería. Este backend orquesta todos los servicios de la plataforma: gestión de catálogo, pedidos, clientes, scraping, notificaciones y configuración del negocio.
 
-- Node.js + Express.js
-- MongoDB (Mongoose)
-- Docker + Docker Compose
-- Railway (para despliegue en producción)
-- XLSX (para procesar archivos Excel)
-- Cloudinary (almacenamiento de imágenes de productos)
-- Mailjet (envío de emails transaccionales)
-- Axios, dotenv, morgan, cors, express-rate-limit, jsonwebtoken, multer
+Forma parte de un ecosistema de 4 microservicios junto con `meyfer-app-angular` (tienda), `meyfer-admin-react` (panel admin) y `meyfer-scraper` (extracción de datos).
 
-## 📁 Estructura del proyecto
+---
 
-```text
-meyfer-backend-expressjs/
-├── src/
-│   ├── controllers/       # Controladores de las rutas
-│   ├── models/            # Esquemas de MongoDB con Mongoose
-│   ├── routes/            # Definición de rutas
-│   ├── services/          # Lógica de negocio
-│   ├── middlewares/       # Auth, upload, etc.
-│   ├── utils/             # Helpers y constantes
-│   └── app.js             # App Express
-├── index.js               # Punto de entrada del servidor
-├── docker-compose.yml     # Configuración para entorno local con Docker
-├── .env                   # Variables de entorno (no commitear)
-├── Endpoints.md           # Documentación de endpoints
-├── package.json           # Dependencias y scripts
-└── README.md              # Este archivo
+## 🛠️ Stack Tecnológico
+
+| Categoría | Tecnología |
+|---|---|
+| **Runtime / Framework** | Node.js 20 + Express.js 4.21 |
+| **Base de Datos** | MongoDB (Mongoose 8.13) |
+| **Autenticación** | JWT (jsonwebtoken) con roles admin |
+| **Seguridad Webhooks** | SHA-256 + `crypto.timingSafeEqual` |
+| **Rate Limiting** | express-rate-limit (5 req/s) |
+| **Imágenes** | Cloudinary SDK (WebP, max 800px, upload en memoria) |
+| **Emails** | Mailjet v3.1 (node-mailjet) |
+| **Upload de archivos** | Multer (memoryStorage, sin disco) |
+| **HTTP Client** | Axios (comunicación con microservicio scraper) |
+| **Containerización** | Docker + Docker Compose |
+| **Deploy** | Railway |
+
+---
+
+## ✨ Funcionalidades Principales
+
+### 🔐 Autenticación y Seguridad
+- Autenticación admin mediante JWT Bearer Token con expiración configurable.
+- Middleware de autorización que valida firma y rol `admin` en rutas protegidas.
+- Webhooks protegidos con secreto compartido validado mediante hash SHA-256 y comparación timing-safe.
+- Rate limiting configurable por IP en endpoints públicos de búsqueda.
+- CORS con lista blanca dinámica configurable por variable de entorno.
+
+### 📦 Gestión de Pedidos
+- Creación pública de pedidos validando `customerCode` del cliente (sin login requerido).
+- Snapshot inmutable de datos del cliente al momento de confirmar el pedido.
+- Workflow de estados: `pending` → `confirmed` → `processing` → `shipped` → `delivered` (+ `cancelled` / `deleted`).
+- Edición de ítems, cantidades y recargo extra con recálculo automático de totales.
+- Bitácora interna automática (audit trail) que registra cada cambio de estado, precio, entrega y nota.
+- Soft delete con trazabilidad.
+- Reenvío selectivo de emails de confirmación (admin, cliente o ambos).
+
+### 👥 Gestión de Clientes
+- CRUD completo con datos fiscales (Razón Social, CUIT), contacto y dirección postal.
+- Generación automática de código de cliente único (6 caracteres alfanuméricos).
+- Regeneración de código preservando unicidad.
+- Email de bienvenida al cliente con su código y enlace a la tienda.
+- Aviso automático a administradores ante alta de nuevos clientes.
+
+### 🏷️ Catálogo de Productos
+- Búsqueda paginada con filtro por texto (full-text search), categoría y marca.
+- CRUD administrativo de productos manuales con subida de imagen a Cloudinary.
+- Recálculo automático de `final_price` al modificar precio o margen de ganancia.
+- Diferenciación entre productos scrapeados (`isManual: false`) y manuales (`isManual: true`).
+- Eliminación de imagen en Cloudinary al borrar productos manuales.
+
+### 💰 Configuración de Negocio
+- Margen de ganancia global configurable con recálculo masivo (`bulkWrite`) sobre todo el catálogo.
+- Gestión de emails de notificación con roles (`admin` / `seller`) y estado activo/inactivo.
+- Timestamp de última actualización del catálogo.
+
+### 🕷️ Orquestación del Scraper
+- Disparo de scraping por categorías o por sitemap desde endpoints admin.
+- Soporte de modo test limitado (`testMode`, `limitProducts`, `limitCategories`, `skipImages`).
+- Análisis de sitemap del proveedor.
+- Verificación de precios contra el proveedor upstream (price check).
+- Monitor de cola en tiempo real con caché in-memory de 30 segundos.
+- Historial paginado de jobs con filtros por estado y tipo.
+- Cancelación individual o masiva de jobs pendientes.
+- Mantenimiento de categorías: restauración oficial y reorganización con soporte `dryRun`.
+
+### 📥 Importación de Listas de Precios
+- Configuración de URL remota para descarga automática de lista de precios.
+- Upload manual de archivos CSV/XLSX (hasta 20MB) con almacenamiento temporal en memoria.
+- Coordinación con microservicio scraper para procesamiento asíncrono.
+- Notificación por email con resumen de importación (productos actualizados, sin cambios, errores).
+
+### 📧 Sistema de Notificaciones por Email
+- Plantillas HTML para: nuevo pedido, confirmación al cliente, bienvenida, nuevo cliente, fin de scraping, reporte de price check, resultado de importación de listas.
+- Envío no bloqueante (`Promise.allSettled`) para no afectar operaciones principales.
+- Múltiples destinatarios configurables por rol.
+
+---
+
+## 📋 Requisitos Previos
+
+- Node.js 18 o superior
+- MongoDB (local o Atlas)
+- Cuentas de API: Cloudinary, Mailjet (opcionales para desarrollo básico)
+
+---
+
+## 🚀 Instalación y Ejecución
+
+```bash
+# Instalar dependencias
+npm install
+
+# Modo desarrollo (nodemon + hot reload)
+npm run dev
+
+# Modo producción
+npm start
+
+# Tests (Node.js test runner nativo)
+npm test
 ```
 
-## ⚙️ Variables de entorno
+La API estará disponible en `http://localhost:3000`.
 
-Crea un archivo `.env` con el siguiente contenido para desarrollo local:
+### 🐳 Docker (MongoDB local)
+
+```bash
+# Levantar MongoDB (puerto 27018) y Mongo Express (puerto 8081)
+docker-compose up -d
+
+# Detener
+docker-compose down
+```
+
+Mongo Express disponible en: `http://localhost:8081`
+
+---
+
+## ⚙️ Variables de Entorno
+
+Crear un archivo `.env` en la raíz del proyecto:
 
 ```env
 # Entorno
@@ -53,170 +151,115 @@ ADMIN_PASS=admin
 JWT_SECRET=cambia_este_secreto
 # JWT_EXPIRES_IN=1h   # opcional, default: 1h
 
-# Cloudinary (gestión de imágenes de productos)
+# CORS (separar orígenes por coma)
+# CORS_ORIGIN=http://localhost:4200,http://localhost:5271
+
+# Cloudinary
 CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
 
-# Mailjet (emails transaccionales)
+# Mailjet
 MJ_APIKEY_PUBLIC=
 MJ_APIKEY_PRIVATE=
 MAIL_FROM=noreply@tudominio.com
 MAIL_FROM_NAME=MeyFer
-# Compatibilidad temporal: también se aceptan MJ_SENDER_EMAIL y MJ_SENDER_NAME
+STORE_PUBLIC_URL=https://tienda.tudominio.com
+# SEND_CLIENT_WELCOME_EMAIL=true
 
-# Scrapers externos (URLs de los microservicios)
-CATEGORY_SCRAPER_URL=http://localhost:3001/api/scraper/category
-SITEMAP_SCRAPER_URL=http://localhost:3001/api/scraper/sitemap
-SITEMAP_ANALYSIS_URL=http://localhost:3001/api/scraper/analyze
-PRICE_CHECK_URL=http://localhost:3001/api/scraper/check-prices
-SCRAPER_STATUS_URL=http://localhost:3001/api/scraper/status
+# Scraper (microservicio)
 SCRAPER_URL=http://localhost:3001/api/scraper
-# Opcionales: si no se configuran, se derivan desde SCRAPER_URL
-SCRAPER_CATEGORIES_RESTORE_URL=http://localhost:3001/api/scraper/categories/restore-official
-SCRAPER_CATEGORIES_REORGANIZE_URL=http://localhost:3001/api/scraper/categories/reorganize
+SCRAPER_WEBHOOK_SECRET=secreto_compartido
 
-# Webhooks (URL del backend para que los scrapers devuelvan resultados)
+# Webhooks (URLs que el backend envía al scraper para recibir resultados)
 WEBHOOK_URL=http://localhost:3000/api/webhook/scraper/result
 WEBHOOK_PRICE_CHECK_URL=http://localhost:3000/api/webhook/price-check/result
-SCRAPER_WEBHOOK_SECRET=change-me
+WEBHOOK_PRICE_LIST_IMPORT_URL=http://localhost:3000/api/webhook/price-list-import/result
 ```
 
-> **Nota:** `MONGODB_URI_DEV` se usa cuando `NODE_ENV=development`; `MONGODB_URI_PROD` cuando `NODE_ENV=production`. El README anterior mencionaba `MONGO_URI`, que ya **no existe** en el código.
->
-> **Nota Mailjet:** para el remitente se recomienda usar `MAIL_FROM` y `MAIL_FROM_NAME`. Por compatibilidad temporal, el backend también acepta `MJ_SENDER_EMAIL` y `MJ_SENDER_NAME` como fallback.
+> **Nota:** `MONGODB_URI_DEV` se usa cuando `NODE_ENV=development`; `MONGODB_URI_PROD` cuando `NODE_ENV=production`.
 
-## 🚀 Scripts disponibles
+---
 
-```bash
-# Iniciar el servidor en modo producción
-npm start
+## 🏗️ Estructura del Proyecto
 
-# Iniciar con nodemon en modo desarrollo
-npm run dev
+```text
+meyfer-backend-expressjs/
+├── index.js                          # Entry point del servidor
+├── Dockerfile                        # Imagen Docker (node:20-alpine)
+├── docker-compose.yml                # MongoDB local + Mongo Express
+├── Endpoints.md                      # Documentación completa de endpoints
+├── AGENTS.md                         # Guía técnica para agentes IA
+├── MeyFer.postman_collection.json    # Colección Postman importable
+├── docs/
+│   └── scraper-category-maintenance.md
+├── test/
+│   ├── customers.service.test.js
+│   ├── priceListImport.service.test.js
+│   └── webhookAuth.middleware.test.js
+└── src/
+    ├── app.js                        # Config Express, CORS, rutas, MongoDB
+    ├── database/
+    │   └── mongo.js                  # Conexión Mongoose según NODE_ENV
+    ├── middlewares/
+    │   ├── auth.middleware.js         # Validación JWT admin
+    │   ├── webhookAuth.middleware.js  # Validación SHA-256 de webhook secret
+    │   ├── limiter.middleware.js      # Rate limit (5 req/s)
+    │   └── upload.middleware.js       # Multer memoryStorage (5MB img)
+    ├── models/                       # 12 esquemas Mongoose
+    │   ├── customer.model.js         # Clientes con customerCode único
+    │   ├── order.model.js            # Pedidos con snapshot de cliente
+    │   ├── order_log.model.js        # Bitácora interna (audit trail)
+    │   ├── products.model.js         # Catálogo (text index en nombre/marca)
+    │   ├── scraper_job.model.js      # Historial de jobs del scraper
+    │   ├── config.model.js           # Configuración dinámica (margen, etc.)
+    │   └── ...                       # Admin emails, counters, sections, etc.
+    ├── controllers/                  # 11 controladores
+    ├── routes/                       # 13 archivos de rutas
+    ├── services/                     # 15 servicios de lógica de negocio
+    └── utils/                        # Plantillas HTML de emails, helpers
 ```
 
-## 🐳 Uso con Docker (desarrollo local)
+---
 
-```bash
-# Levantar MongoDB local (puerto 27018) y mongo-express (puerto 8081)
-docker-compose up -d
+## 🗺️ Resumen de Endpoints (~50+ rutas)
 
-# Ver logs
-docker-compose logs -f
+| Prefijo | Protección | Descripción |
+|---|---|---|
+| `POST /api/auth/login` | Público | Login admin → JWT token |
+| `GET /api/products/*` | Público (rate limited) | Catálogo, búsqueda, marcas |
+| `GET /api/categories` | Público | Categorías con conteo de productos |
+| `/api/orders/*` | Público (new) / Admin (gestión) | Creación y gestión de pedidos |
+| `/api/orders/:id/logs` | Heredado | Bitácora interna de pedidos |
+| `/api/admin/products/*` | 🔐 JWT Admin | CRUD de productos con imagen |
+| `/api/admin/customers/*` | 🔐 JWT Admin | CRUD de clientes |
+| `/api/admin/scraper/*` | 🔐 JWT Admin | Orquestación y monitor del scraper |
+| `/api/admin/price-check/*` | 🔐 JWT Admin | Reportes de verificación de precios |
+| `/api/admin/price-list-import/*` | 🔐 JWT Admin | Importación de listas de precios |
+| `/api/config/*` | 🔐 JWT Admin | Margen, emails, triggers |
+| `/api/webhook/*` | 🔑 Webhook Secret | Recepción de resultados del scraper |
+| `/api/dev/*` | 🔐 JWT Admin | Herramientas de diagnóstico |
 
-# Detener servicios
-docker-compose down
-```
+📖 Documentación detallada de payloads y respuestas en [`Endpoints.md`](./Endpoints.md)
 
-Accede a **mongo-express** en: `http://localhost:8081`
+📬 Colección Postman lista para importar: `MeyFer.postman_collection.json`
 
-## 📦 Pedidos
+---
 
-Los pedidos se crean con `POST /api/orders/new` usando un cliente existente referenciado por `customerInfo.customerCode`. El backend arma el snapshot `customerInfo` desde la base de datos y guarda los datos de entrega en `delivery`.
+## ☁️ Despliegue
 
-Cada pedido puede incluir una observación libre opcional del cliente en `customerNote`. El valor se normaliza a string con `trim()` y, si no se envía, se guarda como `''`. Para compatibilidad temporal, creación también acepta `notes`, `note`, `notas` o `customerInfo.notas`, pero siempre persiste la observación en `customerNote`.
+El proyecto está configurado para despliegue automático en **Railway**:
 
-`customerNote` no pertenece a `customerInfo`, no pertenece a `delivery` y no debe mezclarse con `delivery.schedule`, que sigue representando únicamente el horario o ventana de entrega.
-
-### Bitácora interna de pedidos
-
-Cada pedido puede tener una bitácora interna para seguimiento operativo del equipo/admin. Esta bitácora se guarda en una colección separada (`OrderLog`) y no modifica el documento `Order`.
-
-La bitácora no reemplaza ni se mezcla con `customerNote`: `customerNote` es la observación escrita por el cliente al crear el pedido; los logs son notas internas posteriores para administración.
-
-Además de notas manuales (`type: "note"`), el backend registra automáticamente cambios operativos del pedido con tipos específicos como `status_change`, `delivery_change`, `pricing_change`, `customer_note_change`, `customer_info_change` y `order_deleted`. Estos logs pueden incluir `metadata` con valores anteriores/nuevos, productos agregados/quitados/modificados, cambios de recargo extra y totales.
-
-Endpoints disponibles:
-
-- `GET /api/orders/:orderId/logs`
-- `POST /api/orders/:orderId/logs`
-- `PATCH /api/orders/:orderId/logs/:logId`
-- `DELETE /api/orders/:orderId/logs/:logId`
-
-Los logs eliminados usan soft delete (`isDeleted`, `deletedAt`) y no aparecen en el listado.
-
-## 🔁 Webhooks de scraper
-
-El backend le envía al microservicio scraper la URL de respuesta en el campo `webhookUrl`. El scraper no debería tener hardcodeado el endpoint del backend: debe usar la URL recibida.
-
-### Modo limitado de scraper
-
-El endpoint admin `POST /api/admin/scraper/trigger` acepta parámetros opcionales para disparar corridas limitadas de `categoryScraper` o `sitemapScraper` sin exponer públicamente el microservicio scraper:
-
-```json
-{
-  "scraperType": "categoryScraper",
-  "categoryIds": "all",
-  "testMode": true,
-  "limitProducts": 10,
-  "limitCategories": 1,
-  "skipImages": true
-}
-```
-
-Parámetros validados por el backend antes de reenviar al scraper:
-
-- `testMode`: boolean.
-- `skipImages`: boolean.
-- `limitProducts`: entero positivo, máximo `100`.
-- `limitCategories`: entero positivo, máximo `5`.
-
-`limitProducts` no implica `dryRun`: una corrida limitada puede persistir esos pocos productos si el scraper real persiste. En modo limitado, el scraper omite la limpieza de huérfanos. Este modo sirve para pruebas rápidas y validación de webhooks/cancelación.
-
-Endpoints reales que recibe este backend:
-
-- `POST /api/webhook/scraper/result`
-- `POST /api/webhook/price-check/result`
-
-Ambos endpoints públicos requieren el header `X-Webhook-Secret` con el mismo valor configurado en `SCRAPER_WEBHOOK_SECRET`. Esta variable debe existir en backend y scraper, con idéntico valor en ambos servicios. No debe commitearse en el repositorio. En Railway hay que agregarla como variable de entorno en backend y scraper; después de cambiarla, redeployar ambos servicios.
-
-Variables críticas en producción:
-
-```env
-WEBHOOK_URL=https://<backend-production-url>/api/webhook/scraper/result
-WEBHOOK_PRICE_CHECK_URL=https://<backend-production-url>/api/webhook/price-check/result
-SCRAPER_WEBHOOK_SECRET=<mismo-secreto-configurado-en-el-scraper>
-```
-
-Checklist rápido si el historial del scraper no se actualiza:
-
-1. Verificar que `WEBHOOK_URL` no apunte a `/webhooks/...`; el path real es `/api/webhook/...`.
-2. Verificar que el microservicio scraper esté recibiendo y usando el `webhookUrl` enviado por el backend.
-3. Verificar que MongoDB esté conectado y que los eventos creen/actualicen documentos `ScraperJob`.
-4. Probar manualmente `POST /api/webhook/scraper/result` con un payload `completed` de prueba y luego consultar `/api/admin/scraper/history`.
-
-## 🧩 Mantenimiento seguro de categorías
-
-El backend puede orquestar los jobs agregados en el scraper para recuperar categorías sin ejecutar el scrape completo de productos.
-
-Endpoints admin:
-
-- `POST /api/admin/scraper/categories/restore-official`
-- `POST /api/admin/scraper/categories/reorganize`
-
-Flujo recomendado ante categorías corruptas o incompletas:
-
-1. Ejecutar restore oficial para restaurar `configs.discoveredCategories` desde `rubros.js` en el scraper.
-2. Ejecutar reorganización con `dryRun: true`.
-3. Revisar `/api/admin/scraper/status` o `/api/admin/scraper/history`.
-4. Ejecutar reorganización con `dryRun: false`.
-5. Para futuros scrapes completos por categoría, enviar `useAutoDiscovery: false` al `categoryScraper` desde `/api/admin/scraper/trigger`.
-
-Estos jobs se persisten en `ScraperJob` con tipos `categoriesRestore` y `categoriesReorganize`. No actualizan `last_update` del catálogo porque no representan una actualización comercial de productos.
-
-## ☁️ Despliegue en Railway
-
-1. Subir el proyecto a un repositorio GitHub.
-2. Conectar el repo a Railway y configurar las variables de entorno listadas arriba.
-3. Establecer `NODE_ENV=production` y `MONGODB_URI_PROD=<tu Mongo en Railway o Atlas>`.
+1. Conectar el repositorio GitHub a Railway.
+2. Configurar las variables de entorno listadas arriba.
+3. Establecer `NODE_ENV=production` y la URI de MongoDB Atlas/Railway.
 4. Railway construirá e iniciará el servidor automáticamente.
 
-## 📖 Documentación de Endpoints
+---
 
-Ver [`Endpoints.md`](./Endpoints.md) para la documentación completa de todos los endpoints, incluyendo payloads, respuestas y códigos de error.
+## 📄 Licencia
 
-También se incluye la colección de Postman `MeyFer.postman_collection.json` lista para importar.
+ISC
 
 ---
 

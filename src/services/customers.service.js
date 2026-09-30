@@ -1,4 +1,5 @@
 const Customer = require('../models/customer.model');
+const emailService = require('./email.service');
 
 const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
@@ -115,7 +116,7 @@ class CustomersService {
     /**
      * Crea un cliente manualmente (desde admin).
      */
-    static async createCustomer(data) {
+    static async createCustomer(data, options = {}) {
         const fields = this._buildCustomerFields(data);
 
         if (!fields.cliente) {
@@ -130,7 +131,9 @@ class CustomersService {
             const customer = new Customer({ ...fields, customerCode });
             try {
                 await customer.save();
-                return customer.toObject();
+                const createdCustomer = customer.toObject();
+                await this._notifyCustomerCreated(createdCustomer, options);
+                return createdCustomer;
             } catch (err) {
                 if (err.code === 11000) {
                     if ((err.keyPattern || {}).customerCode) {
@@ -147,6 +150,31 @@ class CustomersService {
                 }
                 throw err;
             }
+        }
+    }
+
+    static async _notifyCustomerCreated(customer, options = {}) {
+        const createdBy = options.createdBy || null;
+        const tasks = [];
+
+        if (customer.email) {
+            tasks.push(
+                emailService.sendCustomerWelcomeEmail(customer)
+                    .catch(error => ({ success: false, error: error.message }))
+            );
+        } else {
+            console.warn(`[customers] Cliente ${customer.customerCode} creado sin email; no se enviará bienvenida.`);
+        }
+
+        tasks.push(
+            emailService.sendNewCustomerAdminNotification({ customer, createdBy })
+                .catch(error => ({ success: false, error: error.message }))
+        );
+
+        const results = await Promise.all(tasks);
+        const failed = results.filter(result => result && result.success === false && !result.skipped);
+        if (failed.length) {
+            console.error('[customers] Falló el envío de notificaciones de alta de cliente:', failed);
         }
     }
 
